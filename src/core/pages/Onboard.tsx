@@ -22,9 +22,18 @@ export default function Onboard() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-6 pt-16 text-center">
-      <div className="flex justify-center mb-10">
-        <Logo size={160} />
+    <div className="max-w-md mx-auto px-6 pt-16 text-center relative">
+      {/* Back to landing */}
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/60 hover:bg-white/[0.08] transition"
+        aria-label="Back to home"
+      >
+        ←
+      </button>
+
+      <div className="flex justify-center mb-8">
+        <Logo size={56} />
       </div>
 
       <h1 className="text-3xl font-bold mb-3 tracking-tight text-white">
