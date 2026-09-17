@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Mission from './pages/Mission';
 import Profile from './pages/Profile';
 import Landing from './pages/Landing';
+import ParentView from './pages/ParentView';
 import { useApp } from './store';
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/mission/:id" element={<Mission />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/parent" element={<ParentView />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
