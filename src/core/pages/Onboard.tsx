@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp, deriveTier } from '../store';
+import { useApp } from '../store';
 import Logo from '../components/Logo';
 
 export default function Onboard() {
@@ -12,15 +12,7 @@ export default function Onboard() {
   const handleStart = () => {
     const trimmed = name.trim();
     if (!trimmed) return alert('Enter a name first');
-    const trialEnds = new Date();
-    trialEnds.setDate(trialEnds.getDate() + 5);
-
-    const tier = deriveTier(grade);
-
-    setUser(
-      { name: trimmed, grade, tier, createdAt: new Date().toISOString() },
-      trialEnds.toISOString()
-    );
+    setUser({ name: trimmed, grade }, 30);
     navigate('/home');
   };
 
@@ -29,7 +21,7 @@ export default function Onboard() {
       <button
         onClick={() => navigate('/')}
         className="absolute top-6 left-6 w-10 h-10 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-white/60 hover:bg-white/[0.08] transition"
-        aria-label="Back"
+        aria-label="Back to home"
       >
         ←
       </button>
@@ -42,7 +34,7 @@ export default function Onboard() {
         Think better, every day.
       </h1>
       <p className="text-white/50 text-[15px] leading-relaxed mb-10 font-medium">
-        Daily missions that build how your child reasons — not what they memorize.
+        Five short daily missions that build how your child reasons — not what they memorize.
       </p>
 
       <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 text-left mb-6">
@@ -77,7 +69,7 @@ export default function Onboard() {
         onClick={handleStart}
         className="w-full py-4 rounded-full font-bold text-[15px] bg-white text-navy-900 hover:bg-white/90 transition"
       >
-        Start 5-day free trial
+        Start 30-day free trial
       </button>
       <p className="text-[12px] text-white/35 font-medium mt-5 leading-relaxed">
         No card needed. Your child's data stays private.
