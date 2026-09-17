@@ -312,5 +312,6 @@ registry.register({
   ],
   idealTests: (r) => LEVELS[r]?.idealTests ?? 4,
   maxTests: () => 15,
+  tiers: ['advanced'],
   Component: SecretMachine,
 });

@@ -8,11 +8,77 @@ export default function Home() {
   const streak = useApp((s) => s.getStreak());
   const isDone = useApp((s) => s.isMissionDoneToday);
 
-  const missions = registry.all();
-  const doneCount = missions.filter((m) => isDone(m.id)).length;
-
   if (!user) return null;
 
+  const userTier = user.tier;
+
+  const missions = registry.all().filter((m) =>
+    m.tiers.includes(userTier)
+  );
+
+  const doneCount = missions.filter((m) => isDone(m.id)).length;
+
+  /* ---------- Foundation tier: coming soon ---------- */
+  if (userTier === 'foundation') {
+    return (
+      <div className="max-w-md mx-auto px-5 pt-8 text-center">
+        <div className="text-[80px] leading-none mb-4 animate-float">🎈</div>
+
+        <div className="text-[13px] text-white/40 font-extrabold tracking-widest uppercase mb-2">
+          Welcome, {user.name}
+        </div>
+
+        <h1 className="text-[26px] font-black text-white mb-3 leading-tight">
+          Your missions are
+          <br />
+          being built!
+        </h1>
+
+        <p className="text-[15px] text-white/50 font-semibold leading-relaxed mb-8 max-w-xs mx-auto">
+          We're creating special thinking games
+          for Class 5–7. They'll be ready very soon.
+        </p>
+
+        <div className="rounded-2xl border border-gold/30 bg-gold/[0.06] p-5 mb-6 text-left">
+          <div className="text-[11px] tracking-widest text-gold font-black uppercase mb-3">
+            🔮 Coming soon
+          </div>
+          <div className="flex flex-col gap-3 text-[14px] font-bold text-white/85 leading-snug">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🧩</span>
+              <span>Riddles that make you think</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🐾</span>
+              <span>Puzzles with hidden rules</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🎨</span>
+              <span>Games about what's really happening</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-[12px] text-white/40 font-bold leading-relaxed">
+          Check back soon. We'll let you know!
+        </div>
+
+        {/* Streak still shows if they have one */}
+        {streak > 0 && (
+          <div className="mt-8 rounded-2xl border border-blue-400/20 bg-blue-500/[0.06] p-4">
+            <div className="text-[12px] text-white/50 font-extrabold tracking-widest uppercase mb-1">
+              🔥 Streak
+            </div>
+            <div className="text-[24px] font-black text-blue-300">
+              {streak} day{streak === 1 ? '' : 's'}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /* ---------- Advanced tier: normal home ---------- */
   return (
     <div className="max-w-2xl mx-auto px-5">
       <div className="mb-8">

@@ -330,6 +330,7 @@ registry.register({
     { fn: 'transferRate', weight: 0.3 },
     { fn: 'systematicity', weight: 0.2 },
   ],
+  tiers: ['advanced'],
   Component: CauseDetective,
 });
 

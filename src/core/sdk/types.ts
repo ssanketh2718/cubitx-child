@@ -1,3 +1,7 @@
+/* =========================================================
+   CubitX SDK Types
+   ========================================================= */
+
 export type DomainKey =
   | 'hypothesis'
   | 'transitive'
@@ -5,6 +9,8 @@ export type DomainKey =
   | 'deduction'
   | 'articulation'
   | 'causality';
+
+export type Tier = 'foundation' | 'advanced';
 
 export interface MetricWeight {
   fn: string;
@@ -14,7 +20,12 @@ export interface MetricWeight {
 export interface MissionContext {
   missionId: string;
   sessionId: string;
-  emit: (type: string, payload?: Record<string, unknown>, round?: number) => void;
+  tier: Tier;
+  emit: (
+    type: string,
+    payload?: Record<string, unknown>,
+    round?: number
+  ) => void;
   onComplete: () => void;
 }
 
@@ -28,6 +39,7 @@ export interface MissionSpec {
   measures: MetricWeight[];
   idealTests?: (round: number) => number;
   maxTests?: (round: number) => number;
+  tiers: Tier[];
   Component: React.ComponentType<{ ctx: MissionContext }>;
 }
 
@@ -43,6 +55,7 @@ export interface MissionEvent {
 export interface User {
   name: string;
   grade: number;
+  tier: Tier;
   createdAt: string;
 }
 

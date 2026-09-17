@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, MissionEvent, Session } from './sdk/types';
+import type { User, MissionEvent, Session, Tier } from './sdk/types';
 
 interface AppState {
   user: User | null;
@@ -41,7 +41,11 @@ export const useApp = create<AppState>()(
         const sessions = [...get().sessions];
         let todaySession = sessions.find((s) => s.date === today);
         if (!todaySession) {
-          todaySession = { id: crypto.randomUUID(), date: today, missionsCompleted: [] };
+          todaySession = {
+            id: crypto.randomUUID(),
+            date: today,
+            missionsCompleted: [],
+          };
           sessions.push(todaySession);
         }
         if (!todaySession.missionsCompleted.includes(missionId)) {
@@ -73,8 +77,29 @@ export const useApp = create<AppState>()(
       },
 
       reset: () =>
-        set({ user: null, trialEndsAt: null, paid: false, events: [], sessions: [] }),
+        set({
+          user: null,
+          trialEndsAt: null,
+          paid: false,
+          events: [],
+          sessions: [],
+        }),
     }),
-    { name: 'cubitx-v1' }
+    {
+      name: 'cubitx-v1',
+      version: 2,
+      migrate: (persistedState: any) => {
+        if (persistedState?.user && !persistedState.user.tier) {
+          const grade = persistedState.user.grade || 5;
+          persistedState.user.tier = grade <= 7 ? 'foundation' : 'advanced';
+        }
+        return persistedState;
+      },
+    }
   )
 );
+
+/* Helper: derive tier from grade */
+export function deriveTier(grade: number): Tier {
+  return grade <= 7 ? 'foundation' : 'advanced';
+}

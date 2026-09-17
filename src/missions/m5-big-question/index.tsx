@@ -182,7 +182,11 @@ registry.register({
   emoji: '💭',
   domain: 'articulation',
   domainName: 'Articulation of Reasoning',
-  sub: 'Which and why?',
-  measures: [{ fn: 'firstTryAccuracy', weight: 1 }],
+  sub: 'Write your thinking',
+  measures: [
+    { fn: 'argumentQuality', weight: 1.0 },
+  ],
+  tiers: ['advanced'],
   Component: BigQuestion,
 });
+

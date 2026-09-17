@@ -231,5 +231,7 @@ registry.register({
     { fn: 'firstTryAccuracy', weight: 0.3 },
     { fn: 'transferRate', weight: 0.2 },
   ],
+  tiers: ['advanced'],
   Component: PatternDetective,
 });
+

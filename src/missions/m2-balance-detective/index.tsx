@@ -179,5 +179,7 @@ registry.register({
     { fn: 'nullDetection', weight: 0.3 },
     { fn: 'transferRate', weight: 0.2 },
   ],
+  tiers: ['advanced'],
   Component: BalanceDetective,
 });
+

@@ -7,9 +7,29 @@ export default function Mission() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const completeMission = useApp((s) => s.completeMission);
+  const user = useApp((s) => s.user);
 
   const mission = id ? registry.get(id) : undefined;
   const sessionId = useMemo(() => crypto.randomUUID(), [id]);
+
+  /* Block Foundation users from Advanced missions */
+  if (mission && user && !mission.tiers.includes(user.tier)) {
+    return (
+      <div className="max-w-md mx-auto text-center py-20 px-5">
+        <div className="text-[64px] mb-4">🔒</div>
+        <div className="text-[20px] font-black mb-2">Not available</div>
+        <div className="text-[14px] text-white/50 font-semibold mb-6">
+          This mission is for another class.
+        </div>
+        <button
+          onClick={() => navigate('/home')}
+          className="px-6 py-3 rounded-full bg-white text-navy-900 font-bold"
+        >
+          Back home
+        </button>
+      </div>
+    );
+  }
 
   const emit = useCallback(
     (type: string, payload: Record<string, unknown> = {}, round = 0) => {
@@ -27,8 +47,8 @@ export default function Mission() {
 
   if (!mission) {
     return (
-      <div className="max-w-xl mx-auto text-center py-20 px-5">
-        <div className="text-2xl font-bold mb-4 text-white">Mission not found</div>
+      <div className="max-w-md mx-auto text-center py-20 px-5">
+        <div className="text-[20px] font-black mb-4">Mission not found</div>
         <button
           onClick={() => navigate('/home')}
           className="px-6 py-3 rounded-full bg-white text-navy-900 font-bold"
@@ -42,6 +62,7 @@ export default function Mission() {
   const ctx: MissionContext = {
     missionId: mission.id,
     sessionId,
+    tier: user?.tier ?? 'foundation',
     emit,
     onComplete: handleComplete,
   };
