@@ -4,4 +4,5 @@ export const DOMAINS = [
   { key: 'pattern', name: 'Pattern Detection', emoji: '🔮' },
   { key: 'deduction', name: 'Multi-Constraint Deduction', emoji: '🧩' },
   { key: 'articulation', name: 'Articulation of Reasoning', emoji: '💭' },
+  { key: 'causality', name: 'Cause & Effect', emoji: '🎯' },
 ] as const;

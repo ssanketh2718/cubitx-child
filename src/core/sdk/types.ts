@@ -3,7 +3,8 @@ export type DomainKey =
   | 'transitive'
   | 'pattern'
   | 'deduction'
-  | 'articulation';
+  | 'articulation'
+  | 'causality';
 
 export interface MetricWeight {
   fn: string;
