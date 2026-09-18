@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
+
 /* ════════════════════════════════════════════════════════════
    BRAND TOKENS — extracted from cubitx-logo.png
    ────────────────────────────────────────────────────────────
