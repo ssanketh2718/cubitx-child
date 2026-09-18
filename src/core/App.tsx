@@ -1,6 +1,7 @@
 // src/core/App.tsx
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
+import { useChild } from './auth/ChildContext';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
@@ -10,9 +11,11 @@ import Landing from './pages/Landing';
 import SignIn from './pages/SignIn';
 import AddChild from './pages/AddChild';
 import ParentView from './pages/ParentView';
+import WhoIsPlaying from './pages/WhoIsPlaying';
 
 export default function App() {
   const { session, children: kids, loading } = useAuth();
+  const { activeChild } = useChild();
   const location = useLocation();
 
   const isMission = location.pathname.startsWith('/mission/');
@@ -23,7 +26,7 @@ export default function App() {
     return <div style={{ background: '#05091a', minHeight: '100vh' }} />;
   }
 
-  // ─── NOT SIGNED IN ────────────────────────────────────────
+  // ─── NOT SIGNED IN ───────────────────────────────────────
   if (!session) {
     return (
       <Routes>
@@ -35,7 +38,7 @@ export default function App() {
     );
   }
 
-  // ─── SIGNED IN, BUT NO CHILD YET ──────────────────────────
+  // ─── SIGNED IN, NO CHILD YET ─────────────────────────────
   if (kids.length === 0) {
     return (
       <Routes>
@@ -45,7 +48,17 @@ export default function App() {
     );
   }
 
-  // ─── SIGNED IN WITH AT LEAST ONE CHILD ────────────────────
+  // ─── MULTIPLE CHILDREN, NONE PICKED ──────────────────────
+  if (kids.length > 1 && !activeChild) {
+    return (
+      <Routes>
+        <Route path="/play" element={<WhoIsPlaying />} />
+        <Route path="*" element={<Navigate to="/play" replace />} />
+      </Routes>
+    );
+  }
+
+  // ─── READY TO PLAY ───────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col relative z-10">
       {!isMission && !isOnboard && <TopBar />}
@@ -57,6 +70,7 @@ export default function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/parent" element={<ParentView />} />
           <Route path="/add-child" element={<AddChild />} />
+          <Route path="/switch" element={<WhoIsPlaying />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </main>
