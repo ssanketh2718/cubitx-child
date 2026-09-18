@@ -2,24 +2,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
-
-/* ════════════════════════════════════════════════════════════
-   BRAND TOKENS — extracted from cubitx-logo.png
-   ────────────────────────────────────────────────────────────
-   If the logo's blue differs from what's below, change ONLY
-   BRAND.blue / blueBright / blueSoft. Everything re-skins.
-   ════════════════════════════════════════════════════════════ */
 const BRAND = {
-  surface: '#05091a',                 // page background (from logo bg)
-  surface2: '#0a1228',                // card surface
-  blue: '#7b8dff',                    // PRIMARY — match logo X accent
-  blueBright: '#9aaaff',              // brighter — headline emphasis
-  blueSoft: '#a8b6ff',                // muted accent
-  ink: '#ffffff',                     // text primary
-  inkDim: 'rgba(255,255,255,0.62)',   // body
-  inkFaint: 'rgba(255,255,255,0.38)', // meta
-  inkGhost: 'rgba(255,255,255,0.14)', // borders
+  surface: '#05091a',
+  surface2: '#0a1228',
+  blue: '#7b8dff',
+  blueBright: '#9aaaff',
+  blueSoft: '#a8b6ff',
+  ink: '#ffffff',
+  inkDim: 'rgba(255,255,255,0.62)',
+  inkFaint: 'rgba(255,255,255,0.38)',
+  inkGhost: 'rgba(255,255,255,0.14)',
 };
 
 const thinkingLoop = [
@@ -67,7 +59,7 @@ export default function Landing() {
   const [giftChoice, setGiftChoice] = useState<number | null>(null);
   const [giftHover, setGiftHover]   = useState<number | null>(null);
 
-  const start     = () => navigate('/onboard');
+  const start     = () => navigate('/signin');
   const toMission = () =>
     document.getElementById('hero-mission')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
@@ -88,7 +80,7 @@ export default function Landing() {
       <header className="relative z-30">
         <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 md:px-8 md:py-6">
           <a href="/" aria-label="CubitX" className="flex items-center">
-            <img src="/cubitx-logo.png" alt="CubitX" className="h-9 w-auto select-none md:h-10" draggable={false} />
+            <img src="/cubitx-logo.jpg" alt="CubitX" className="h-9 w-auto select-none md:h-10" draggable={false} />
           </a>
 
           <div className="hidden items-center gap-9 md:flex">
@@ -360,7 +352,7 @@ export default function Landing() {
                     This week's observation
                   </div>
                 </div>
-                <img src="/cubitx-logo.png" alt="" className="h-5 w-auto opacity-60" />
+                <img src="/cubitx-logo.jpg" alt="" className="h-5 w-auto opacity-60" />
               </div>
 
               <div className="py-7">
@@ -587,7 +579,7 @@ export default function Landing() {
       {/* FOOTER */}
       <footer style={{ borderTop: `1px solid ${BRAND.inkGhost}` }}>
         <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 md:flex-row md:items-center md:justify-between md:px-8">
-          <img src="/cubitx-logo.png" alt="CubitX" className="h-6 w-auto opacity-80" />
+          <img src="/cubitx-logo.jpg" alt="CubitX" className="h-6 w-auto opacity-80" />
           <div className="flex flex-wrap gap-5 text-[11.5px]" style={{ color: BRAND.inkFaint }}>
             <a href="#how-it-works" className="transition hover:text-white">How it works</a>
             <a href="#difference"    className="transition hover:text-white">The difference</a>
