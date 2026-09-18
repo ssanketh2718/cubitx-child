@@ -1,4 +1,3 @@
-// src/core/auth/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -57,7 +56,6 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [loading, setLoading] = useState(true);
   const [dev, setDev] = useState<boolean>(() => isDevMode());
 
-  // Session listener — skip entirely when in dev mode
   useEffect(() => {
     if (dev) {
       setLoading(false);
@@ -83,7 +81,6 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     return () => subscription.unsubscribe();
   }, [dev]);
 
-  // Load parent + children when session exists
   useEffect(() => {
     if (dev) return;
     if (!session?.user) return;
@@ -157,7 +154,6 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     return { error: error?.message ?? null };
   };
 
-  // ─── Dev mode: synthesize everything ─────────────────────
   const effectiveSession = dev ? MOCK_SESSION : session;
   const effectiveParent = dev ? MOCK_PARENT : parent;
   const effectiveChildren = dev ? MOCK_CHILDREN : kids;

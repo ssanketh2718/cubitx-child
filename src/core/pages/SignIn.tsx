@@ -136,7 +136,6 @@ export default function SignIn() {
           </>
         )}
 
-        {/* Dev bypass */}
         <div className="mt-8 border-t pt-5" style={{ borderColor: BRAND.inkGhost }}>
           <button
             onClick={handleSkip}

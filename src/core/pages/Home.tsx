@@ -1,21 +1,20 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registry } from '../sdk';
 import { useApp } from '../store';
+import { loadDayConfig } from '../../missions/curriculum';
+import type { Tier, DayItem } from '../../missions/types';
 
 export default function Home() {
   const navigate = useNavigate();
   const user = useApp((s) => s.user);
   const streak = useApp((s) => s.getStreak());
-  const isDone = useApp((s) => s.isMissionDoneToday);
+  const isItemDone = useApp((s) => s.isItemDoneToday);
   const isTrialActive = useApp((s) => s.isTrialActive);
   const getTrialDaysLeft = useApp((s) => s.getTrialDaysLeft);
   const getActiveDay = useApp((s) => s.getActiveDay);
   const isDayComplete = useApp((s) => s.isDayComplete);
   const refreshDayUnlocks = useApp((s) => s.refreshDayUnlocks);
 
-  // Runs on every Home visit — unlocks the next day if a calendar
-  // day has passed since the previous day was completed.
   useEffect(() => {
     refreshDayUnlocks();
   }, [refreshDayUnlocks]);
@@ -25,14 +24,19 @@ export default function Home() {
   const trialActive = isTrialActive();
   const trialDaysLeft = getTrialDaysLeft();
   const activeDay = getActiveDay();
-  const missions = registry.all();
-  const doneCount = missions.filter((m) => isDone(m.id)).length;
+  const tier = user.tier as Tier;
+  const dayConfig = loadDayConfig(tier, activeDay);
+  const items: DayItem[] = dayConfig?.items ?? [];
+  const requiredCount = items.length;
+  const doneCount = items.filter((item, idx) =>
+    isItemDone(itemKey(item, idx))
+  ).length;
   const dayComplete = isDayComplete(activeDay);
   const canPlay = trialActive;
+  const hasContent = items.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto px-5">
-      {/* Header */}
       <div className="mb-6">
         <div className="text-[13px] text-white/40 font-semibold tracking-tight">
           {user.name} · Class {user.grade} · Day {activeDay}
@@ -42,34 +46,34 @@ export default function Home() {
             ? 'Your trial has ended.'
             : dayComplete
             ? 'You finished today. Come back tomorrow.'
-            : "Ready for today's thinking?"}
+            : hasContent
+            ? "Ready for today's thinking?"
+            : `Day ${activeDay} is warming up.`}
         </div>
       </div>
 
-      {/* Trial banner */}
       {trialActive && trialDaysLeft !== null && (
-        <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/[0.08] to-transparent p-4 mb-4 flex items-center gap-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4 flex items-center gap-3">
           <span className="text-2xl">⏳</span>
           <div className="flex-1">
             <div className="text-[13.5px] font-bold text-white">
               {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in trial
             </div>
-            <div className="text-[11.5px] text-gold/80 font-semibold mt-0.5">
+            <div className="text-[11.5px] text-white/50 font-semibold mt-0.5">
               Unlock all 30 days for ₹999/year
             </div>
           </div>
           <button
             onClick={() => navigate('/parent')}
-            className="text-[12px] font-black px-3.5 py-2 rounded-full bg-gradient-to-br from-gold to-gold2 text-amber-950"
+            className="text-[12px] font-black px-3.5 py-2 rounded-full bg-white text-[#05091a]"
           >
             Upgrade
           </button>
         </div>
       )}
 
-      {/* Streak card */}
-      <div className="rounded-2xl border border-blue-400/15 bg-gradient-to-br from-blue-500/[0.08] to-transparent p-5 mb-5 flex items-center gap-4">
-        <div className="text-[40px] leading-none font-bold text-blue-400 tabular-nums">
+      <div className="rounded-2xl border border-[#7b8dff]/15 bg-[#7b8dff]/[0.06] p-5 mb-5 flex items-center gap-4">
+        <div className="text-[40px] leading-none font-bold text-[#9aaaff] tabular-nums">
           {streak}
         </div>
         <div className="flex-1">
@@ -78,71 +82,92 @@ export default function Home() {
           </div>
           <div className="text-[12px] text-white/40 font-medium mt-0.5">
             {streak === 0
-              ? 'Complete 1 mission to start'
+              ? 'Complete 1 item to start'
               : 'Keep it alive tomorrow'}
           </div>
         </div>
       </div>
 
-      {/* Progress within day */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[11px] tracking-[0.08em] text-white/40 font-bold uppercase">
-          Day {activeDay} · Today
+      {dayConfig?.label && (
+        <div className="text-[11px] tracking-[0.08em] text-[#9aaaff] font-bold uppercase mb-3">
+          {dayConfig.label}
         </div>
-        <div className="text-[12px] text-white/40 font-semibold tabular-nums">
-          {doneCount} / {missions.length}
-        </div>
-      </div>
+      )}
 
-      {/* Mission tiles */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        {missions.map((m) => {
-          const mDone = isDone(m.id);
-          const locked = !canPlay && !mDone;
-          return (
-            <button
-              key={m.id}
-              onClick={() => !locked && navigate(`/mission/${m.id}`)}
-              disabled={locked}
-              className={`text-left rounded-2xl border p-5 transition-all duration-200 ${
-                mDone
-                  ? 'border-success/30 bg-success/[0.05]'
-                  : locked
-                  ? 'border-white/[0.04] bg-white/[0.01] opacity-40 cursor-not-allowed'
-                  : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-blue-400/30 hover:-translate-y-0.5'
-              }`}
-            >
-              <div className="text-[32px] mb-3 leading-none">
-                {locked ? '🔒' : m.emoji}
-              </div>
-              <div className="text-[15px] font-bold text-white tracking-tight mb-1">
-                {m.name}
-              </div>
-              <div className="text-[12px] text-white/40 font-medium leading-snug">
-                {m.sub}
-              </div>
-              <div
-                className={`inline-block mt-3 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                  mDone
-                    ? 'bg-success/15 text-success'
+      {hasContent && (
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[11px] tracking-[0.08em] text-white/40 font-bold uppercase">
+            Day {activeDay} · Today
+          </div>
+          <div className="text-[12px] text-white/40 font-semibold tabular-nums">
+            {doneCount} / {requiredCount}
+          </div>
+        </div>
+      )}
+
+      {hasContent ? (
+        <div className="grid grid-cols-2 gap-3 mb-6">
+          {items.map((item, idx) => {
+            const id = itemKey(item, idx);
+            const itemDone = isItemDone(id);
+            const locked = !canPlay && !itemDone;
+            return (
+              <button
+                key={id}
+                onClick={() =>
+                  !locked && navigate(`/play/${tier}/${activeDay}/${idx}`)
+                }
+                disabled={locked}
+                className={`text-left rounded-2xl border p-5 transition-all duration-200 ${
+                  itemDone
+                    ? 'border-emerald-400/30 bg-emerald-400/[0.05]'
                     : locked
-                    ? 'bg-white/[0.05] text-white/30'
-                    : 'bg-blue-500/10 text-blue-300'
+                    ? 'border-white/[0.04] bg-white/[0.01] opacity-40 cursor-not-allowed'
+                    : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] hover:border-[#7b8dff]/30 hover:-translate-y-0.5'
                 }`}
               >
-                {mDone ? 'Done' : locked ? 'Locked' : 'Play now'}
-              </div>
-            </button>
-          );
-        })}
-      </div>
+                <div className="text-[32px] mb-3 leading-none">
+                  {locked ? '🔒' : itemEmoji(item)}
+                </div>
+                <div className="text-[15px] font-bold text-white tracking-tight mb-1">
+                  {itemTitle(item)}
+                </div>
+                <div className="text-[12px] text-white/40 font-medium leading-snug">
+                  {itemSub(item)}
+                </div>
+                <div
+                  className={`inline-block mt-3 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                    itemDone
+                      ? 'bg-emerald-400/15 text-emerald-400'
+                      : locked
+                      ? 'bg-white/[0.05] text-white/30'
+                      : 'bg-[#7b8dff]/10 text-[#9aaaff]'
+                  }`}
+                >
+                  {itemDone ? 'Done' : locked ? 'Locked' : 'Play now'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8 mb-6 text-center">
+          <div className="text-[36px] mb-3">🗓️</div>
+          <div className="text-[14px] font-bold text-white mb-1.5">
+            Day {activeDay} content is being prepared
+          </div>
+          <div className="text-[12.5px] text-white/40 font-semibold leading-relaxed">
+            Come back soon — new thinking missions for{' '}
+            {tier === 1 ? 'Classes 5–7' : 'Classes 8–10'} are on the way.
+          </div>
+        </div>
+      )}
 
-      {/* Day complete message */}
       {dayComplete && trialActive && (
-        <div className="rounded-2xl border border-mint/25 bg-gradient-to-br from-mint/[0.08] to-transparent p-5 text-center">
+        <div className="rounded-2xl border border-emerald-400/25 bg-emerald-400/[0.06] p-5 text-center">
           <div className="text-[24px] mb-2">🌟</div>
           <div className="text-[14px] font-bold text-white mb-1">
-            All missions for Day {activeDay} complete
+            All items for Day {activeDay} complete
           </div>
           <div className="text-[12.5px] text-white/50 font-semibold">
             Day {activeDay + 1} unlocks tomorrow at midnight
@@ -150,9 +175,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* Trial expired paywall */}
       {!trialActive && (
-        <div className="rounded-2xl border border-gold/30 bg-gradient-to-br from-gold/[0.08] to-transparent p-6 text-center">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center">
           <div className="text-[36px] mb-3">🎓</div>
           <div className="text-[16px] font-bold text-white mb-2">
             Unlock CubitX for ₹999/year
@@ -162,7 +186,7 @@ export default function Home() {
           </div>
           <button
             onClick={() => navigate('/parent')}
-            className="px-8 py-3.5 rounded-full font-black text-[14px] bg-gradient-to-br from-gold to-gold2 text-amber-950 shadow-[0_10px_30px_rgba(255,157,46,0.45)]"
+            className="px-8 py-3.5 rounded-full font-black text-[14px] bg-white text-[#05091a]"
           >
             Continue Learning
           </button>
@@ -170,4 +194,61 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+function itemKey(item: DayItem, idx: number): string {
+  switch (item.engine) {
+    case 'm1':
+    case 'm2':
+    case 'm3':
+    case 'm4':
+    case 'm5':
+      return `${item.engine}:${item.puzzle}`;
+    case 'opinion':
+      return `opinion:${item.question}`;
+    case 'creative':
+      return `creative:${item.prompt}`;
+    case 'watch':
+      return `watch:${item.video}`;
+  }
+  return `item:${idx}`;
+}
+
+function itemEmoji(item: DayItem): string {
+  switch (item.engine) {
+    case 'm1': return '🔢';
+    case 'm2': return '⚖️';
+    case 'm3': return '🔮';
+    case 'm4': return '🎯';
+    case 'm5': return '💭';
+    case 'opinion': return '🗣️';
+    case 'creative': return '✨';
+    case 'watch': return '🎬';
+  }
+}
+
+function itemTitle(item: DayItem): string {
+  switch (item.engine) {
+    case 'm1': return 'Secret Machine';
+    case 'm2': return 'Balance Detective';
+    case 'm3': return 'Pattern Detective';
+    case 'm4': return 'Cause Detective';
+    case 'm5': return 'Big Question';
+    case 'opinion': return 'Your Opinion';
+    case 'creative': return 'Create';
+    case 'watch': return 'Watch & Think';
+  }
+}
+
+function itemSub(item: DayItem): string {
+  switch (item.engine) {
+    case 'm1': return 'Find the rule';
+    case 'm2': return 'Which shape is heaviest?';
+    case 'm3': return 'Pattern or noise?';
+    case 'm4': return 'Correlation or cause?';
+    case 'm5': return 'Which and why?';
+    case 'opinion': return 'What do you think?';
+    case 'creative': return 'Make something new';
+    case 'watch': return 'A short film + a question';
+  }
 }

@@ -1,4 +1,3 @@
-// src/core/App.tsx
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { useChild } from './auth/ChildContext';
@@ -26,7 +25,6 @@ export default function App() {
     return <div style={{ background: '#05091a', minHeight: '100vh' }} />;
   }
 
-  // NOT SIGNED IN
   if (!session) {
     return (
       <Routes>
@@ -38,7 +36,6 @@ export default function App() {
     );
   }
 
-  // SIGNED IN, NO CHILD YET
   if (kids.length === 0) {
     return (
       <>
@@ -51,7 +48,6 @@ export default function App() {
     );
   }
 
-  // MULTIPLE CHILDREN, NONE PICKED
   if (kids.length > 1 && !activeChild) {
     return (
       <>
@@ -64,7 +60,6 @@ export default function App() {
     );
   }
 
-  // READY TO PLAY
   return (
     <>
       <div className="min-h-screen flex flex-col relative z-10">

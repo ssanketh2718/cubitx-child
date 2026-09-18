@@ -1,32 +1,31 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, MissionEvent, Session } from './sdk/types';
+import type { Tier } from '../missions/types';
+import { tierForClass } from '../missions/tiers';
 
 export interface DayProgress {
   unlockedAt: string;
   completedAt: string | null;
-  missionsCompleted: string[];
+  itemsCompleted: string[];
 }
 
 interface AppState {
   user: (User & {
-    tier: 'foundation' | 'advanced';
+    tier: Tier;
     registeredAt: string;
     trialEndsAt: string;
   }) | null;
 
   days: Record<number, DayProgress>;
-
   events: MissionEvent[];
   sessions: Session[];
 
-  setUser: (
-    user: { name: string; grade: number },
-    trialDays: number
-  ) => void;
+  setUser: (user: { name: string; grade: number }, trialDays: number) => void;
 
-  completeMission: (missionId: string) => void;
-  isMissionDoneToday: (missionId: string) => boolean;
+  completeItem: (itemId: string, requiredCount: number) => void;
+  isItemDoneToday: (itemId: string) => boolean;
+
   getActiveDay: () => number;
   getActiveDayProgress: () => DayProgress | null;
   isDayComplete: (day: number) => boolean;
@@ -35,7 +34,6 @@ interface AppState {
 
   isTrialActive: () => boolean;
   getTrialDaysLeft: () => number | null;
-
   getStreak: () => number;
   addEvent: (event: MissionEvent) => void;
   reset: () => void;
@@ -46,22 +44,6 @@ const todayKey = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const tierForGrade = (grade: number): 'foundation' | 'advanced' => {
-  return grade <= 7 ? 'foundation' : 'advanced';
-};
-
-/**
- * Number of missions the child must complete to finish a day.
- * Both tiers require all 5 mission types.
- */
-const MISSIONS_PER_DAY = 5;
-
-const MAX_DAYS = 30;
-
-/**
- * Number of calendar days between two dates, using local midnight boundaries.
- * 0 if same day, 1 if next day, etc.
- */
 const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number => {
   const from = new Date(fromIso);
   from.setHours(0, 0, 0, 0);
@@ -69,6 +51,8 @@ const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number =>
   target.setHours(0, 0, 0, 0);
   return Math.floor((target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
 };
+
+const MAX_DAYS = 30;
 
 export const useApp = create<AppState>()(
   persist(
@@ -79,6 +63,15 @@ export const useApp = create<AppState>()(
       sessions: [],
 
       setUser: (input, trialDays) => {
+        const existing = get().user;
+        if (
+          existing &&
+          existing.name === input.name.trim() &&
+          existing.grade === input.grade
+        ) {
+          return;
+        }
+
         const now = new Date();
         const trialEnds = new Date();
         trialEnds.setDate(trialEnds.getDate() + trialDays);
@@ -87,7 +80,7 @@ export const useApp = create<AppState>()(
           user: {
             name: input.name.trim(),
             grade: input.grade,
-            tier: tierForGrade(input.grade),
+            tier: tierForClass(input.grade),
             createdAt: now.toISOString(),
             registeredAt: now.toISOString(),
             trialEndsAt: trialEnds.toISOString(),
@@ -96,7 +89,7 @@ export const useApp = create<AppState>()(
             1: {
               unlockedAt: now.toISOString(),
               completedAt: null,
-              missionsCompleted: [],
+              itemsCompleted: [],
             },
           },
           events: [],
@@ -104,7 +97,7 @@ export const useApp = create<AppState>()(
         });
       },
 
-      completeMission: (missionId) => {
+      completeItem: (itemId, requiredCount) => {
         const state = get();
         if (!state.user) return;
 
@@ -112,19 +105,20 @@ export const useApp = create<AppState>()(
         const existing = state.days[activeDay] || {
           unlockedAt: new Date().toISOString(),
           completedAt: null,
-          missionsCompleted: [],
+          itemsCompleted: [],
         };
 
-        if (existing.missionsCompleted.includes(missionId)) return;
+        if (existing.itemsCompleted.includes(itemId)) return;
 
-        const updatedMissions = [...existing.missionsCompleted, missionId];
-        const dayJustCompleted = updatedMissions.length >= MISSIONS_PER_DAY;
+        const updatedItems = [...existing.itemsCompleted, itemId];
+        const dayJustCompleted =
+          requiredCount > 0 && updatedItems.length >= requiredCount;
 
         const updatedDays = {
           ...state.days,
           [activeDay]: {
             ...existing,
-            missionsCompleted: updatedMissions,
+            itemsCompleted: updatedItems,
             completedAt: dayJustCompleted
               ? new Date().toISOString()
               : existing.completedAt,
@@ -135,28 +129,26 @@ export const useApp = create<AppState>()(
         const sessions = [...state.sessions];
         let todaySession = sessions.find((s) => s.date === today);
         if (!todaySession) {
-          todaySession = { id: crypto.randomUUID(), date: today, missionsCompleted: [] };
+          todaySession = {
+            id: crypto.randomUUID(),
+            date: today,
+            missionsCompleted: [],
+          };
           sessions.push(todaySession);
         }
-        if (!todaySession.missionsCompleted.includes(missionId)) {
-          todaySession.missionsCompleted.push(missionId);
+        if (!todaySession.missionsCompleted.includes(itemId)) {
+          todaySession.missionsCompleted.push(itemId);
         }
 
         set({ days: updatedDays, sessions });
       },
 
-      isMissionDoneToday: (missionId) => {
+      isItemDoneToday: (itemId) => {
         const state = get();
         const active = state.days[state.getActiveDay()];
-        return active ? active.missionsCompleted.includes(missionId) : false;
+        return active ? active.itemsCompleted.includes(itemId) : false;
       },
 
-      /**
-       * The day the child is currently working on.
-       * = smallest non-completed day.
-       * If that day is not yet calendarly unlocked, returns the previous day
-       * so Home shows "Day N complete. Come back tomorrow."
-       */
       getActiveDay: () => {
         const state = get();
         if (!state.user) return 1;
@@ -166,16 +158,12 @@ export const useApp = create<AppState>()(
           const isCompleted = !!(day && day.completedAt);
           if (isCompleted) continue;
 
-          // Found the smallest non-completed day.
           if (state.isDayCalendarUnlocked(n)) {
             return n;
           }
 
-          // Not calendarly unlocked yet. Return the last completed day
-          // so Home shows "come back tomorrow" instead of "locked".
           return Math.max(1, n - 1);
         }
-
         return MAX_DAYS;
       },
 
@@ -189,24 +177,13 @@ export const useApp = create<AppState>()(
         return !!(d && d.completedAt);
       },
 
-      /**
-       * Day N is calendarly unlocked if at least (N-1) full calendar days
-       * have passed since registration.
-       * Day 1 is always unlocked on signup day.
-       */
       isDayCalendarUnlocked: (day) => {
         const user = get().user;
         if (!user) return false;
         return daysBetweenMidnights(user.registeredAt) >= day - 1;
       },
 
-      /**
-       * Kept for backward compatibility — Home.tsx calls it on mount.
-       * Days are computed on-demand now, so nothing to refresh.
-       */
-      refreshDayUnlocks: () => {
-        // no-op
-      },
+      refreshDayUnlocks: () => {},
 
       isTrialActive: () => {
         const user = get().user;
@@ -219,7 +196,7 @@ export const useApp = create<AppState>()(
         if (!user) return null;
         const diff = Math.ceil(
           (new Date(user.trialEndsAt).getTime() - Date.now()) /
-          (1000 * 60 * 60 * 24)
+            (1000 * 60 * 60 * 24)
         );
         return Math.max(0, diff);
       },
@@ -243,8 +220,7 @@ export const useApp = create<AppState>()(
       addEvent: (event) =>
         set((s) => ({ events: [...s.events, event].slice(-5000) })),
 
-      reset: () =>
-        set({ user: null, days: {}, events: [], sessions: [] }),
+      reset: () => set({ user: null, days: {}, events: [], sessions: [] }),
     }),
     { name: 'cubitx-v1' }
   )

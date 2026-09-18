@@ -1,5 +1,3 @@
-// src/core/auth/devMode.ts
-
 const KEY = 'cubitx-dev-mode';
 
 export function isDevMode(): boolean {
