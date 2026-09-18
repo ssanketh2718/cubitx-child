@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { isDevMode, MOCK_PARENT, MOCK_CHILDREN, disableDevMode } from './devMode';
 
 interface ParentProfile {
   id: string;
@@ -23,6 +24,7 @@ interface AuthContextType {
   parent: ParentProfile | null;
   children: Child[];
   loading: boolean;
+  isDev: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -32,14 +34,36 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const MOCK_SESSION = {
+  access_token: 'dev',
+  refresh_token: 'dev',
+  expires_in: 999999,
+  expires_at: Math.floor(Date.now() / 1000) + 999999,
+  token_type: 'bearer',
+  user: {
+    id: 'dev-parent',
+    email: 'dev@cubitx.in',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: new Date().toISOString(),
+  },
+} as unknown as Session;
+
 export function AuthProvider({ children: reactChildren }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [parent, setParent] = useState<ParentProfile | null>(null);
   const [kids, setKids] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dev, setDev] = useState<boolean>(() => isDevMode());
 
-  // Session listener
+  // Session listener — skip entirely when in dev mode
   useEffect(() => {
+    if (dev) {
+      setLoading(false);
+      return;
+    }
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (!session) setLoading(false);
@@ -57,10 +81,11 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     );
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [dev]);
 
   // Load parent + children when session exists
   useEffect(() => {
+    if (dev) return;
     if (!session?.user) return;
 
     (async () => {
@@ -80,7 +105,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       setKids(childRows ?? []);
       setLoading(false);
     })();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, dev]);
 
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
@@ -98,10 +123,17 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   };
 
   const signOut = async () => {
+    if (dev) {
+      disableDevMode();
+      setDev(false);
+      window.location.href = '/';
+      return;
+    }
     await supabase.auth.signOut();
   };
 
   const refreshChildren = async () => {
+    if (dev) return;
     const { data } = await supabase
       .from('children')
       .select('*')
@@ -110,6 +142,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   };
 
   const addChild = async (name: string, classLevel: number, avatar: string) => {
+    if (dev) return { error: 'Not available in dev mode' };
     if (!session?.user) return { error: 'Not signed in' };
     if (kids.length >= 3) return { error: 'Maximum 3 children' };
 
@@ -124,14 +157,21 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     return { error: error?.message ?? null };
   };
 
+  // ─── Dev mode: synthesize everything ─────────────────────
+  const effectiveSession = dev ? MOCK_SESSION : session;
+  const effectiveParent = dev ? MOCK_PARENT : parent;
+  const effectiveChildren = dev ? MOCK_CHILDREN : kids;
+  const effectiveUser = dev ? MOCK_SESSION.user : (session?.user ?? null);
+
   return (
     <AuthContext.Provider
       value={{
-        session,
-        user: session?.user ?? null,
-        parent,
-        children: kids,
-        loading,
+        session: effectiveSession,
+        user: effectiveUser,
+        parent: effectiveParent,
+        children: effectiveChildren,
+        loading: dev ? false : loading,
+        isDev: dev,
         signInWithGoogle,
         signInWithEmail,
         signOut,

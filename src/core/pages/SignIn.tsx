@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { enableDevMode } from '../auth/devMode';
 
 const BRAND = {
   surface: '#05091a',
@@ -30,6 +31,11 @@ export default function SignIn() {
     } else {
       setStatus('sent');
     }
+  };
+
+  const handleSkip = () => {
+    enableDevMode();
+    window.location.href = '/';
   };
 
   return (
@@ -130,9 +136,20 @@ export default function SignIn() {
           </>
         )}
 
+        {/* Dev bypass */}
+        <div className="mt-8 border-t pt-5" style={{ borderColor: BRAND.inkGhost }}>
+          <button
+            onClick={handleSkip}
+            className="w-full text-center text-[12px] transition hover:text-white"
+            style={{ color: BRAND.inkFaint }}
+          >
+            🧪 Skip sign-in (dev testing only)
+          </button>
+        </div>
+
         <button
           onClick={() => navigate('/')}
-          className="mt-6 block w-full text-center text-[12px]"
+          className="mt-4 block w-full text-center text-[12px]"
           style={{ color: BRAND.inkFaint }}
         >
           ← Back
