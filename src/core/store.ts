@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, MissionEvent, Session } from './sdk/types';
-import type { Tier } from '../missions/types';
-import { tierForClass } from '../missions/tiers';
+import type { User, MissionEvent, Session, Tier } from './sdk/types';
+import { sdkTierForClass } from '../missions/tiers';
 
 export interface DayProgress {
   unlockedAt: string;
@@ -10,12 +9,13 @@ export interface DayProgress {
   itemsCompleted: string[];
 }
 
+type CubitXUser = User & {
+  registeredAt: string;
+  trialEndsAt: string;
+};
+
 interface AppState {
-  user: (User & {
-    tier: Tier;
-    registeredAt: string;
-    trialEndsAt: string;
-  }) | null;
+  user: CubitXUser | null;
 
   days: Record<number, DayProgress>;
   events: MissionEvent[];
@@ -24,6 +24,7 @@ interface AppState {
   setUser: (user: { name: string; grade: number }, trialDays: number) => void;
 
   completeItem: (itemId: string, requiredCount: number) => void;
+  completeMission: (missionId: string) => void; // legacy alias
   isItemDoneToday: (itemId: string) => boolean;
 
   getActiveDay: () => number;
@@ -76,11 +77,13 @@ export const useApp = create<AppState>()(
         const trialEnds = new Date();
         trialEnds.setDate(trialEnds.getDate() + trialDays);
 
+        const tier: Tier = sdkTierForClass(input.grade);
+
         set({
           user: {
             name: input.name.trim(),
             grade: input.grade,
-            tier: tierForClass(input.grade),
+            tier,
             createdAt: now.toISOString(),
             registeredAt: now.toISOString(),
             trialEndsAt: trialEnds.toISOString(),
@@ -141,6 +144,10 @@ export const useApp = create<AppState>()(
         }
 
         set({ days: updatedDays, sessions });
+      },
+
+      completeMission: (missionId) => {
+        get().completeItem(missionId, 0);
       },
 
       isItemDoneToday: (itemId) => {

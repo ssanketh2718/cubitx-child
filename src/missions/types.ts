@@ -1,4 +1,4 @@
-export type Tier = 1 | 2;
+export type CurriculumTier = 1 | 2;
 
 export type EngineId =
   | 'm1'
@@ -17,7 +17,7 @@ export type DayItem =
   | { engine: 'watch'; video: string };
 
 export interface DayConfig {
-  tier: Tier;
+  tier: CurriculumTier;
   day: number;
   label?: string;
   items: DayItem[];

@@ -2,7 +2,8 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
-import type { Tier, DayItem } from '../../missions/types';
+import { curriculumTierFrom } from '../../missions/tiers';
+import type { DayItem } from '../../missions/types';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -24,8 +25,8 @@ export default function Home() {
   const trialActive = isTrialActive();
   const trialDaysLeft = getTrialDaysLeft();
   const activeDay = getActiveDay();
-  const tier = user.tier as Tier;
-  const dayConfig = loadDayConfig(tier, activeDay);
+  const curriculumTier = curriculumTierFrom(user.tier);
+  const dayConfig = loadDayConfig(curriculumTier, activeDay);
   const items: DayItem[] = dayConfig?.items ?? [];
   const requiredCount = items.length;
   const doneCount = items.filter((item, idx) =>
@@ -34,6 +35,7 @@ export default function Home() {
   const dayComplete = isDayComplete(activeDay);
   const canPlay = trialActive;
   const hasContent = items.length > 0;
+  const tierLabel = curriculumTier === 1 ? 'Classes 5–7' : 'Classes 8–10';
 
   return (
     <div className="max-w-2xl mx-auto px-5">
@@ -115,7 +117,8 @@ export default function Home() {
               <button
                 key={id}
                 onClick={() =>
-                  !locked && navigate(`/play/${tier}/${activeDay}/${idx}`)
+                  !locked &&
+                  navigate(`/play/${curriculumTier}/${activeDay}/${idx}`)
                 }
                 disabled={locked}
                 className={`text-left rounded-2xl border p-5 transition-all duration-200 ${
@@ -157,8 +160,7 @@ export default function Home() {
             Day {activeDay} content is being prepared
           </div>
           <div className="text-[12.5px] text-white/40 font-semibold leading-relaxed">
-            Come back soon — new thinking missions for{' '}
-            {tier === 1 ? 'Classes 5–7' : 'Classes 8–10'} are on the way.
+            Come back soon — new thinking missions for {tierLabel} are on the way.
           </div>
         </div>
       )}
