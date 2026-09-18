@@ -1,4 +1,4 @@
-// src/core/pages/WhoIsPlaying.tsx
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChild } from '../auth/ChildContext';
 
@@ -14,8 +14,11 @@ const BRAND = {
 };
 
 export default function WhoIsPlaying() {
+  const navigate = useNavigate();
   const { children: kids, signOut } = useAuth();
-  const { setActiveChild } = useChild();
+  const { setActiveChild, activeChild } = useChild();
+
+  const canGoBack = !!activeChild;
 
   return (
     <div
@@ -23,6 +26,16 @@ export default function WhoIsPlaying() {
       style={{ background: BRAND.surface, color: BRAND.ink, fontFamily: 'Inter, system-ui, sans-serif' }}
     >
       <div className="w-full max-w-md">
+        {canGoBack && (
+          <button
+            onClick={() => navigate(-1)}
+            className="mb-6 flex items-center gap-1.5 text-[12.5px] font-semibold transition hover:text-white"
+            style={{ color: BRAND.inkFaint }}
+          >
+            ← Back
+          </button>
+        )}
+
         <img src="/cubitx-logo.jpg" alt="CubitX" className="mx-auto h-9 w-auto mb-8" />
 
         <h1 className="text-center text-[26px] font-semibold">Who's playing?</h1>
@@ -34,7 +47,10 @@ export default function WhoIsPlaying() {
           {kids.map((child) => (
             <button
               key={child.id}
-              onClick={() => setActiveChild(child)}
+              onClick={() => {
+                setActiveChild(child);
+                navigate('/home');
+              }}
               className="flex items-center gap-4 rounded-2xl p-5 text-left transition-transform hover:-translate-y-0.5"
               style={{
                 background: BRAND.surface2,
@@ -53,8 +69,21 @@ export default function WhoIsPlaying() {
           ))}
         </div>
 
+        {kids.length < 3 && (
+          <button
+            onClick={() => navigate('/add-child')}
+            className="mt-4 w-full rounded-2xl p-4 text-[13.5px] font-semibold transition hover:bg-white/[0.04]"
+            style={{
+              border: `1px dashed ${BRAND.inkGhost}`,
+              color: BRAND.inkDim,
+            }}
+          >
+            ➕ Add another child
+          </button>
+        )}
+
         <button
-          onClick={signOut}
+          onClick={async () => { await signOut(); navigate('/'); }}
           className="mt-8 block w-full text-center text-[12px]"
           style={{ color: BRAND.inkFaint }}
         >

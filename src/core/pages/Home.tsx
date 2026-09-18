@@ -4,6 +4,7 @@ import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
 import { curriculumTierFrom } from '../../missions/tiers';
 import type { DayItem } from '../../missions/types';
+import { PAYMENT_LINK } from '../config';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -37,6 +38,10 @@ export default function Home() {
   const hasContent = items.length > 0;
   const tierLabel = curriculumTier === 1 ? 'Classes 5–7' : 'Classes 8–10';
 
+  const openPayment = () => {
+    window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-5">
       <div className="mb-6">
@@ -66,7 +71,7 @@ export default function Home() {
             </div>
           </div>
           <button
-            onClick={() => navigate('/parent')}
+            onClick={openPayment}
             className="text-[12px] font-black px-3.5 py-2 rounded-full bg-white text-[#05091a]"
           >
             Upgrade
@@ -187,7 +192,7 @@ export default function Home() {
             Your child's 30-day trial has ended. Keep going for less than ₹3/day.
           </div>
           <button
-            onClick={() => navigate('/parent')}
+            onClick={openPayment}
             className="px-8 py-3.5 rounded-full font-black text-[14px] bg-white text-[#05091a]"
           >
             Continue Learning

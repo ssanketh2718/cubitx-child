@@ -17,12 +17,23 @@ const AVATARS = ['🦊', '🐼', '🦉', '🐯', '🐨', '🦁', '🐸', '🐧']
 
 export default function AddChild() {
   const navigate = useNavigate();
-  const { children, addChild } = useAuth();
+  const { children, addChild, signOut } = useAuth();
   const [name, setName] = useState('');
   const [classLevel, setClassLevel] = useState(5);
   const [avatar, setAvatar] = useState('🦊');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const hasChildren = children.length > 0;
+
+  const handleBack = async () => {
+    if (hasChildren) {
+      navigate('/home');
+    } else {
+      await signOut();
+      navigate('/');
+    }
+  };
 
   const handleSave = async () => {
     if (name.trim().length < 2) return setError('Please enter a name');
@@ -30,7 +41,7 @@ export default function AddChild() {
     const { error: err } = await addChild(name.trim(), classLevel, avatar);
     setSaving(false);
     if (err) return setError(err);
-    navigate('/');
+    navigate(hasChildren ? '/home' : '/');
   };
 
   return (
@@ -42,6 +53,15 @@ export default function AddChild() {
         className="w-full max-w-md rounded-[1.75rem] p-8"
         style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
       >
+        {/* Back / Sign out */}
+        <button
+          onClick={handleBack}
+          className="mb-6 flex items-center gap-1.5 text-[12.5px] font-semibold transition hover:text-white"
+          style={{ color: BRAND.inkFaint }}
+        >
+          {hasChildren ? '← Back' : '← Sign out'}
+        </button>
+
         <div className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.blueBright }}>
           Step {children.length + 1} of 3
         </div>
@@ -124,13 +144,13 @@ export default function AddChild() {
           {saving ? 'Saving…' : 'Save and start'}
         </button>
 
-        {children.length > 0 && (
+        {hasChildren && (
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/home')}
             className="mt-3 block w-full text-center text-[12.5px]"
             style={{ color: BRAND.inkFaint }}
           >
-            Skip — I'll add later
+            Cancel
           </button>
         )}
       </div>
