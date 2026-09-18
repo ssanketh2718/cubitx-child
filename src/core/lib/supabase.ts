@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // TEMPORARY fallback — remove once Vercel env vars work
-const FALLBACK_URL = 'PASTE_YOUR_SUPABASE_URL_HERE';
-const FALLBACK_KEY = 'PASTE_YOUR_PUBLISHABLE_KEY_HERE';
+const FALLBACK_URL = 'https://lzsqdfgehecnetcauywy.supabase.co';
+const FALLBACK_KEY = 'sb_publishable_h3T6vZzr9Uwnm6p3PvsZRw_C1Ls7Ufp';
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL || FALLBACK_URL;
