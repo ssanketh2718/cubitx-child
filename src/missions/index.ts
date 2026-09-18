@@ -1,3 +1,7 @@
+// src/missions/index.ts
+// Bootstrap file — one import per mission.
+// Missions self-register with the SDK when imported.
+
 import './m1-secret-machine';
 import './m2-balance-detective';
 import './m3-pattern-detective';

@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './core/auth/AuthContext';
 import { ChildProvider } from './core/auth/ChildContext';
 import App from './core/App';
+import './missions';
 import './index.css';
 
 createRoot(document.getElementById('root')!).render(

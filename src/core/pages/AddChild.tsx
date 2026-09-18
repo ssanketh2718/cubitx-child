@@ -68,7 +68,7 @@ export default function AddChild() {
             Class
           </label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {[5, 6, 7].map((c) => (
+            {[5, 6, 7, 8, 9, 10].map((c) => (
               <button
                 key={c}
                 onClick={() => setClassLevel(c)}

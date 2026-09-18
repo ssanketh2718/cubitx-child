@@ -2,10 +2,6 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, MissionEvent, Session } from './sdk/types';
 
-/* ─────────────────────────────────────────────────────────
-   DAILY PROGRESS TYPES
-   ───────────────────────────────────────────────────────── */
-
 export interface DayProgress {
   unlockedAt: string;
   completedAt: string | null;
@@ -24,68 +20,64 @@ interface AppState {
   events: MissionEvent[];
   sessions: Session[];
 
-  /* Setup */
   setUser: (
     user: { name: string; grade: number },
     trialDays: number
   ) => void;
 
-  /* Progression */
   completeMission: (missionId: string) => void;
   isMissionDoneToday: (missionId: string) => boolean;
   getActiveDay: () => number;
   getActiveDayProgress: () => DayProgress | null;
   isDayComplete: (day: number) => boolean;
+  isDayCalendarUnlocked: (day: number) => boolean;
   refreshDayUnlocks: () => void;
 
-  /* Trial */
   isTrialActive: () => boolean;
   getTrialDaysLeft: () => number | null;
 
-  /* Utility */
   getStreak: () => number;
   addEvent: (event: MissionEvent) => void;
   reset: () => void;
 }
-
-/* ─────────────────────────────────────────────────────────
-   HELPERS
-   ───────────────────────────────────────────────────────── */
 
 const todayKey = (): string => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
-const dateKeyOf = (iso: string): string => {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-const isNewCalendarDay = (pastIso: string): boolean => {
-  return todayKey() > dateKeyOf(pastIso);
-};
-
 const tierForGrade = (grade: number): 'foundation' | 'advanced' => {
   return grade <= 7 ? 'foundation' : 'advanced';
 };
 
-const TOTAL_MISSIONS_PER_DAY = 4;
+/**
+ * Number of missions the child must complete to finish a day.
+ * Both tiers require all 5 mission types.
+ */
+const MISSIONS_PER_DAY = 5;
 
-/* ─────────────────────────────────────────────────────────
-   STORE
-   ───────────────────────────────────────────────────────── */
+const MAX_DAYS = 30;
+
+/**
+ * Number of calendar days between two dates, using local midnight boundaries.
+ * 0 if same day, 1 if next day, etc.
+ */
+const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number => {
+  const from = new Date(fromIso);
+  from.setHours(0, 0, 0, 0);
+  const target = new Date(to);
+  target.setHours(0, 0, 0, 0);
+  return Math.floor((target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+};
 
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
-
       user: null,
       days: {},
       events: [],
       sessions: [],
 
-      /* ─── SETUP ─────────────────────────────────────── */
       setUser: (input, trialDays) => {
         const now = new Date();
         const trialEnds = new Date();
@@ -112,7 +104,6 @@ export const useApp = create<AppState>()(
         });
       },
 
-      /* ─── PROGRESSION ───────────────────────────────── */
       completeMission: (missionId) => {
         const state = get();
         if (!state.user) return;
@@ -127,7 +118,7 @@ export const useApp = create<AppState>()(
         if (existing.missionsCompleted.includes(missionId)) return;
 
         const updatedMissions = [...existing.missionsCompleted, missionId];
-        const dayJustCompleted = updatedMissions.length >= TOTAL_MISSIONS_PER_DAY;
+        const dayJustCompleted = updatedMissions.length >= MISSIONS_PER_DAY;
 
         const updatedDays = {
           ...state.days,
@@ -139,19 +130,6 @@ export const useApp = create<AppState>()(
               : existing.completedAt,
           },
         };
-
-        const nextDay = activeDay + 1;
-        if (
-          dayJustCompleted &&
-          !updatedDays[nextDay] &&
-          isNewCalendarDay(updatedDays[activeDay].completedAt!)
-        ) {
-          updatedDays[nextDay] = {
-            unlockedAt: new Date().toISOString(),
-            completedAt: null,
-            missionsCompleted: [],
-          };
-        }
 
         const today = todayKey();
         const sessions = [...state.sessions];
@@ -173,10 +151,32 @@ export const useApp = create<AppState>()(
         return active ? active.missionsCompleted.includes(missionId) : false;
       },
 
+      /**
+       * The day the child is currently working on.
+       * = smallest non-completed day.
+       * If that day is not yet calendarly unlocked, returns the previous day
+       * so Home shows "Day N complete. Come back tomorrow."
+       */
       getActiveDay: () => {
-        const days = get().days;
-        const nums = Object.keys(days).map(Number);
-        return nums.length ? Math.max(...nums) : 1;
+        const state = get();
+        if (!state.user) return 1;
+
+        for (let n = 1; n <= MAX_DAYS; n++) {
+          const day = state.days[n];
+          const isCompleted = !!(day && day.completedAt);
+          if (isCompleted) continue;
+
+          // Found the smallest non-completed day.
+          if (state.isDayCalendarUnlocked(n)) {
+            return n;
+          }
+
+          // Not calendarly unlocked yet. Return the last completed day
+          // so Home shows "come back tomorrow" instead of "locked".
+          return Math.max(1, n - 1);
+        }
+
+        return MAX_DAYS;
       },
 
       getActiveDayProgress: () => {
@@ -189,35 +189,25 @@ export const useApp = create<AppState>()(
         return !!(d && d.completedAt);
       },
 
-      refreshDayUnlocks: () => {
-        const state = get();
-        if (!state.user) return;
-
-        const updatedDays = { ...state.days };
-        let changed = false;
-
-        for (let d = 1; d < 30; d++) {
-          const prev = updatedDays[d];
-          const next = updatedDays[d + 1];
-
-          if (prev && prev.completedAt && !next) {
-            if (isNewCalendarDay(prev.completedAt)) {
-              updatedDays[d + 1] = {
-                unlockedAt: new Date().toISOString(),
-                completedAt: null,
-                missionsCompleted: [],
-              };
-              changed = true;
-            }
-          }
-        }
-
-        if (changed) {
-          set({ days: updatedDays });
-        }
+      /**
+       * Day N is calendarly unlocked if at least (N-1) full calendar days
+       * have passed since registration.
+       * Day 1 is always unlocked on signup day.
+       */
+      isDayCalendarUnlocked: (day) => {
+        const user = get().user;
+        if (!user) return false;
+        return daysBetweenMidnights(user.registeredAt) >= day - 1;
       },
 
-      /* ─── TRIAL ─────────────────────────────────────── */
+      /**
+       * Kept for backward compatibility — Home.tsx calls it on mount.
+       * Days are computed on-demand now, so nothing to refresh.
+       */
+      refreshDayUnlocks: () => {
+        // no-op
+      },
+
       isTrialActive: () => {
         const user = get().user;
         if (!user) return false;
@@ -234,7 +224,6 @@ export const useApp = create<AppState>()(
         return Math.max(0, diff);
       },
 
-      /* ─── UTILITY ───────────────────────────────────── */
       getStreak: () => {
         const sessions = get().sessions;
         if (!sessions.length) return 0;
