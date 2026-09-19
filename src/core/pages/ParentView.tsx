@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
-import { computeProfile } from '../analytics/profile';
+import { computeProfile, TOTAL_WEEKS } from '../analytics/profile';
 import { HABITS } from '../analytics/habits';
 import { LEVEL_LABELS, type Level } from '../analytics/signals';
 import { PAYMENT_LINK } from '../config';
@@ -49,13 +49,11 @@ export default function ParentView() {
 
   const warmth = warmOpening(profile.writtenCount, profile.activeDays, user.name);
 
-  // Weekly trend: last 7 days of the consistency array
   const last7 = profile.consistency.slice(-7);
   const maxTrend = Math.max(1, ...last7.map((d) => d.count));
 
   return (
     <div className="max-w-2xl mx-auto px-5 pb-12">
-      {/* ─── HERO ─────────────────────────────────────── */}
       <button
         onClick={() => navigate('/home')}
         className="mb-5 flex items-center gap-1.5 text-[12.5px] font-semibold transition hover:text-white"
@@ -79,7 +77,6 @@ export default function ParentView() {
         </div>
       </div>
 
-      {/* ─── TRIAL ────────────────────────────────────── */}
       {trialActive && trialDaysLeft !== null && (
         <div
           className="rounded-2xl p-4 mb-5 flex items-center gap-3"
@@ -101,7 +98,6 @@ export default function ParentView() {
         </div>
       )}
 
-      {/* ─── STAT STRIP ───────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         <StatCard
           value={streak}
@@ -116,14 +112,13 @@ export default function ParentView() {
           sub={`of ${profile.totalDays}`}
         />
         <StatCard
-          value={profile.writtenCount}
-          label="answers"
-          icon="✍️"
-          sub="this week"
+          value={profile.weeksCounted}
+          label="full weeks"
+          icon="🗓️"
+          sub={`of ${TOTAL_WEEKS}`}
         />
       </div>
 
-      {/* ─── CONSISTENCY + TREND ──────────────────────── */}
       <Block
         title="Their rhythm"
         subtitle={
@@ -136,7 +131,6 @@ export default function ParentView() {
         <WeekdayLabels />
         <CalendarGrid days={profile.consistency} />
 
-        {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 mt-4 text-[11px]" style={{ color: BRAND.inkFaint }}>
           <span className="flex items-center gap-1.5">
             <span
@@ -158,7 +152,6 @@ export default function ParentView() {
           </span>
         </div>
 
-        {/* Weekly trend */}
         <div className="mt-6 pt-5" style={{ borderTop: `1px solid ${BRAND.inkGhost}` }}>
           <div className="text-[12px] font-semibold mb-3" style={{ color: BRAND.inkDim }}>
             Last 7 days
@@ -186,13 +179,12 @@ export default function ParentView() {
         </div>
       </Block>
 
-      {/* ─── FIVE HABITS ──────────────────────────────── */}
       <Block
         title="Habits they're building"
         subtitle={
-          profile.writtenCount === 0
-            ? 'Habits appear once they answer their first written question.'
-            : `${profile.writtenCount} written ${profile.writtenCount === 1 ? 'answer' : 'answers'} this week`
+          profile.weeksCounted === 0
+            ? `A week counts when ${user.name} practices on 4 or more days. Then habits start filling here.`
+            : `${profile.weeksCounted} of ${TOTAL_WEEKS} weeks of practice so far — a year-long journey`
         }
       >
         <div className="grid gap-6">
@@ -202,16 +194,46 @@ export default function ParentView() {
               label={d.plain}
               icon={HABIT_ICONS[d.key] ?? '•'}
               level={d.level}
-              previousLevel={d.previousLevel}
+              pct={d.pct}
+              weeksCounted={d.weeksCounted}
             />
           ))}
         </div>
-        <div className="text-[12px] mt-6 leading-[1.65]" style={{ color: BRAND.inkFaint }}>
-          Bars fill as {user.name} shows each habit more. The goal is steady growth — not perfection.
+        <div
+          className="text-[12px] mt-6 leading-[1.65]"
+          style={{ color: BRAND.inkFaint }}
+        >
+          Each bar fills over 48 weeks of practice — one full year. Not a race.
+          The goal is a habit that stays.
         </div>
       </Block>
 
-      {/* ─── OBSERVATIONS ─────────────────────────────── */}
+      {/* ─── HOW THEY COMPARE ─────────────────────────── */}
+      {profile.weeksCounted > 0 && (
+        <Block
+          title="How they compare"
+          subtitle={`Typical patterns for Class ${user.grade} children across India`}
+        >
+          <div className="grid gap-4">
+            {profile.dimensions.map((d) => (
+              <ComparisonRow
+                key={d.key}
+                label={d.plain}
+                icon={HABIT_ICONS[d.key] ?? '•'}
+                level={d.level}
+              />
+            ))}
+          </div>
+          <div
+            className="text-[12px] mt-6 pt-5 leading-[1.7]"
+            style={{ color: BRAND.inkFaint, borderTop: `1px solid ${BRAND.inkGhost}` }}
+          >
+            Based on how children in this age group typically develop. Every child
+            grows at their own pace — what matters is that {user.name} keeps going.
+          </div>
+        </Block>
+      )}
+
       {profile.writtenCount > 0 && (
         <Block title="What we noticed this week">
           <Observation
@@ -227,7 +249,6 @@ export default function ParentView() {
         </Block>
       )}
 
-      {/* ─── EXAMPLE ──────────────────────────────────── */}
       {profile.exampleResponse && (
         <Block title="In their own words">
           <div
@@ -242,7 +263,6 @@ export default function ParentView() {
         </Block>
       )}
 
-      {/* ─── ACTION ───────────────────────────────────── */}
       <Block title="One thing to try this week" accent={BRAND.amber}>
         <div className="text-[17px] font-semibold mb-2 leading-[1.3]">{habit.title}</div>
         <div className="text-[13.5px] leading-[1.75] mb-4" style={{ color: BRAND.inkDim }}>
@@ -279,9 +299,7 @@ export default function ParentView() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════
-   Components
-   ═══════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════ */
 
 function StatCard({
   value,
@@ -415,18 +433,16 @@ function HabitBar({
   label,
   icon,
   level,
-  previousLevel,
+  pct,
+  weeksCounted,
 }: {
   label: string;
   icon: string;
   level: Level;
-  previousLevel: Level | null;
+  pct: number;
+  weeksCounted: number;
 }) {
-  const pct = level === 0 ? 8 : level === 1 ? 55 : 100;
-  const barColor =
-    level === 0 ? 'rgba(255,255,255,0.15)' : level === 1 ? BRAND.blue : BRAND.emerald;
-  const grew = previousLevel !== null && previousLevel < level;
-
+  const barColor = level === 0 ? BRAND.blue : level === 1 ? BRAND.blue : BRAND.emerald;
   return (
     <div>
       <div className="flex items-center gap-3 mb-2">
@@ -434,18 +450,8 @@ function HabitBar({
         <div className="text-[14.5px] font-semibold flex-1" style={{ color: BRAND.ink }}>
           {label}
         </div>
-        <div className="flex items-center gap-2">
-          {grew && (
-            <span
-              className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
-              style={{ background: `${BRAND.emerald}20`, color: BRAND.emerald }}
-            >
-              ↑ growing
-            </span>
-          )}
-          <span className="text-[12px] font-medium" style={{ color: BRAND.inkDim }}>
-            {LEVEL_LABELS[level]}
-          </span>
+        <div className="text-[12px] font-medium tabular-nums" style={{ color: BRAND.inkDim }}>
+          {weeksCounted > 0 ? `${pct}%` : LEVEL_LABELS[level]}
         </div>
       </div>
       <div
@@ -454,9 +460,49 @@ function HabitBar({
       >
         <div
           className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${pct}%`, background: barColor }}
+          style={{ width: `${Math.max(pct, 1)}%`, background: barColor }}
         />
       </div>
+      <div className="mt-1.5 flex justify-between text-[10px]" style={{ color: BRAND.inkFaint }}>
+        <span>{LEVEL_LABELS[level]}</span>
+        <span>{weeksCounted} week{weeksCounted === 1 ? '' : 's'} of practice</span>
+      </div>
+    </div>
+  );
+}
+
+function ComparisonRow({
+  label,
+  icon,
+  level,
+}: {
+  label: string;
+  icon: string;
+  level: Level;
+}) {
+  const text =
+    level === 2
+      ? 'Further along than most'
+      : level === 1
+      ? 'Alongside most kids their age'
+      : 'Just starting — same as most';
+  const color =
+    level === 2 ? BRAND.emerald : level === 1 ? BRAND.blueBright : BRAND.inkDim;
+  const dot =
+    level === 2 ? '🌳' : level === 1 ? '🌿' : '🌱';
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-[18px] leading-none">{icon}</span>
+      <span className="text-[13.5px] flex-1" style={{ color: BRAND.ink }}>
+        {label}
+      </span>
+      <span className="text-[18px] leading-none">{dot}</span>
+      <span
+        className="text-[12px] font-medium text-right"
+        style={{ color, maxWidth: '140px' }}
+      >
+        {text}
+      </span>
     </div>
   );
 }
@@ -482,10 +528,6 @@ function Observation({
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════
-   Helpers
-   ═══════════════════════════════════════════════════════ */
 
 function weekdayShort(iso: string): string {
   const d = new Date(iso);

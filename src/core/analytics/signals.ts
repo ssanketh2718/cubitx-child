@@ -53,21 +53,21 @@ export interface BehaviouralSignals {
   secondsOnItem?: number;
 }
 
-export interface ResponseSignals {
-  noticing: number;
-  reasoning: number;
-  openMindedness: number;
-  revising: number;
-  curiosity: number;
+export interface AnswerFlags {
+  noticing: boolean;
+  reasoning: boolean;
+  openMindedness: boolean;
+  revising: boolean;
+  curiosity: boolean;
   hasText: boolean;
 }
 
-const EMPTY: ResponseSignals = {
-  noticing: 0,
-  reasoning: 0,
-  openMindedness: 0,
-  revising: 0,
-  curiosity: 0,
+const EMPTY_FLAGS: AnswerFlags = {
+  noticing: false,
+  reasoning: false,
+  openMindedness: false,
+  revising: false,
+  curiosity: false,
   hasText: false,
 };
 
@@ -75,92 +75,80 @@ function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
-function countSentences(text: string): number {
-  return Math.max(1, (text.match(/[.!?]+/g) || []).length);
-}
+export function extractFlags(
+  text: string,
+  behaviours?: BehaviouralSignals
+): AnswerFlags {
+  const hasText = !!(text && text.trim().length >= 5);
+  const flags: AnswerFlags = { ...EMPTY_FLAGS, hasText };
 
-function analyseStructure(text: string) {
+  // Behavioural — from math missions. These count even without text.
+  if (behaviours) {
+    if (
+      typeof behaviours.testsBeforeGuess === 'number' &&
+      behaviours.testsBeforeGuess >= 3
+    ) {
+      flags.reasoning = true;
+    }
+    if (behaviours.wentBackToTest) {
+      flags.revising = true;
+    }
+  }
+
+  if (!hasText) return flags;
+
   const t = text.toLowerCase();
   const wc = countWords(text);
-  const sc = countSentences(text);
-
   const reasonRe =
     /\b(because|since|so|that is why|thats why|which means|reason)\b|कारण|क्योंकि|म्हणून|तो/;
   const counterRe =
     /\b(but|however|though|although|on the other hand|yet|even though)\b|पण|लेकिन|पर/;
   const hedgeRe =
     /\b(maybe|perhaps|probably|might|could|i think|seems|possibly|not sure|guess)\b|कदाचित|शायद/;
-  const absRe =
-    /\b(always|never|definitely|obviously|everyone|nobody|certainly|for sure)\b|नेहमी|कधीच|हमेशा/;
   const questionRe = /\?|what if|why do|how come|what makes|what about/;
   const exampleRe =
-    /\b(for example|like when|one time|once|such as|for instance)\b|उदाहरणार्थ|जैसे/;
+    /\b(for example|like when|one time|once|such as|for instance|yesterday|today|last week)\b|उदाहरणार्थ|जैसे/;
+  const ifRe = /\bif\b|\bthen\b/;
 
+  // NOTICING — mentions a specific detail, example, or uses ≥15 words
+  if (exampleRe.test(t) || wc >= 15) flags.noticing = true;
+
+  // REASONING — gives a reason
+  if (reasonRe.test(t)) flags.reasoning = true;
+
+  // OPEN-MINDEDNESS — considers another possibility
+  if (counterRe.test(t) || hedgeRe.test(t)) flags.openMindedness = true;
+
+  // REVISING — shows they'd change their mind given new information
+  if (ifRe.test(t) && (reasonRe.test(t) || counterRe.test(t))) {
+    flags.revising = true;
+  }
+
+  // CURIOSITY — asks a question or pushes back
+  if (questionRe.test(t)) flags.curiosity = true;
+
+  return flags;
+}
+
+/**
+ * Given an array of answer flags for a week, decide whether that week
+ * counts toward each dimension. Rule: at least 2 answers showing the habit.
+ */
+export function dimensionCountsForWeek(
+  flags: AnswerFlags[]
+): Record<DimensionKey, boolean> {
+  const count = (key: DimensionKey) => flags.filter((f) => f[key]).length;
   return {
-    hasReason: reasonRe.test(t),
-    hasCounter: counterRe.test(t),
-    hasHedge: hedgeRe.test(t),
-    hasAbsolute: absRe.test(t),
-    hasQuestion: questionRe.test(t),
-    hasExample: exampleRe.test(t),
-    hasIf: /\bif\b/.test(t),
-    wordCount: wc,
-    sentenceCount: sc,
+    noticing: count('noticing') >= 2,
+    reasoning: count('reasoning') >= 2,
+    openMindedness: count('openMindedness') >= 2,
+    revising: count('revising') >= 2,
+    curiosity: count('curiosity') >= 2,
   };
 }
 
-export function extractResponseSignals(
-  text: string,
-  behaviours?: BehaviouralSignals
-): ResponseSignals {
-  const hasText = !!(text && text.trim().length >= 3);
-  const out: ResponseSignals = { ...EMPTY, hasText };
-
-  if (behaviours) {
-    if (typeof behaviours.testsBeforeGuess === 'number') {
-      if (behaviours.testsBeforeGuess >= 5) out.reasoning += 30;
-      else if (behaviours.testsBeforeGuess >= 3) out.reasoning += 20;
-      else if (behaviours.testsBeforeGuess >= 1) out.reasoning += 10;
-    }
-    if (behaviours.wentBackToTest) out.revising += 40;
-    if (
-      typeof behaviours.secondsOnItem === 'number' &&
-      behaviours.secondsOnItem > 60
-    ) {
-      out.curiosity += 15;
-    }
-  }
-
-  if (!hasText) return out;
-
-  const s = analyseStructure(text);
-
-  if (s.hasExample) out.noticing += 30;
-  if (s.wordCount >= 20) out.noticing += 15;
-  if (s.wordCount >= 40) out.noticing += 15;
-
-  if (s.hasReason) out.reasoning += 30;
-  if (s.hasReason && s.wordCount >= 15) out.reasoning += 15;
-  if (s.hasReason && s.hasExample) out.reasoning += 15;
-  if (s.sentenceCount >= 2) out.reasoning += 10;
-
-  if (s.hasCounter) out.openMindedness += 35;
-  if (s.hasHedge) out.openMindedness += 25;
-  if (s.hasCounter && s.hasHedge) out.openMindedness += 15;
-  if (s.hasAbsolute && !s.hasHedge)
-    out.openMindedness = Math.max(0, out.openMindedness - 15);
-
-  if (s.hasIf && (s.hasReason || s.hasCounter)) out.revising += 30;
-  if (s.hasCounter) out.revising += 15;
-
-  if (s.hasQuestion) out.curiosity += 35;
-  if (s.hasReason && s.hasCounter) out.curiosity += 15;
-
-  return out;
-}
-
-export function levelFromScore(score: number): Level {
-  if (score >= 45) return 2;
-  if (score >= 18) return 1;
+export function levelFromPct(pct: number): Level {
+  if (pct >= 65) return 2;
+  if (pct >= 30) return 1;
   return 0;
 }
