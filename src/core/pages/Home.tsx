@@ -211,10 +211,12 @@ function itemKey(item: DayItem, idx: number): string {
     case 'm4':
     case 'm5':
       return `${item.engine}:${item.puzzle}`;
+    case 'math':
+      return `math:${item.title.slice(0, 40)}`;
     case 'opinion':
-      return `opinion:${item.question}`;
+      return `opinion:${item.question.slice(0, 40)}`;
     case 'creative':
-      return `creative:${item.prompt}`;
+      return `creative:${item.prompt.slice(0, 40)}`;
     case 'watch':
       return `watch:${item.video}`;
   }
@@ -228,6 +230,7 @@ function itemEmoji(item: DayItem): string {
     case 'm3': return '🔮';
     case 'm4': return '🎯';
     case 'm5': return '💭';
+    case 'math': return '🔢';
     case 'opinion': return '🗣️';
     case 'creative': return '✨';
     case 'watch': return '🎬';
@@ -241,6 +244,7 @@ function itemTitle(item: DayItem): string {
     case 'm3': return 'Pattern Detective';
     case 'm4': return 'Cause Detective';
     case 'm5': return 'Big Question';
+    case 'math': return 'Number Machine';
     case 'opinion': return 'Your Opinion';
     case 'creative': return 'Create';
     case 'watch': return 'Watch & Think';
@@ -254,6 +258,7 @@ function itemSub(item: DayItem): string {
     case 'm3': return 'Pattern or noise?';
     case 'm4': return 'Correlation or cause?';
     case 'm5': return 'Which and why?';
+    case 'math': return 'Test it, find the rule';
     case 'opinion': return 'What do you think?';
     case 'creative': return 'Make something new';
     case 'watch': return 'A short film + a question';

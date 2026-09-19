@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
@@ -14,6 +14,8 @@ const BRAND = {
   inkDim: 'rgba(255,255,255,0.62)',
   inkFaint: 'rgba(255,255,255,0.38)',
   inkGhost: 'rgba(255,255,255,0.14)',
+  emerald: '#34d399',
+  red: '#f87171',
 };
 
 type Stage = 'intro' | 'working' | 'done';
@@ -34,6 +36,10 @@ export default function Play() {
   const requiredCount = dayConfig?.items.length ?? 0;
 
   const [stage, setStage] = useState<Stage>('intro');
+
+  useEffect(() => {
+    setStage('intro');
+  }, [tier, day, idx]);
 
   if (!dayConfig || !item || Number.isNaN(tier) || Number.isNaN(day) || Number.isNaN(idx)) {
     return (
@@ -58,7 +64,6 @@ export default function Play() {
     setStage('done');
   };
 
-  // Find next undone item starting from idx+1, wrapping around.
   const nextIdx = (() => {
     const n = dayConfig.items.length;
     for (let offset = 1; offset <= n; offset++) {
@@ -79,7 +84,6 @@ export default function Play() {
 
   return (
     <div className="max-w-2xl mx-auto px-5 pb-24">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-8">
         <button
           onClick={() => navigate('/home')}
@@ -96,7 +100,6 @@ export default function Play() {
         </div>
       </div>
 
-      {/* Progress bar */}
       <div className="mb-8 h-[3px] w-full rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div
           className="h-full transition-all duration-500"
@@ -105,12 +108,9 @@ export default function Play() {
       </div>
 
       {stage === 'done' ? (
-        <DoneState
-          onNext={goNext}
-          nextIdx={nextIdx}
-          currentIdx={idx}
-          total={requiredCount}
-        />
+        <DoneState onNext={goNext} nextIdx={nextIdx} currentIdx={idx} total={requiredCount} />
+      ) : item.engine === 'math' ? (
+        <MathView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : item.engine === 'opinion' ? (
         <OpinionView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : item.engine === 'creative' ? (
@@ -119,6 +119,235 @@ export default function Play() {
         <WatchView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : (
         <MissionPlaceholder onComplete={() => onComplete({ engine: item.engine })} />
+      )}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MATH — interactive machine. Test inputs, deduce the rule.
+   ═══════════════════════════════════════════════════════════ */
+
+function MathView({
+  item, stage, setStage, onComplete,
+}: {
+  item: Extract<DayItem, { engine: 'math' }>;
+  stage: Stage;
+  setStage: (s: Stage) => void;
+  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
+}) {
+  const [tested, setTested] = useState<{ in: number; out: number }[]>([]);
+  const [phase, setPhase] = useState<'test' | 'guess' | 'reveal'>('test');
+  const [picked, setPicked] = useState<number | null>(null);
+
+  const inputs = item.tests.map((t) => t.in);
+  const testedIn = new Set(tested.map((t) => t.in));
+  const MIN_TESTS = 3;
+  const canGuess = tested.length >= MIN_TESTS;
+  const isCorrect = picked === item.answerIdx;
+
+  const testInput = (n: number) => {
+    if (testedIn.has(n)) return;
+    const pair = item.tests.find((t) => t.in === n);
+    if (!pair) return;
+    setTested((prev) => [...prev, pair]);
+    if (stage === 'intro') setStage('working');
+  };
+
+  const submitGuess = () => {
+    if (picked === null) return;
+    setPhase('reveal');
+  };
+
+  const continueNext = () => {
+    onComplete({ engine: 'math', picked: picked ?? undefined });
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center gap-2">
+        <span className="text-[24px] leading-none">🔢</span>
+        <span className="text-[11px] font-bold uppercase tracking-[0.16em]" style={{ color: BRAND.blueSoft }}>
+          Number Machine
+        </span>
+      </div>
+
+      <h1 className="text-[22px] md:text-[26px] font-semibold leading-[1.25] mb-3">
+        {item.title}
+      </h1>
+
+      <p className="text-[14.5px] leading-[1.7] mb-7" style={{ color: BRAND.inkDim }}>
+        {item.description}
+      </p>
+
+      {/* PHASE: TEST */}
+      {phase === 'test' && (
+        <>
+          <div className="mb-6">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2.5" style={{ color: BRAND.inkFaint }}>
+              Tap a number to feed the machine
+            </div>
+            <div className="grid grid-cols-5 gap-2">
+              {inputs.map((n) => {
+                const already = testedIn.has(n);
+                return (
+                  <button
+                    key={n}
+                    onClick={() => testInput(n)}
+                    disabled={already}
+                    className="rounded-xl py-3.5 text-[16px] font-bold transition tabular-nums"
+                    style={{
+                      background: already ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${BRAND.inkGhost}`,
+                      color: already ? BRAND.inkFaint : BRAND.ink,
+                      opacity: already ? 0.35 : 1,
+                      cursor: already ? 'default' : 'pointer',
+                    }}
+                  >
+                    {n}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {tested.length > 0 && (
+            <div className="mb-6">
+              <div className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2.5" style={{ color: BRAND.inkFaint }}>
+                What the machine gave back
+              </div>
+              <div className="grid gap-1.5">
+                {tested.map((t, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 rounded-xl px-4 py-3"
+                    style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
+                  >
+                    <span className="text-[15px] font-bold tabular-nums" style={{ color: BRAND.inkDim }}>
+                      {t.in}
+                    </span>
+                    <span style={{ color: BRAND.inkFaint }}>→</span>
+                    <span className="text-[18px] font-bold tabular-nums" style={{ color: BRAND.blueBright }}>
+                      {t.out}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => setPhase('guess')}
+            disabled={!canGuess}
+            className="w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
+            style={{ background: BRAND.ink, color: BRAND.surface }}
+          >
+            {canGuess
+              ? 'I think I know the rule →'
+              : `Test ${MIN_TESTS - tested.length} more to guess`}
+          </button>
+        </>
+      )}
+
+      {/* PHASE: GUESS */}
+      {phase === 'guess' && (
+        <>
+          <div className="mb-6">
+            <div className="text-[11px] font-bold uppercase tracking-[0.14em] mb-2.5" style={{ color: BRAND.inkFaint }}>
+              Your tests so far
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {tested.map((t, i) => (
+                <span
+                  key={i}
+                  className="rounded-lg px-2.5 py-1.5 text-[12.5px] tabular-nums"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${BRAND.inkGhost}`, color: BRAND.inkDim }}
+                >
+                  {t.in} → <span style={{ color: BRAND.blueBright, fontWeight: 700 }}>{t.out}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-[12px] font-semibold mb-3" style={{ color: BRAND.inkDim }}>
+            Which rule does the machine follow?
+          </div>
+
+          <div className="grid gap-2.5 mb-6">
+            {item.ruleOptions.map((opt, i) => {
+              const selected = picked === i;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setPicked(i)}
+                  className="flex items-center gap-3 rounded-2xl p-4 text-left transition-all"
+                  style={{
+                    background: selected ? `${BRAND.blue}18` : 'rgba(255,255,255,0.025)',
+                    border: `1px solid ${selected ? BRAND.blue : BRAND.inkGhost}`,
+                  }}
+                >
+                  <span
+                    className="w-4 h-4 rounded-full flex-shrink-0 transition-all"
+                    style={{
+                      border: `2px solid ${selected ? BRAND.blue : BRAND.inkGhost}`,
+                      background: selected ? BRAND.blue : 'transparent',
+                    }}
+                  />
+                  <span className="text-[14.5px] font-semibold" style={{ color: BRAND.ink }}>
+                    {opt}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPhase('test')}
+              className="rounded-full px-5 py-4 text-[14px] font-bold transition"
+              style={{ background: 'rgba(255,255,255,0.05)', color: BRAND.inkDim, border: `1px solid ${BRAND.inkGhost}` }}
+            >
+              Test more
+            </button>
+            <button
+              onClick={submitGuess}
+              disabled={picked === null}
+              className="flex-1 rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
+              style={{ background: BRAND.ink, color: BRAND.surface }}
+            >
+              Submit
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* PHASE: REVEAL */}
+      {phase === 'reveal' && (
+        <>
+          <div
+            className="rounded-2xl p-6 mb-6"
+            style={{
+              background: isCorrect ? 'rgba(52,211,153,0.08)' : 'rgba(123,141,255,0.08)',
+              border: `1px solid ${isCorrect ? 'rgba(52,211,153,0.35)' : 'rgba(123,141,255,0.35)'}`,
+            }}
+          >
+            <div className="text-[42px] mb-3">{isCorrect ? '🎯' : '💭'}</div>
+            <div className="text-[18px] font-semibold mb-2">
+              {isCorrect ? 'You found the rule.' : 'Look again — here is the answer.'}
+            </div>
+            <div className="text-[14px] leading-[1.7]" style={{ color: BRAND.inkDim }}>
+              {item.explanation}
+            </div>
+          </div>
+
+          <button
+            onClick={continueNext}
+            className="w-full rounded-full py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
+            style={{ background: BRAND.ink, color: BRAND.surface }}
+          >
+            Continue →
+          </button>
+        </>
       )}
     </div>
   );
@@ -138,7 +367,6 @@ function OpinionView({
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [reason, setReason] = useState('');
-
   const canSubmit = picked !== null && reason.trim().length >= 20;
 
   return (
@@ -150,7 +378,7 @@ function OpinionView({
         </span>
       </div>
 
-      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
+      <h1 className="text-[22px] md:text-[26px] font-semibold leading-[1.3] mb-6">
         {item.question}
       </h1>
 
@@ -251,7 +479,7 @@ function CreativeView({
         </span>
       </div>
 
-      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
+      <h1 className="text-[22px] md:text-[26px] font-semibold leading-[1.3] mb-5">
         {item.prompt}
       </h1>
 
@@ -317,7 +545,7 @@ function WatchView({
         </span>
       </div>
 
-      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
+      <h1 className="text-[22px] md:text-[26px] font-semibold leading-[1.3] mb-6">
         {item.title}
       </h1>
 
@@ -382,7 +610,7 @@ function WatchView({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Mission placeholder
+   PLACEHOLDER for m1–m5
    ═══════════════════════════════════════════════════════════ */
 
 function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
@@ -395,7 +623,7 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
         </span>
       </div>
 
-      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
+      <h1 className="text-[22px] md:text-[26px] font-semibold leading-[1.3] mb-6">
         This mission is being upgraded.
       </h1>
 
@@ -413,10 +641,6 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════
-   DONE — next item
-   ═══════════════════════════════════════════════════════════ */
 
 function DoneState({
   onNext, nextIdx, currentIdx, total,
@@ -456,7 +680,6 @@ function CenteredCard({ children }: { children: React.ReactNode }) {
   return <div className="max-w-md mx-auto text-center py-20 px-5">{children}</div>;
 }
 
-/* ─── item key ──────────────────────────────────────────── */
 function itemKey(item: DayItem, idx: number): string {
   switch (item.engine) {
     case 'm1':
@@ -465,6 +688,8 @@ function itemKey(item: DayItem, idx: number): string {
     case 'm4':
     case 'm5':
       return `${item.engine}:${item.puzzle}`;
+    case 'math':
+      return `math:${item.title.slice(0, 40)}`;
     case 'opinion':
       return `opinion:${item.question.slice(0, 40)}`;
     case 'creative':

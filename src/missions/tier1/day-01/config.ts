@@ -16,6 +16,30 @@ export default {
       ],
     },
     {
+      engine: 'math' as const,
+      title: 'The Doubling Machine',
+      description: 'A machine takes any number you give it. It gives back a new number. Test it a few times, then figure out its rule.',
+      tests: [
+        { in: 1, out: 2 },
+        { in: 2, out: 4 },
+        { in: 3, out: 6 },
+        { in: 4, out: 8 },
+        { in: 5, out: 10 },
+        { in: 6, out: 12 },
+        { in: 7, out: 14 },
+        { in: 8, out: 16 },
+        { in: 9, out: 18 },
+      ],
+      ruleOptions: [
+        'Add 3 to the number',
+        'Multiply the number by 3',
+        'Double the number (multiply by 2)',
+        'Add 4 to the number',
+      ],
+      answerIdx: 2,
+      explanation: 'Every output is exactly twice the input. 1 → 2, 3 → 6, 5 → 10. So the rule is: double the number.',
+    },
+    {
       engine: 'creative' as const,
       prompt: 'Describe the best day you have had this month.',
       hint: 'What happened? Why was it the best? Use at least 20 words.',
@@ -28,12 +52,6 @@ export default {
         { em: '🙅', label: 'Say no and explain why', hint: 'Honesty matters' },
         { em: '🤝', label: 'Help them understand the work instead', hint: 'Teach, do not give' },
       ],
-    },
-    {
-      engine: 'watch' as const,
-      title: 'Watch: Why do we ask questions?',
-      video: 'https://www.youtube.com/watch?v=KwGmG9wLIeg',
-      reflect: 'In your own words — why do you think asking good questions is more useful than knowing all the answers?',
     },
   ],
 };

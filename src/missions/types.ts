@@ -6,12 +6,22 @@ export type EngineId =
   | 'm3'
   | 'm4'
   | 'm5'
+  | 'math'
   | 'opinion'
   | 'creative'
   | 'watch';
 
 export type DayItem =
   | { engine: 'm1' | 'm2' | 'm3' | 'm4' | 'm5'; puzzle: string }
+  | {
+      engine: 'math';
+      title: string;
+      description: string;
+      tests: { in: number; out: number }[];
+      ruleOptions: string[];
+      answerIdx: number;
+      explanation: string;
+    }
   | {
       engine: 'opinion';
       question: string;
@@ -22,8 +32,8 @@ export type DayItem =
   | {
       engine: 'watch';
       title: string;
-      video: string;   // full URL — opens externally
-      reflect: string; // reflection question
+      video: string;
+      reflect: string;
     };
 
 export interface DayConfig {
