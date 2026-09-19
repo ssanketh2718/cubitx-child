@@ -29,6 +29,10 @@ const BRAND = {
   red: '#f87171',
 };
 
+function itemKey(tier: number, day: number, idx: number): string {
+  return `t${tier}:d${day}:i${idx}`;
+}
+
 export default function ParentView() {
   const navigate = useNavigate();
   const user = useApp((s) => s.user);
@@ -64,7 +68,7 @@ export default function ParentView() {
 
       const dayProgress = days[d];
       const items = cfg.items.map((item, idx) => {
-        const key = itemKey(item, idx);
+        const key = itemKey(tier, d, idx);
         return { key, item, response: responses[key] ?? null };
       });
 
@@ -294,10 +298,7 @@ export default function ParentView() {
 }
 
 function Section({
-  eyebrow,
-  title,
-  subtitle,
-  children,
+  eyebrow, title, subtitle, children,
 }: {
   eyebrow: string;
   title: string;
@@ -362,10 +363,7 @@ function StatCard({ value, label }: { value: number; label: string }) {
 }
 
 function SignalBar({
-  label,
-  value,
-  previous,
-  hasPrev,
+  label, value, previous, hasPrev,
 }: {
   label: string;
   value: number;
@@ -492,26 +490,6 @@ function ResponseCard({ item, response }: { item: DayItem; response: any }) {
       )}
     </div>
   );
-}
-
-function itemKey(item: DayItem, idx: number): string {
-  switch (item.engine) {
-    case 'm1':
-    case 'm2':
-    case 'm3':
-    case 'm4':
-    case 'm5':
-      return `${item.engine}:${item.puzzle}`;
-    case 'math':
-      return `math:${item.title.slice(0, 40)}`;
-    case 'opinion':
-      return `opinion:${item.question.slice(0, 40)}`;
-    case 'creative':
-      return `creative:${item.prompt.slice(0, 40)}`;
-    case 'watch':
-      return `watch:${item.video}`;
-  }
-  return `item:${idx}`;
 }
 
 function itemEmoji(item: DayItem): string {

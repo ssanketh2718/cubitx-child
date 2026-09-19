@@ -3,9 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
 import { curriculumTierFrom } from '../../missions/tiers';
-import { isDevMode, getDevDayOverride, setDevDayOverride } from '../auth/devMode';
+import { isDevMode } from '../auth/devMode';
 import type { DayItem } from '../../missions/types';
 import { PAYMENT_LINK } from '../config';
+
+function itemKey(tier: number, day: number, idx: number): string {
+  return `t${tier}:d${day}:i${idx}`;
+}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -17,6 +21,8 @@ export default function Home() {
   const getActiveDay = useApp((s) => s.getActiveDay);
   const isDayComplete = useApp((s) => s.isDayComplete);
   const refreshDayUnlocks = useApp((s) => s.refreshDayUnlocks);
+  const devDayOverride = useApp((s) => s.devDayOverride);
+  const setDevDayOverride = useApp((s) => s.setDevDayOverride);
 
   useEffect(() => {
     refreshDayUnlocks();
@@ -31,8 +37,8 @@ export default function Home() {
   const dayConfig = loadDayConfig(curriculumTier, activeDay);
   const items: DayItem[] = dayConfig?.items ?? [];
   const requiredCount = items.length;
-  const doneCount = items.filter((item, idx) =>
-    isItemDone(itemKey(item, idx))
+  const doneCount = items.filter((_, idx) =>
+    isItemDone(itemKey(curriculumTier, activeDay, idx))
   ).length;
   const dayComplete = isDayComplete(activeDay);
   const canPlay = trialActive;
@@ -40,7 +46,6 @@ export default function Home() {
   const tierLabel = curriculumTier === 1 ? 'Classes 5–7' : 'Classes 8–10';
 
   const dev = isDevMode();
-  const devOverride = getDevDayOverride();
 
   const openPayment = () => {
     window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
@@ -48,7 +53,6 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto px-5">
-      {/* DEV day picker — only when dev mode is on */}
       {dev && (
         <div
           className="mb-5 rounded-2xl p-4"
@@ -58,12 +62,9 @@ export default function Home() {
             <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#9aaaff' }}>
               🧪 Dev · Jump to day
             </div>
-            {devOverride !== null && (
+            {devDayOverride !== null && (
               <button
-                onClick={() => {
-                  setDevDayOverride(null);
-                  window.location.reload();
-                }}
+                onClick={() => setDevDayOverride(null)}
                 className="text-[11px] font-semibold underline"
                 style={{ color: '#9aaaff' }}
               >
@@ -79,10 +80,7 @@ export default function Home() {
               return (
                 <button
                   key={d}
-                  onClick={() => {
-                    setDevDayOverride(d);
-                    window.location.reload();
-                  }}
+                  onClick={() => setDevDayOverride(d)}
                   disabled={!hasItems}
                   className="w-8 h-8 rounded-lg text-[11px] font-bold transition"
                   style={{
@@ -92,20 +90,14 @@ export default function Home() {
                       ? 'rgba(255,255,255,0.06)'
                       : 'rgba(255,255,255,0.02)',
                     color: isCurrent ? '#05091a' : hasItems ? '#fff' : 'rgba(255,255,255,0.25)',
-                    border: `1px solid ${
-                      isCurrent ? '#7b8dff' : 'rgba(255,255,255,0.12)'
-                    }`,
+                    border: `1px solid ${isCurrent ? '#7b8dff' : 'rgba(255,255,255,0.12)'}`,
                     cursor: hasItems ? 'pointer' : 'not-allowed',
                   }}
-                  title={hasItems ? `Day ${d}` : `Day ${d} — no content`}
                 >
                   {d}
                 </button>
               );
             })}
-          </div>
-          <div className="text-[10.5px] mt-2.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            Highlighted days have content. Greyed days are empty. Only visible to you in dev mode.
           </div>
         </div>
       )}
@@ -113,7 +105,7 @@ export default function Home() {
       <div className="mb-6">
         <div className="text-[13px] text-white/40 font-semibold tracking-tight">
           {user.name} · Class {user.grade} · Day {activeDay}
-          {dev && devOverride !== null && (
+          {dev && devDayOverride !== null && (
             <span className="ml-2 text-[10.5px] px-2 py-0.5 rounded-full bg-[#7b8dff]/20 text-[#9aaaff]">
               dev override
             </span>
@@ -159,9 +151,7 @@ export default function Home() {
             day{streak === 1 ? '' : 's'} in a row
           </div>
           <div className="text-[12px] text-white/40 font-medium mt-0.5">
-            {streak === 0
-              ? 'Complete 1 item to start'
-              : 'Keep it alive tomorrow'}
+            {streak === 0 ? 'Complete 1 item to start' : 'Keep it alive tomorrow'}
           </div>
         </div>
       </div>
@@ -186,15 +176,14 @@ export default function Home() {
       {hasContent ? (
         <div className="grid grid-cols-2 gap-3 mb-6">
           {items.map((item, idx) => {
-            const id = itemKey(item, idx);
+            const id = itemKey(curriculumTier, activeDay, idx);
             const itemDone = isItemDone(id);
             const locked = !canPlay && !itemDone;
             return (
               <button
                 key={id}
                 onClick={() =>
-                  !locked &&
-                  navigate(`/play/${curriculumTier}/${activeDay}/${idx}`)
+                  !locked && navigate(`/play/${curriculumTier}/${activeDay}/${idx}`)
                 }
                 disabled={locked}
                 className={`text-left rounded-2xl border p-5 transition-all duration-200 ${
@@ -272,26 +261,6 @@ export default function Home() {
       )}
     </div>
   );
-}
-
-function itemKey(item: DayItem, idx: number): string {
-  switch (item.engine) {
-    case 'm1':
-    case 'm2':
-    case 'm3':
-    case 'm4':
-    case 'm5':
-      return `${item.engine}:${item.puzzle}`;
-    case 'math':
-      return `math:${item.title.slice(0, 40)}`;
-    case 'opinion':
-      return `opinion:${item.question.slice(0, 40)}`;
-    case 'creative':
-      return `creative:${item.prompt.slice(0, 40)}`;
-    case 'watch':
-      return `watch:${item.video}`;
-  }
-  return `item:${idx}`;
 }
 
 function itemEmoji(item: DayItem): string {

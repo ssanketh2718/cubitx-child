@@ -20,6 +20,11 @@ const BRAND = {
 
 type Stage = 'intro' | 'working' | 'done';
 
+// Content-independent key. Unique per tier + day + position.
+function itemKey(tier: number, day: number, idx: number): string {
+  return `t${tier}:d${day}:i${idx}`;
+}
+
 export default function Play() {
   const navigate = useNavigate();
   const { tier: tierParam, day: dayParam, idx: idxParam } = useParams();
@@ -57,8 +62,9 @@ export default function Play() {
     );
   }
 
+  const key = itemKey(tier, day, idx);
+
   const onComplete = (response: { engine: string; text?: string; picked?: number }) => {
-    const key = itemKey(item, idx);
     saveResponse(key, response);
     completeItem(key, requiredCount);
     setStage('done');
@@ -69,7 +75,7 @@ export default function Play() {
     for (let offset = 1; offset <= n; offset++) {
       const i = (idx + offset) % n;
       if (i === idx) continue;
-      if (!isItemDone(itemKey(dayConfig.items[i], i))) return i;
+      if (!isItemDone(itemKey(tier, day, i))) return i;
     }
     return -1;
   })();
@@ -124,10 +130,6 @@ export default function Play() {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MATH — interactive machine. Test inputs, deduce the rule.
-   ═══════════════════════════════════════════════════════════ */
-
 function MathView({
   item, stage, setStage, onComplete,
 }: {
@@ -154,15 +156,6 @@ function MathView({
     if (stage === 'intro') setStage('working');
   };
 
-  const submitGuess = () => {
-    if (picked === null) return;
-    setPhase('reveal');
-  };
-
-  const continueNext = () => {
-    onComplete({ engine: 'math', picked: picked ?? undefined });
-  };
-
   return (
     <div>
       <div className="mb-3 flex items-center gap-2">
@@ -180,7 +173,6 @@ function MathView({
         {item.description}
       </p>
 
-      {/* PHASE: TEST */}
       {phase === 'test' && (
         <>
           <div className="mb-6">
@@ -249,7 +241,6 @@ function MathView({
         </>
       )}
 
-      {/* PHASE: GUESS */}
       {phase === 'guess' && (
         <>
           <div className="mb-6">
@@ -310,7 +301,7 @@ function MathView({
               Test more
             </button>
             <button
-              onClick={submitGuess}
+              onClick={() => picked !== null && setPhase('reveal')}
               disabled={picked === null}
               className="flex-1 rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
               style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -321,7 +312,6 @@ function MathView({
         </>
       )}
 
-      {/* PHASE: REVEAL */}
       {phase === 'reveal' && (
         <>
           <div
@@ -341,7 +331,7 @@ function MathView({
           </div>
 
           <button
-            onClick={continueNext}
+            onClick={() => onComplete({ engine: 'math', picked: picked ?? undefined })}
             className="w-full rounded-full py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
             style={{ background: BRAND.ink, color: BRAND.surface }}
           >
@@ -352,10 +342,6 @@ function MathView({
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════
-   OPINION
-   ═══════════════════════════════════════════════════════════ */
 
 function OpinionView({
   item, stage, setStage, onComplete,
@@ -454,10 +440,6 @@ function OpinionView({
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CREATIVE
-   ═══════════════════════════════════════════════════════════ */
-
 function CreativeView({
   item, stage, setStage, onComplete,
 }: {
@@ -518,10 +500,6 @@ function CreativeView({
     </div>
   );
 }
-
-/* ═══════════════════════════════════════════════════════════
-   WATCH
-   ═══════════════════════════════════════════════════════════ */
 
 function WatchView({
   item, stage, setStage, onComplete,
@@ -609,10 +587,6 @@ function WatchView({
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PLACEHOLDER for m1–m5
-   ═══════════════════════════════════════════════════════════ */
-
 function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
   return (
     <div>
@@ -678,24 +652,4 @@ function DoneState({
 
 function CenteredCard({ children }: { children: React.ReactNode }) {
   return <div className="max-w-md mx-auto text-center py-20 px-5">{children}</div>;
-}
-
-function itemKey(item: DayItem, idx: number): string {
-  switch (item.engine) {
-    case 'm1':
-    case 'm2':
-    case 'm3':
-    case 'm4':
-    case 'm5':
-      return `${item.engine}:${item.puzzle}`;
-    case 'math':
-      return `math:${item.title.slice(0, 40)}`;
-    case 'opinion':
-      return `opinion:${item.question.slice(0, 40)}`;
-    case 'creative':
-      return `creative:${item.prompt.slice(0, 40)}`;
-    case 'watch':
-      return `watch:${item.video}`;
-  }
-  return `item:${idx}`;
 }
