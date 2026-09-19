@@ -10,7 +10,6 @@ export default function TopBar() {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // close menu when clicking outside
   useEffect(() => {
     function onClick(e: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -73,6 +72,13 @@ export default function TopBar() {
                 </div>
               )}
 
+              <button
+                onClick={() => { setOpen(false); navigate('/parent'); }}
+                className="w-full text-left px-4 py-3 text-[13.5px] text-white/85 hover:bg-white/[0.04] transition border-b border-white/[0.06]"
+              >
+                📈 Habits
+              </button>
+
               {kids.length > 1 && (
                 <button
                   onClick={() => { setOpen(false); navigate('/switch'); }}
@@ -90,13 +96,6 @@ export default function TopBar() {
                   ➕ Add another child
                 </button>
               )}
-
-              <button
-                onClick={() => { setOpen(false); navigate('/parent'); }}
-                className="w-full text-left px-4 py-3 text-[13.5px] text-white/85 hover:bg-white/[0.04] transition border-b border-white/[0.06]"
-              >
-                📊 Parent dashboard
-              </button>
 
               <button
                 onClick={handleSignOut}

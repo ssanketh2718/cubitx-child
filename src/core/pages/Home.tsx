@@ -79,7 +79,6 @@ export default function Home() {
               const isCurrent = d === activeDay;
               const isComplete = isDayComplete(d);
 
-              // Priority: complete → green | current → blue | has content → neutral | empty → dim
               let bg = 'rgba(255,255,255,0.02)';
               let color = 'rgba(255,255,255,0.25)';
               let border = 'rgba(255,255,255,0.12)';
@@ -179,7 +178,7 @@ export default function Home() {
         </div>
       )}
 
-      <div className="rounded-2xl border border-[#7b8dff]/15 bg-[#7b8dff]/[0.06] p-5 mb-5 flex items-center gap-4">
+      <div className="rounded-2xl border border-[#7b8dff]/15 bg-[#7b8dff]/[0.06] p-5 mb-4 flex items-center gap-4">
         <div className="text-[40px] leading-none font-bold text-[#9aaaff] tabular-nums">
           {streak}
         </div>
@@ -192,6 +191,23 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Habits link — high visibility for parents */}
+      <button
+        onClick={() => navigate('/parent')}
+        className="w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 mb-5 flex items-center gap-3 hover:bg-white/[0.04] hover:border-[#7b8dff]/30 transition text-left"
+      >
+        <span className="text-[22px] leading-none">📈</span>
+        <div className="flex-1">
+          <div className="text-[13.5px] font-semibold text-white">
+            See {user.name}'s habits
+          </div>
+          <div className="text-[11.5px] text-white/40 mt-0.5">
+            What they're building, in plain language
+          </div>
+        </div>
+        <span className="text-[13px] text-[#9aaaff]">→</span>
+      </button>
 
       {dayConfig?.label && (
         <div className="text-[11px] tracking-[0.08em] text-[#9aaaff] font-bold uppercase mb-3">
