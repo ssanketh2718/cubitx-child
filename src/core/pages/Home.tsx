@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
 import { curriculumTierFrom } from '../../missions/tiers';
+import { isDevMode, getDevDayOverride, setDevDayOverride } from '../auth/devMode';
 import type { DayItem } from '../../missions/types';
 import { PAYMENT_LINK } from '../config';
 
@@ -38,15 +39,85 @@ export default function Home() {
   const hasContent = items.length > 0;
   const tierLabel = curriculumTier === 1 ? 'Classes 5–7' : 'Classes 8–10';
 
+  const dev = isDevMode();
+  const devOverride = getDevDayOverride();
+
   const openPayment = () => {
     window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <div className="max-w-2xl mx-auto px-5">
+      {/* DEV day picker — only when dev mode is on */}
+      {dev && (
+        <div
+          className="mb-5 rounded-2xl p-4"
+          style={{ background: 'rgba(123,141,255,0.08)', border: '1px solid rgba(123,141,255,0.35)' }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#9aaaff' }}>
+              🧪 Dev · Jump to day
+            </div>
+            {devOverride !== null && (
+              <button
+                onClick={() => {
+                  setDevDayOverride(null);
+                  window.location.reload();
+                }}
+                className="text-[11px] font-semibold underline"
+                style={{ color: '#9aaaff' }}
+              >
+                reset to natural
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
+              const cfg = loadDayConfig(curriculumTier, d);
+              const hasItems = !!(cfg && cfg.items.length > 0);
+              const isCurrent = d === activeDay;
+              return (
+                <button
+                  key={d}
+                  onClick={() => {
+                    setDevDayOverride(d);
+                    window.location.reload();
+                  }}
+                  disabled={!hasItems}
+                  className="w-8 h-8 rounded-lg text-[11px] font-bold transition"
+                  style={{
+                    background: isCurrent
+                      ? '#7b8dff'
+                      : hasItems
+                      ? 'rgba(255,255,255,0.06)'
+                      : 'rgba(255,255,255,0.02)',
+                    color: isCurrent ? '#05091a' : hasItems ? '#fff' : 'rgba(255,255,255,0.25)',
+                    border: `1px solid ${
+                      isCurrent ? '#7b8dff' : 'rgba(255,255,255,0.12)'
+                    }`,
+                    cursor: hasItems ? 'pointer' : 'not-allowed',
+                  }}
+                  title={hasItems ? `Day ${d}` : `Day ${d} — no content`}
+                >
+                  {d}
+                </button>
+              );
+            })}
+          </div>
+          <div className="text-[10.5px] mt-2.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            Highlighted days have content. Greyed days are empty. Only visible to you in dev mode.
+          </div>
+        </div>
+      )}
+
       <div className="mb-6">
         <div className="text-[13px] text-white/40 font-semibold tracking-tight">
           {user.name} · Class {user.grade} · Day {activeDay}
+          {dev && devOverride !== null && (
+            <span className="ml-2 text-[10.5px] px-2 py-0.5 rounded-full bg-[#7b8dff]/20 text-[#9aaaff]">
+              dev override
+            </span>
+          )}
         </div>
         <div className="text-[26px] font-bold text-white mt-1.5 tracking-tight leading-tight">
           {!trialActive
@@ -244,7 +315,7 @@ function itemTitle(item: DayItem): string {
     case 'm3': return 'Pattern Detective';
     case 'm4': return 'Cause Detective';
     case 'm5': return 'Big Question';
-    case 'math': return 'Number Machine';
+    case 'math': return item.title;
     case 'opinion': return 'Your Opinion';
     case 'creative': return 'Create';
     case 'watch': return 'Watch & Think';
