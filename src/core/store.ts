@@ -10,11 +10,18 @@ export interface DayProgress {
   itemsCompleted: string[];
 }
 
+export interface SavedBehaviouralSignals {
+  testsBeforeGuess?: number;
+  wentBackToTest?: boolean;
+  secondsOnItem?: number;
+}
+
 export interface SavedResponse {
   itemKey: string;
   engine: string;
   text?: string;
   picked?: number;
+  behaviours?: SavedBehaviouralSignals;
   submittedAt: string;
 }
 
@@ -41,7 +48,12 @@ interface AppState {
 
   saveResponse: (
     itemKey: string,
-    data: { engine: string; text?: string; picked?: number }
+    data: {
+      engine: string;
+      text?: string;
+      picked?: number;
+      behaviours?: SavedBehaviouralSignals;
+    }
   ) => void;
   getResponse: (itemKey: string) => SavedResponse | null;
 
@@ -72,8 +84,6 @@ const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number =>
 };
 
 const MAX_DAYS = 30;
-
-// Dev day lives in its own localStorage key. Never touches Zustand persistence.
 const DEV_DAY_KEY = 'cubitx-dev-day';
 
 const readDevDay = (): number | null => {
@@ -208,6 +218,7 @@ export const useApp = create<AppState>()(
               engine: data.engine,
               text: data.text,
               picked: data.picked,
+              behaviours: data.behaviours,
               submittedAt: new Date().toISOString(),
             },
           },
@@ -222,7 +233,6 @@ export const useApp = create<AppState>()(
         const state = get();
         if (!state.user) return 1;
 
-        // Dev override — read fresh from localStorage every time.
         if (isDevMode()) {
           const override = readDevDay();
           if (override !== null) return override;
@@ -308,7 +318,6 @@ export const useApp = create<AppState>()(
     }),
     {
       name: 'cubitx-v1',
-      // ⬇️ Only persist real data. Dev fields are stored separately.
       partialize: (state) => ({
         user: state.user,
         days: state.days,

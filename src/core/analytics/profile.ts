@@ -1,83 +1,31 @@
+// src/core/analytics/profile.ts
 import type { SavedResponse } from '../store';
-import { extractSignals, EMPTY_SIGNALS, type Signals } from './signals';
+import {
+  extractResponseSignals,
+  levelFromScore,
+  DIMENSIONS,
+  type DimensionKey,
+  type Level,
+} from './signals';
 
-export type SignalKey = keyof Signals;
-
-export const SIGNAL_LABELS: Record<SignalKey, string> = {
-  groundedness: 'Grounding in specifics',
-  alternatives: 'Considering alternatives',
-  revision: 'Openness to revising',
-  calibration: 'Balancing certainty',
-  reasoningChain: 'Chaining reasoning',
-  expression: 'Putting it into words',
-};
-
-export const SIGNAL_DESCRIPTIONS: Record<SignalKey, string> = {
-  groundedness: 'Ties ideas to concrete details, examples, or facts',
-  alternatives: 'Considers more than one possibility',
-  revision: 'Willing to change their mind given new evidence',
-  calibration: 'Uses "maybe" / "probably" appropriately — not "always" / "never"',
-  reasoningChain: 'Connects claim to evidence to conclusion',
-  expression: 'Explains their thinking in clear sentences',
-};
-
-export type ThinkerType =
-  | 'investigator'
-  | 'weigher'
-  | 'observer'
-  | 'intuitor'
-  | 'articulator'
-  | 'developing';
-
-export const THINKER_INFO: Record<ThinkerType, { label: string; blurb: string }> = {
-  investigator: {
-    label: 'The Investigator',
-    blurb:
-      'Tests ideas, looks for evidence, and changes their mind when reality disagrees. A habit most adults have to relearn.',
-  },
-  weigher: {
-    label: 'The Weigher',
-    blurb:
-      'Considers more than one possibility before deciding. Careful, thoughtful — sometimes needs a nudge to commit.',
-  },
-  observer: {
-    label: 'The Observer',
-    blurb:
-      'Notices details others miss and grounds their answers in what they actually see. Strong on facts, developing on alternatives.',
-  },
-  intuitor: {
-    label: 'The Intuitor',
-    blurb:
-      'Fast, confident, decisive. Moves quickly — the next step is slowing down enough to check whether the first idea is right.',
-  },
-  articulator: {
-    label: 'The Articulator',
-    blurb:
-      'Explains their thinking clearly. The next step is grounding those words in evidence and reasons.',
-  },
-  developing: {
-    label: 'Developing',
-    blurb:
-      "Still gathering enough written answers to see the pattern. Keep going — the picture sharpens over the next few days.",
-  },
-};
+export interface DimensionResult {
+  key: DimensionKey;
+  plain: string;
+  description: string;
+  level: Level;
+  previousLevel: Level | null;
+  score: number;
+}
 
 export interface ThinkingProfile {
-  /** Items answered (any type) this week. */
+  hasEnoughData: boolean;
   weekCount: number;
-  /** Items answered (any type) last week. */
   lastWeekCount: number;
-  /** Of this week's items, how many have written answers (feed the signals). */
-  weekTextCount: number;
-  /** Of last week's items, how many have written answers. */
-  lastWeekTextCount: number;
-
-  signals: Signals;
-  lastWeekSignals: Signals;
-  trend: Signals;
-  type: ThinkerType;
-  strength: SignalKey;
-  weakness: SignalKey;
+  writtenCount: number;
+  dimensions: DimensionResult[];
+  strongest: DimensionKey;
+  weakest: DimensionKey;
+  exampleResponse: { text: string; itemKey: string } | null;
 }
 
 function daysAgo(iso: string): number {
@@ -88,33 +36,17 @@ function daysAgo(iso: string): number {
   return Math.floor((now.getTime() - then.getTime()) / 86400000);
 }
 
-function hasText(r: SavedResponse): boolean {
-  return !!(r.text && r.text.trim().length >= 5);
-}
-
-function avgSignals(list: SavedResponse[]): Signals {
-  const withText = list.filter(hasText);
-  if (withText.length === 0) return { ...EMPTY_SIGNALS };
-
-  const sums: Signals = { ...EMPTY_SIGNALS };
-  for (const r of withText) {
-    const s = extractSignals(r.text ?? '');
-    for (const k of Object.keys(sums) as SignalKey[]) sums[k] += s[k];
+function avgDimension(
+  responses: SavedResponse[],
+  key: DimensionKey
+): number {
+  if (responses.length === 0) return 0;
+  let sum = 0;
+  for (const r of responses) {
+    const s = extractResponseSignals(r.text ?? '', r.behaviours);
+    sum += s[key];
   }
-  for (const k of Object.keys(sums) as SignalKey[]) {
-    sums[k] = Math.round(sums[k] / withText.length);
-  }
-  return sums;
-}
-
-function classify(s: Signals, textCount: number): ThinkerType {
-  if (textCount < 3) return 'developing';
-  if (s.revision >= 55 && s.reasoningChain >= 55) return 'investigator';
-  if (s.alternatives >= 55 && s.calibration >= 55) return 'weigher';
-  if (s.groundedness >= 60 && s.alternatives < 40) return 'observer';
-  if (s.calibration < 40 && s.alternatives < 40) return 'intuitor';
-  if (s.expression >= 60 && s.reasoningChain < 40) return 'articulator';
-  return 'developing';
+  return Math.round(sum / responses.length);
 }
 
 export function computeProfile(
@@ -122,47 +54,61 @@ export function computeProfile(
 ): ThinkingProfile {
   const all = Object.values(responses);
   const thisWeek = all.filter((r) => daysAgo(r.submittedAt) <= 6);
-  const last = all.filter((r) => {
+  const lastWeek = all.filter((r) => {
     const d = daysAgo(r.submittedAt);
     return d >= 7 && d <= 13;
   });
+  const thisWeekText = thisWeek.filter(
+    (r) => r.text && r.text.trim().length >= 3
+  );
 
-  const thisWeekText = thisWeek.filter(hasText);
-  const lastWeekText = last.filter(hasText);
+  const dims: DimensionResult[] = (
+    Object.keys(DIMENSIONS) as DimensionKey[]
+  ).map((k) => {
+    const score = avgDimension(thisWeek, k);
+    const prevScore = lastWeek.length > 0 ? avgDimension(lastWeek, k) : null;
+    return {
+      key: k,
+      plain: DIMENSIONS[k].plain,
+      description: DIMENSIONS[k].description,
+      score,
+      level: levelFromScore(score),
+      previousLevel: prevScore === null ? null : levelFromScore(prevScore),
+    };
+  });
 
-  const signals = avgSignals(thisWeekText);
-  const lastWeekSignals = avgSignals(lastWeekText);
-
-  const trend: Signals = { ...EMPTY_SIGNALS };
-  for (const k of Object.keys(trend) as SignalKey[]) {
-    trend[k] = signals[k] - lastWeekSignals[k];
+  let strongest: DimensionKey = 'reasoning';
+  let weakest: DimensionKey = 'curiosity';
+  let max = -1;
+  let min = 101;
+  for (const d of dims) {
+    if (d.score > max) {
+      max = d.score;
+      strongest = d.key;
+    }
+    if (d.score < min) {
+      min = d.score;
+      weakest = d.key;
+    }
   }
 
-  let strength: SignalKey = 'reasoningChain';
-  let weakness: SignalKey = 'revision';
-  let maxVal = -1;
-  let minVal = 101;
-  for (const k of Object.keys(signals) as SignalKey[]) {
-    if (signals[k] > maxVal) {
-      maxVal = signals[k];
-      strength = k;
-    }
-    if (signals[k] < minVal) {
-      minVal = signals[k];
-      weakness = k;
-    }
-  }
+  const example = [...thisWeekText].sort(
+    (a, b) => (b.text?.length ?? 0) - (a.text?.length ?? 0)
+  )[0];
 
   return {
+    hasEnoughData: thisWeekText.length >= 3,
     weekCount: thisWeek.length,
-    lastWeekCount: last.length,
-    weekTextCount: thisWeekText.length,
-    lastWeekTextCount: lastWeekText.length,
-    signals,
-    lastWeekSignals,
-    trend,
-    type: classify(signals, thisWeekText.length),
-    strength,
-    weakness,
+    lastWeekCount: lastWeek.length,
+    writtenCount: thisWeekText.length,
+    dimensions: dims,
+    strongest,
+    weakest,
+    exampleResponse: example
+      ? { text: example.text ?? '', itemKey: example.itemKey }
+      : null,
   };
 }
+
+export { DIMENSIONS, levelFromScore };
+export type { DimensionKey, Level };

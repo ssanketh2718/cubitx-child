@@ -13,7 +13,6 @@ import AddChild from './pages/AddChild';
 import ParentView from './pages/ParentView';
 import WhoIsPlaying from './pages/WhoIsPlaying';
 import Play from './pages/Play';
-import DevAnalytics from './pages/DevAnalytics';
 
 export default function App() {
   const { session, children: kids, loading } = useAuth();
@@ -22,8 +21,7 @@ export default function App() {
 
   const isImmersive =
     location.pathname.startsWith('/mission/') ||
-    location.pathname.startsWith('/play/') ||
-    location.pathname.startsWith('/dev-analytics');
+    location.pathname.startsWith('/play/');
 
   const isOnboard = location.pathname === '/onboard';
 
@@ -80,7 +78,6 @@ export default function App() {
             <Route path="/parent" element={<ParentView />} />
             <Route path="/add-child" element={<AddChild />} />
             <Route path="/switch" element={<WhoIsPlaying />} />
-            <Route path="/dev-analytics" element={<DevAnalytics />} />
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </main>

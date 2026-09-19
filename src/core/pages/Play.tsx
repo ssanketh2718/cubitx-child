@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useApp } from '../store';
 import { loadDayConfig } from '../../missions/curriculum';
@@ -20,7 +20,6 @@ const BRAND = {
 
 type Stage = 'intro' | 'working' | 'done';
 
-// Content-independent key. Unique per tier + day + position.
 function itemKey(tier: number, day: number, idx: number): string {
   return `t${tier}:d${day}:i${idx}`;
 }
@@ -64,7 +63,16 @@ export default function Play() {
 
   const key = itemKey(tier, day, idx);
 
-  const onComplete = (response: { engine: string; text?: string; picked?: number }) => {
+  const onComplete = (response: {
+    engine: string;
+    text?: string;
+    picked?: number;
+    behaviours?: {
+      testsBeforeGuess?: number;
+      wentBackToTest?: boolean;
+      secondsOnItem?: number;
+    };
+  }) => {
     saveResponse(key, response);
     completeItem(key, requiredCount);
     setStage('done');
@@ -136,11 +144,23 @@ function MathView({
   item: Extract<DayItem, { engine: 'math' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
+  onComplete: (r: {
+    engine: string;
+    picked?: number;
+    behaviours?: {
+      testsBeforeGuess?: number;
+      wentBackToTest?: boolean;
+      secondsOnItem?: number;
+    };
+  }) => void;
 }) {
   const [tested, setTested] = useState<{ in: number; out: number }[]>([]);
   const [phase, setPhase] = useState<'test' | 'guess' | 'reveal'>('test');
   const [picked, setPicked] = useState<number | null>(null);
+  const [wentBack, setWentBack] = useState(false);
+
+  const startedAt = useRef<number>(Date.now());
+  const testsBeforeGuess = useRef<number>(0);
 
   const inputs = item.tests.map((t) => t.in);
   const testedIn = new Set(tested.map((t) => t.in));
@@ -154,6 +174,28 @@ function MathView({
     if (!pair) return;
     setTested((prev) => [...prev, pair]);
     if (stage === 'intro') setStage('working');
+  };
+
+  const goToGuess = () => {
+    testsBeforeGuess.current = tested.length;
+    setPhase('guess');
+  };
+
+  const goBackToTest = () => {
+    setWentBack(true);
+    setPhase('test');
+  };
+
+  const finish = () => {
+    onComplete({
+      engine: 'math',
+      picked: picked ?? undefined,
+      behaviours: {
+        testsBeforeGuess: testsBeforeGuess.current,
+        wentBackToTest: wentBack,
+        secondsOnItem: Math.round((Date.now() - startedAt.current) / 1000),
+      },
+    });
   };
 
   return (
@@ -229,7 +271,7 @@ function MathView({
           )}
 
           <button
-            onClick={() => setPhase('guess')}
+            onClick={goToGuess}
             disabled={!canGuess}
             className="w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
             style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -294,7 +336,7 @@ function MathView({
 
           <div className="flex gap-2">
             <button
-              onClick={() => setPhase('test')}
+              onClick={goBackToTest}
               className="rounded-full px-5 py-4 text-[14px] font-bold transition"
               style={{ background: 'rgba(255,255,255,0.05)', color: BRAND.inkDim, border: `1px solid ${BRAND.inkGhost}` }}
             >
@@ -331,7 +373,7 @@ function MathView({
           </div>
 
           <button
-            onClick={() => onComplete({ engine: 'math', picked: picked ?? undefined })}
+            onClick={finish}
             className="w-full rounded-full py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
             style={{ background: BRAND.ink, color: BRAND.surface }}
           >
@@ -446,7 +488,7 @@ function CreativeView({
   item: Extract<DayItem, { engine: 'creative' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
+  onComplete: (r: { engine: string; text?: string }) => void;
 }) {
   const [text, setText] = useState('');
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -507,7 +549,7 @@ function WatchView({
   item: Extract<DayItem, { engine: 'watch' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
+  onComplete: (r: { engine: string; text?: string }) => void;
 }) {
   const [text, setText] = useState('');
   const [watched, setWatched] = useState(false);
