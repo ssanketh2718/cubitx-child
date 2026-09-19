@@ -7,8 +7,8 @@ export default {
   items: [
     {
       engine: 'math' as const,
-      title: 'The +5 Machine',
-      description: 'A machine takes a number and gives back a new one. Test it a few times, then figure out its rule.',
+      title: 'Number Machine',
+      description: 'A new machine appears. Feed it a number. It returns a different one. Test a few values and work out its rule.',
       tests: [
         { in: 1, out: 6 },
         { in: 2, out: 7 },

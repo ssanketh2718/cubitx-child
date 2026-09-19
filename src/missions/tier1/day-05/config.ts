@@ -16,8 +16,8 @@ export default {
     },
     {
       engine: 'math' as const,
-      title: 'The ×4 Machine',
-      description: 'One more number machine. Test it and figure out what it does.',
+      title: 'Number Machine',
+      description: 'One more machine. Test it and work out what it does.',
       tests: [
         { in: 1, out: 4 },
         { in: 2, out: 8 },

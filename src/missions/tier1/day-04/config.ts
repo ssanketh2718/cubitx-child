@@ -7,8 +7,8 @@ export default {
   items: [
     {
       engine: 'math' as const,
-      title: 'The −4 Machine',
-      description: 'This machine takes a number and gives back a smaller one. Test it and work out its rule.',
+      title: 'Number Machine',
+      description: 'This machine behaves differently from the others. Test it, then work out its rule.',
       tests: [
         { in: 5, out: 1 },
         { in: 6, out: 2 },

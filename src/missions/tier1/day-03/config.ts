@@ -16,8 +16,8 @@ export default {
     },
     {
       engine: 'math' as const,
-      title: 'The ×3 Machine',
-      description: 'This machine does something different. Test it a few times and see if you can spot the rule.',
+      title: 'Number Machine',
+      description: 'Another machine. A different rule from before. Test it and work out what it is doing.',
       tests: [
         { in: 1, out: 3 },
         { in: 2, out: 6 },

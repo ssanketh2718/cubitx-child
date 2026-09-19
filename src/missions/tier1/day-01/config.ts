@@ -17,8 +17,8 @@ export default {
     },
     {
       engine: 'math' as const,
-      title: 'The Doubling Machine',
-      description: 'A machine takes any number you give it. It gives back a new number. Test it a few times, then figure out its rule.',
+      title: 'Number Machine',
+      description: 'A machine takes any number you give it. It returns a different number. Test it a few times, then work out its rule.',
       tests: [
         { in: 1, out: 2 },
         { in: 2, out: 4 },
@@ -33,11 +33,11 @@ export default {
       ruleOptions: [
         'Add 3 to the number',
         'Multiply the number by 3',
-        'Double the number (multiply by 2)',
+        'Multiply the number by 2',
         'Add 4 to the number',
       ],
       answerIdx: 2,
-      explanation: 'Every output is exactly twice the input. 1 → 2, 3 → 6, 5 → 10. So the rule is: double the number.',
+      explanation: 'Every output is exactly twice the input. 1 → 2, 3 → 6, 5 → 10. So the rule is: multiply by 2.',
     },
     {
       engine: 'creative' as const,
