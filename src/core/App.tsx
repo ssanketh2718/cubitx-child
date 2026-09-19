@@ -12,13 +12,16 @@ import SignIn from './pages/SignIn';
 import AddChild from './pages/AddChild';
 import ParentView from './pages/ParentView';
 import WhoIsPlaying from './pages/WhoIsPlaying';
+import Play from './pages/Play';
 
 export default function App() {
   const { session, children: kids, loading } = useAuth();
   const { activeChild } = useChild();
   const location = useLocation();
 
-  const isMission = location.pathname.startsWith('/mission/');
+  const isImmersive =
+    location.pathname.startsWith('/mission/') ||
+    location.pathname.startsWith('/play/');
   const isOnboard = location.pathname === '/onboard';
 
   if (loading) {
@@ -52,8 +55,8 @@ export default function App() {
     return (
       <>
         <Routes>
-          <Route path="/play" element={<WhoIsPlaying />} />
-          <Route path="*" element={<Navigate to="/play" replace />} />
+          <Route path="/play-who" element={<WhoIsPlaying />} />
+          <Route path="*" element={<Navigate to="/play-who" replace />} />
         </Routes>
         <DevBar />
       </>
@@ -63,12 +66,13 @@ export default function App() {
   return (
     <>
       <div className="min-h-screen flex flex-col relative z-10">
-        {!isMission && !isOnboard && <TopBar />}
-        <main className={`flex-1 ${isMission ? 'px-4 pt-5 pb-5' : 'px-4 pt-5 pb-24'}`}>
+        {!isImmersive && !isOnboard && <TopBar />}
+        <main className={`flex-1 ${isImmersive ? 'px-4 pt-5 pb-5' : 'px-4 pt-5 pb-24'}`}>
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
             <Route path="/home" element={<Home />} />
             <Route path="/mission/:id" element={<Mission />} />
+            <Route path="/play/:tier/:day/:idx" element={<Play />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/parent" element={<ParentView />} />
             <Route path="/add-child" element={<AddChild />} />
@@ -76,7 +80,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/home" replace />} />
           </Routes>
         </main>
-        {!isMission && <BottomNav />}
+        {!isImmersive && <BottomNav />}
       </div>
       <DevBar />
     </>

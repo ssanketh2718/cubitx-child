@@ -12,9 +12,19 @@ export type EngineId =
 
 export type DayItem =
   | { engine: 'm1' | 'm2' | 'm3' | 'm4' | 'm5'; puzzle: string }
-  | { engine: 'opinion'; question: string }
-  | { engine: 'creative'; prompt: string }
-  | { engine: 'watch'; video: string };
+  | {
+      engine: 'opinion';
+      question: string;
+      scenario?: string;
+      options: { em: string; label: string; hint?: string }[];
+    }
+  | { engine: 'creative'; prompt: string; hint?: string }
+  | {
+      engine: 'watch';
+      title: string;
+      video: string;   // full URL — opens externally
+      reflect: string; // reflection question
+    };
 
 export interface DayConfig {
   tier: CurriculumTier;
