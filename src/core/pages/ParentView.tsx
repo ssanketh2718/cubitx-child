@@ -1,9 +1,18 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
+import {
+  computeProfile,
+  SIGNAL_LABELS,
+  SIGNAL_DESCRIPTIONS,
+  THINKER_INFO,
+  type SignalKey,
+} from '../analytics/profile';
+import { HABITS } from '../analytics/habits';
+import { buildStarters } from '../analytics/conversations';
 import { loadDayConfig } from '../../missions/curriculum';
 import { curriculumTierFrom } from '../../missions/tiers';
-import type { DayItem, CurriculumTier } from '../../missions/types';
+import type { DayItem } from '../../missions/types';
 import { PAYMENT_LINK } from '../config';
 
 const BRAND = {
@@ -17,6 +26,7 @@ const BRAND = {
   inkFaint: 'rgba(255,255,255,0.38)',
   inkGhost: 'rgba(255,255,255,0.14)',
   emerald: '#34d399',
+  red: '#f87171',
 };
 
 export default function ParentView() {
@@ -28,9 +38,12 @@ export default function ParentView() {
   const isTrialActive = useApp((s) => s.isTrialActive);
   const getTrialDaysLeft = useApp((s) => s.getTrialDaysLeft);
 
-  const tier: CurriculumTier = user ? curriculumTierFrom(user.tier) : 1;
+  const profile = useMemo(() => computeProfile(responses), [responses]);
+  const starters = useMemo(() => buildStarters(responses, 3), [responses]);
+  const habit = HABITS[profile.weakness];
 
-  // Build a per-day picture
+  const tier = user ? curriculumTierFrom(user.tier) : 1;
+
   const dayData = useMemo(() => {
     const out: {
       day: number;
@@ -52,16 +65,10 @@ export default function ParentView() {
       const dayProgress = days[d];
       const items = cfg.items.map((item, idx) => {
         const key = itemKey(item, idx);
-        return {
-          key,
-          item,
-          response: responses[key] ?? null,
-        };
+        return { key, item, response: responses[key] ?? null };
       });
 
       const doneCount = items.filter((i) => !!i.response).length;
-
-      // Only include days where something was done OR the day is in progress
       if (doneCount === 0 && !dayProgress) continue;
 
       out.push({
@@ -73,7 +80,6 @@ export default function ParentView() {
         completedAt: dayProgress?.completedAt ?? null,
       });
     }
-
     return out;
   }, [tier, responses, days]);
 
@@ -81,48 +87,19 @@ export default function ParentView() {
 
   const trialActive = isTrialActive();
   const trialDaysLeft = getTrialDaysLeft();
-  const activeDay = useApp.getState().getActiveDay();
-
-  // Aggregate stats
-  const totalItemsDone = dayData.reduce((sum, d) => sum + d.doneCount, 0);
-  const daysCompleted = dayData.filter((d) => d.completedAt).length;
+  const totalItemsDone = dayData.reduce((s, d) => s + d.doneCount, 0);
   const totalWords = Object.values(responses).reduce(
-    (sum, r) => sum + (r.text ? r.text.trim().split(/\s+/).filter(Boolean).length : 0),
+    (s, r) => s + (r.text ? r.text.trim().split(/\s+/).filter(Boolean).length : 0),
     0
   );
 
-  // Generate insights from the responses
-  const insights = useMemo(() => {
-    const allText = Object.values(responses)
-      .map((r) => r.text ?? '')
-      .join(' ')
-      .toLowerCase();
-
-    const out: string[] = [];
-
-    const because = (allText.match(/\bbecause\b|\bsince\b/g) || []).length;
-    const so = (allText.match(/\bso\b|\btherefore\b/g) || []).length;
-    const but = (allText.match(/\bbut\b|\bhowever\b|\balthough\b/g) || []).length;
-    const maybe = (allText.match(/\bmaybe\b|\bperhaps\b|\bi think\b/g) || []).length;
-    const always = (allText.match(/\balways\b|\bnever\b/g) || []).length;
-
-    if (because + so >= 2) out.push('Gives reasons for their answers');
-    if (but >= 1) out.push('Considers more than one side');
-    if (maybe >= 2) out.push('Weighs ideas carefully before deciding');
-    if (always >= 2) out.push('Speaks with strong certainty');
-    if (totalWords >= 80) out.push('Writes at length when thinking');
-    if (totalItemsDone >= 8) out.push('Has built a steady daily habit');
-
-    return out;
-  }, [responses, totalItemsDone, totalWords]);
-
-  const openPayment = () => {
+  const openPayment = () =>
     window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
-  };
+
+  const isEarlyStage = profile.weekCount < 3;
 
   return (
-    <div className="max-w-3xl mx-auto px-5 pb-8">
-      {/* Header */}
+    <div className="max-w-3xl mx-auto px-5 pb-10">
       <div className="mb-7">
         <button
           onClick={() => navigate('/home')}
@@ -135,14 +112,13 @@ export default function ParentView() {
           {user.name}'s thinking
         </h1>
         <div className="text-[13.5px] mt-1.5" style={{ color: BRAND.inkDim }}>
-          Class {user.grade} · Day {activeDay} · {streak} day streak
+          Class {user.grade} · {streak}-day streak · {totalItemsDone} answers so far
         </div>
       </div>
 
-      {/* Trial banner */}
       {trialActive && trialDaysLeft !== null && (
         <div
-          className="rounded-2xl p-4 mb-5 flex items-center gap-3"
+          className="rounded-2xl p-4 mb-6 flex items-center gap-3"
           style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
         >
           <span className="text-2xl">⏳</span>
@@ -164,55 +140,137 @@ export default function ParentView() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard value={daysCompleted} label="Days finished" />
-        <StatCard value={totalItemsDone} label="Items answered" />
-        <StatCard value={totalWords} label="Words written" />
-      </div>
-
-      {/* Insights */}
-      {insights.length > 0 && (
+      {isEarlyStage && (
         <div
           className="rounded-2xl p-5 mb-6"
           style={{ background: `${BRAND.blue}0e`, border: `1px solid ${BRAND.blue}30` }}
         >
-          <div
-            className="text-[10px] font-bold uppercase mb-3"
-            style={{ color: BRAND.blueSoft, letterSpacing: '0.16em' }}
-          >
-            What we noticed
+          <div className="text-[14px] font-semibold mb-1.5">
+            The picture sharpens as more answers come in
           </div>
-          <div className="flex flex-wrap gap-2">
-            {insights.map((i) => (
-              <span
-                key={i}
-                className="rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold"
-                style={{
-                  background: `${BRAND.blue}1c`,
-                  color: BRAND.blueBright,
-                  border: `1px solid ${BRAND.blue}40`,
-                }}
-              >
-                {i}
-              </span>
-            ))}
+          <div className="text-[13px] leading-[1.65]" style={{ color: BRAND.inkDim }}>
+            {profile.weekCount} answer{profile.weekCount === 1 ? '' : 's'} this week.
+            Analytical insights appear once your child has answered a few more —
+            usually within 2–3 days.
           </div>
         </div>
       )}
 
-      {/* Day-by-day */}
-      {dayData.length === 0 ? (
-        <EmptyState onStart={() => navigate('/home')} />
-      ) : (
-        <div className="grid gap-4">
-          {dayData.map((d) => (
-            <DayCard key={d.day} data={d} />
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <StatCard value={profile.weekCount} label="Answers this week" />
+        <StatCard value={profile.lastWeekCount} label="Answers last week" />
+        <StatCard value={totalWords} label="Words written total" />
+      </div>
+
+      <Section
+        eyebrow="This week's profile"
+        title={THINKER_INFO[profile.type].label}
+        subtitle={THINKER_INFO[profile.type].blurb}
+      >
+        <div className="mt-5 grid gap-3">
+          {(Object.keys(SIGNAL_LABELS) as SignalKey[]).map((k) => (
+            <SignalBar
+              key={k}
+              label={SIGNAL_LABELS[k]}
+              value={profile.signals[k]}
+              previous={profile.lastWeekSignals[k]}
+              hasPrev={profile.lastWeekCount > 0}
+            />
           ))}
         </div>
+      </Section>
+
+      <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <Card>
+          <Eyebrow color={BRAND.emerald}>Where they shine</Eyebrow>
+          <div className="text-[15px] font-semibold mt-2 mb-1">
+            {SIGNAL_LABELS[profile.strength]}
+          </div>
+          <div className="text-[12.5px] leading-[1.65]" style={{ color: BRAND.inkDim }}>
+            {SIGNAL_DESCRIPTIONS[profile.strength]}
+          </div>
+        </Card>
+
+        <Card>
+          <Eyebrow color={BRAND.blueBright}>Where they're working</Eyebrow>
+          <div className="text-[15px] font-semibold mt-2 mb-1">
+            {SIGNAL_LABELS[profile.weakness]}
+          </div>
+          <div className="text-[12.5px] leading-[1.65]" style={{ color: BRAND.inkDim }}>
+            {SIGNAL_DESCRIPTIONS[profile.weakness]}
+          </div>
+        </Card>
+      </div>
+
+      <Section eyebrow="This week's habit" title={habit.title}>
+        <div className="text-[13.5px] leading-[1.75] mt-3 mb-4" style={{ color: BRAND.inkDim }}>
+          {habit.why}
+        </div>
+        <div
+          className="rounded-xl p-4 text-[13.5px] leading-[1.7]"
+          style={{
+            background: 'rgba(0,0,0,0.25)',
+            border: `1px solid ${BRAND.inkGhost}`,
+          }}
+        >
+          <div
+            className="text-[10px] font-bold uppercase mb-2"
+            style={{ color: BRAND.blueSoft, letterSpacing: '0.16em' }}
+          >
+            Try this
+          </div>
+          {habit.script}
+        </div>
+      </Section>
+
+      {starters.length > 0 && (
+        <Section
+          eyebrow="What to ask at dinner"
+          title="Three openings, based on what they wrote"
+        >
+          <div className="mt-4 grid gap-3">
+            {starters.map((s) => (
+              <div
+                key={s.itemKey}
+                className="rounded-xl p-4"
+                style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
+              >
+                <div
+                  className="text-[11px] font-bold uppercase mb-2"
+                  style={{ color: BRAND.inkFaint, letterSpacing: '0.14em' }}
+                >
+                  They wrote
+                </div>
+                <div
+                  className="text-[13.5px] leading-[1.65] italic mb-3"
+                  style={{ color: BRAND.inkDim }}
+                >
+                  “{s.childWrote}
+                  {s.childWrote.length >= 140 ? '…' : ''}”
+                </div>
+                <div className="text-[13.5px] font-semibold" style={{ color: BRAND.blueBright }}>
+                  → {s.tryThis}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Section>
       )}
 
-      {/* Bottom upgrade CTA if trial ended */}
+      <Section eyebrow="Day by day" title="Everything they answered">
+        {dayData.length === 0 ? (
+          <div className="text-[13.5px] mt-3" style={{ color: BRAND.inkFaint }}>
+            Nothing here yet.
+          </div>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {dayData.map((d) => (
+              <DayCard key={d.day} data={d} />
+            ))}
+          </div>
+        )}
+      </Section>
+
       {!trialActive && (
         <div
           className="mt-8 rounded-2xl p-6 text-center"
@@ -235,7 +293,57 @@ export default function ParentView() {
   );
 }
 
-/* ─── Components ─────────────────────────────────────── */
+function Section({
+  eyebrow,
+  title,
+  subtitle,
+  children,
+}: {
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl p-5 mb-6"
+      style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
+    >
+      <div
+        className="text-[10px] font-bold uppercase mb-2"
+        style={{ color: BRAND.blueSoft, letterSpacing: '0.18em' }}
+      >
+        {eyebrow}
+      </div>
+      <div className="text-[19px] font-semibold leading-[1.25]">{title}</div>
+      {subtitle && (
+        <div className="text-[13px] mt-2 leading-[1.65]" style={{ color: BRAND.inkDim }}>
+          {subtitle}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function Card({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-2xl p-5"
+      style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Eyebrow({ children, color }: { children: React.ReactNode; color: string }) {
+  return (
+    <div className="text-[10px] font-bold uppercase" style={{ color, letterSpacing: '0.16em' }}>
+      {children}
+    </div>
+  );
+}
 
 function StatCard({ value, label }: { value: number; label: string }) {
   return (
@@ -243,48 +351,68 @@ function StatCard({ value, label }: { value: number; label: string }) {
       className="rounded-2xl p-4 text-center"
       style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
     >
-      <div className="text-[28px] font-bold tabular-nums" style={{ color: BRAND.blueBright }}>
+      <div className="text-[26px] font-bold tabular-nums" style={{ color: BRAND.blueBright }}>
         {value}
       </div>
-      <div className="text-[11px] mt-1" style={{ color: BRAND.inkFaint }}>
+      <div className="text-[11px] mt-1 leading-tight" style={{ color: BRAND.inkFaint }}>
         {label}
       </div>
     </div>
   );
 }
 
-function DayCard({
-  data,
+function SignalBar({
+  label,
+  value,
+  previous,
+  hasPrev,
 }: {
-  data: {
-    day: number;
-    label?: string;
-    items: {
-      key: string;
-      item: DayItem;
-      response: {
-        itemKey: string;
-        engine: string;
-        text?: string;
-        picked?: number;
-        submittedAt: string;
-      } | null;
-    }[];
-    doneCount: number;
-    total: number;
-    completedAt: string | null;
-  };
+  label: string;
+  value: number;
+  previous: number;
+  hasPrev: boolean;
 }) {
+  const delta = hasPrev ? value - previous : 0;
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-1.5">
+        <div className="text-[12.5px] font-medium" style={{ color: BRAND.inkDim }}>
+          {label}
+        </div>
+        {hasPrev && delta !== 0 && (
+          <div
+            className="text-[11px] font-bold tabular-nums"
+            style={{ color: delta > 0 ? BRAND.emerald : BRAND.red }}
+          >
+            {delta > 0 ? '+' : ''}
+            {delta}
+          </div>
+        )}
+      </div>
+      <div className="h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div
+          className="h-full rounded-full transition-all duration-700"
+          style={{
+            width: `${value}%`,
+            background:
+              value >= 60 ? BRAND.emerald : value >= 35 ? BRAND.blue : 'rgba(255,255,255,0.25)',
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function DayCard({ data }: { data: any }) {
   const isComplete = !!data.completedAt;
   return (
     <details
-      className="rounded-2xl overflow-hidden"
-      style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
-      open={data.day === 1}
+      className="rounded-xl overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BRAND.inkGhost}` }}
     >
       <summary className="cursor-pointer list-none p-4 flex items-center gap-3">
         <div
-          className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold flex-shrink-0"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
           style={{
             background: isComplete ? 'rgba(52,211,153,0.15)' : `${BRAND.blue}1c`,
             color: isComplete ? BRAND.emerald : BRAND.blueBright,
@@ -293,15 +421,15 @@ function DayCard({
           {data.day}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="text-[14.5px] font-semibold">
+          <div className="text-[13.5px] font-semibold">
             Day {data.day}
             {data.label && (
-              <span className="ml-2 text-[12px] font-normal" style={{ color: BRAND.inkFaint }}>
+              <span className="ml-2 text-[11.5px] font-normal" style={{ color: BRAND.inkFaint }}>
                 {data.label.replace(/^Day \d+ · /, '')}
               </span>
             )}
           </div>
-          <div className="text-[12px] mt-0.5" style={{ color: BRAND.inkFaint }}>
+          <div className="text-[11.5px] mt-0.5" style={{ color: BRAND.inkFaint }}>
             {data.doneCount} of {data.total} answered
             {isComplete && ' · completed'}
           </div>
@@ -310,9 +438,8 @@ function DayCard({
           view ▾
         </span>
       </summary>
-
       <div className="px-4 pb-4 grid gap-3" style={{ borderTop: `1px solid ${BRAND.inkGhost}` }}>
-        {data.items.map((i) => (
+        {data.items.map((i: any) => (
           <ResponseCard key={i.key} item={i.item} response={i.response} />
         ))}
       </div>
@@ -320,19 +447,7 @@ function DayCard({
   );
 }
 
-function ResponseCard({
-  item,
-  response,
-}: {
-  item: DayItem;
-  response: {
-    itemKey: string;
-    engine: string;
-    text?: string;
-    picked?: number;
-    submittedAt: string;
-  } | null;
-}) {
+function ResponseCard({ item, response }: { item: DayItem; response: any }) {
   const answered = !!response;
   return (
     <div
@@ -343,9 +458,8 @@ function ResponseCard({
         opacity: answered ? 1 : 0.55,
       }}
     >
-      {/* Header */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-[18px] leading-none">{itemEmoji(item)}</span>
+        <span className="text-[16px] leading-none">{itemEmoji(item)}</span>
         <span className="text-[12.5px] font-bold">{itemTitle(item)}</span>
         {!answered && (
           <span className="ml-auto text-[10px]" style={{ color: BRAND.inkFaint }}>
@@ -353,131 +467,32 @@ function ResponseCard({
           </span>
         )}
       </div>
-
-      {/* The prompt (short) */}
-      <div className="text-[12px] mb-3" style={{ color: BRAND.inkFaint }}>
-        {itemPrompt(item)}
-      </div>
-
-      {/* The response */}
       {answered && response && (
         <>
-          {/* Opinion: show picked option + reason */}
-          {item.engine === 'opinion' && (
-            <div>
+          {item.engine === 'opinion' &&
+            typeof response.picked === 'number' &&
+            item.options[response.picked] && (
               <div
-                className="rounded-lg px-3 py-2 mb-2 text-[13px] font-semibold inline-flex items-center gap-2"
+                className="rounded-lg px-3 py-2 mb-2 text-[12.5px] font-semibold inline-flex items-center gap-2"
                 style={{ background: `${BRAND.blue}1c`, color: BRAND.blueBright }}
               >
-                {typeof response.picked === 'number' && item.options[response.picked] && (
-                  <>
-                    <span>{item.options[response.picked].em}</span>
-                    <span>{item.options[response.picked].label}</span>
-                  </>
-                )}
+                <span>{item.options[response.picked].em}</span>
+                <span>{item.options[response.picked].label}</span>
               </div>
-              {response.text && (
-                <div
-                  className="rounded-lg px-3 py-2.5 text-[13.5px] leading-[1.6] italic"
-                  style={{ background: 'rgba(0,0,0,0.2)', color: BRAND.ink }}
-                >
-                  “{response.text}”
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Math: what they picked */}
-          {item.engine === 'math' && (
-            <div>
-              <div
-                className="rounded-lg px-3 py-2 text-[13px] font-semibold inline-flex items-center gap-2"
-                style={{
-                  background:
-                    response.picked === item.answerIdx
-                      ? 'rgba(52,211,153,0.12)'
-                      : `${BRAND.blue}1c`,
-                  color: response.picked === item.answerIdx ? BRAND.emerald : BRAND.blueBright,
-                }}
-              >
-                <span>{response.picked === item.answerIdx ? '✓' : '✗'}</span>
-                <span>
-                  {typeof response.picked === 'number' && item.ruleOptions[response.picked]}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Creative / watch: the text */}
-          {(item.engine === 'creative' || item.engine === 'watch') && response.text && (
+            )}
+          {response.text && (
             <div
-              className="rounded-lg px-3 py-2.5 text-[13.5px] leading-[1.6] italic"
+              className="rounded-lg px-3 py-2.5 text-[13px] leading-[1.6] italic"
               style={{ background: 'rgba(0,0,0,0.2)', color: BRAND.ink }}
             >
               “{response.text}”
             </div>
           )}
-
-          {/* Signals */}
-          {response.text && <TextSignals text={response.text} />}
         </>
       )}
     </div>
   );
 }
-
-function TextSignals({ text }: { text: string }) {
-  const t = text.toLowerCase();
-  const signals: string[] = [];
-  if (/\bbecause\b|\bsince\b/.test(t)) signals.push('gives reasons');
-  if (/\bbut\b|\bhowever\b/.test(t)) signals.push('considers other side');
-  if (/\bmaybe\b|\bperhaps\b|\bi think\b/.test(t)) signals.push('weighs carefully');
-  if (/\balways\b|\bnever\b/.test(t)) signals.push('strong certainty');
-
-  if (signals.length === 0) return null;
-
-  return (
-    <div className="mt-2 flex flex-wrap gap-1.5">
-      {signals.map((s) => (
-        <span
-          key={s}
-          className="rounded-full px-2.5 py-1 text-[10.5px] font-semibold"
-          style={{
-            background: 'rgba(255,255,255,0.04)',
-            color: BRAND.inkDim,
-            border: `1px solid ${BRAND.inkGhost}`,
-          }}
-        >
-          {s}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function EmptyState({ onStart }: { onStart: () => void }) {
-  return (
-    <div
-      className="rounded-2xl p-8 text-center"
-      style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
-    >
-      <div className="text-[40px] mb-3">📊</div>
-      <div className="text-[15px] font-semibold mb-2">Nothing here yet</div>
-      <div className="text-[13px] mb-5" style={{ color: BRAND.inkDim }}>
-        Once your child answers today's items, their thinking appears here.
-      </div>
-      <button
-        onClick={onStart}
-        className="rounded-full px-6 py-3 text-[13px] font-bold"
-        style={{ background: BRAND.ink, color: BRAND.surface }}
-      >
-        Start today →
-      </button>
-    </div>
-  );
-}
-
-/* ─── helpers ─────────────────────────────────────────── */
 
 function itemKey(item: DayItem, idx: number): string {
   switch (item.engine) {
@@ -524,24 +539,5 @@ function itemTitle(item: DayItem): string {
     case 'opinion': return 'Your Opinion';
     case 'creative': return 'Create';
     case 'watch': return 'Watch & Think';
-  }
-}
-
-function itemPrompt(item: DayItem): string {
-  switch (item.engine) {
-    case 'm1':
-    case 'm2':
-    case 'm3':
-    case 'm4':
-    case 'm5':
-      return `Mission: ${item.puzzle}`;
-    case 'math':
-      return item.description;
-    case 'opinion':
-      return item.question.length > 120 ? item.question.slice(0, 117) + '…' : item.question;
-    case 'creative':
-      return item.prompt;
-    case 'watch':
-      return item.title;
   }
 }
