@@ -7,7 +7,6 @@ import type { CurriculumTier, DayItem } from '../../missions/types';
 const BRAND = {
   surface: '#05091a',
   surface2: '#0a1228',
-  surface3: '#0f1a38',
   blue: '#7b8dff',
   blueBright: '#9aaaff',
   blueSoft: '#a8b6ff',
@@ -15,8 +14,6 @@ const BRAND = {
   inkDim: 'rgba(255,255,255,0.62)',
   inkFaint: 'rgba(255,255,255,0.38)',
   inkGhost: 'rgba(255,255,255,0.14)',
-  emerald: '#34d399',
-  red: '#f87171',
 };
 
 type Stage = 'intro' | 'working' | 'done';
@@ -25,6 +22,8 @@ export default function Play() {
   const navigate = useNavigate();
   const { tier: tierParam, day: dayParam, idx: idxParam } = useParams();
   const completeItem = useApp((s) => s.completeItem);
+  const saveResponse = useApp((s) => s.saveResponse);
+  const isItemDone = useApp((s) => s.isItemDoneToday);
 
   const tier = Number(tierParam) as CurriculumTier;
   const day = Number(dayParam);
@@ -52,12 +51,31 @@ export default function Play() {
     );
   }
 
-  const onComplete = () => {
-    completeItem(itemKey(item, idx), requiredCount);
+  const onComplete = (response: { engine: string; text?: string; picked?: number }) => {
+    const key = itemKey(item, idx);
+    saveResponse(key, response);
+    completeItem(key, requiredCount);
     setStage('done');
   };
 
-  const finish = () => navigate('/home');
+  // Find next undone item starting from idx+1, wrapping around.
+  const nextIdx = (() => {
+    const n = dayConfig.items.length;
+    for (let offset = 1; offset <= n; offset++) {
+      const i = (idx + offset) % n;
+      if (i === idx) continue;
+      if (!isItemDone(itemKey(dayConfig.items[i], i))) return i;
+    }
+    return -1;
+  })();
+
+  const goNext = () => {
+    if (nextIdx === -1) {
+      navigate('/home');
+    } else {
+      navigate(`/play/${tier}/${day}/${nextIdx}`);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-5 pb-24">
@@ -87,7 +105,12 @@ export default function Play() {
       </div>
 
       {stage === 'done' ? (
-        <DoneState onNext={finish} />
+        <DoneState
+          onNext={goNext}
+          nextIdx={nextIdx}
+          currentIdx={idx}
+          total={requiredCount}
+        />
       ) : item.engine === 'opinion' ? (
         <OpinionView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : item.engine === 'creative' ? (
@@ -95,14 +118,14 @@ export default function Play() {
       ) : item.engine === 'watch' ? (
         <WatchView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : (
-        <MissionPlaceholder onComplete={onComplete} />
+        <MissionPlaceholder onComplete={() => onComplete({ engine: item.engine })} />
       )}
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════
-   OPINION — scenario, tap an option, then say why
+   OPINION
    ═══════════════════════════════════════════════════════════ */
 
 function OpinionView({
@@ -111,7 +134,7 @@ function OpinionView({
   item: Extract<DayItem, { engine: 'opinion' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: () => void;
+  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [reason, setReason] = useState('');
@@ -127,15 +150,9 @@ function OpinionView({
         </span>
       </div>
 
-      <h1 className="text-[26px] md:text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] mb-6">
+      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
         {item.question}
       </h1>
-
-      {item.scenario && (
-        <p className="text-[15px] leading-[1.75] mb-6" style={{ color: BRAND.inkDim }}>
-          {item.scenario}
-        </p>
-      )}
 
       <div className="grid gap-2.5 mb-6">
         {item.options.map((opt, i) => {
@@ -198,7 +215,7 @@ function OpinionView({
       )}
 
       <button
-        onClick={() => canSubmit && onComplete()}
+        onClick={() => canSubmit && picked !== null && onComplete({ engine: 'opinion', text: reason.trim(), picked })}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -210,7 +227,7 @@ function OpinionView({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   CREATIVE — open prompt, no wrong answer
+   CREATIVE
    ═══════════════════════════════════════════════════════════ */
 
 function CreativeView({
@@ -219,7 +236,7 @@ function CreativeView({
   item: Extract<DayItem, { engine: 'creative' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: () => void;
+  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
 }) {
   const [text, setText] = useState('');
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
@@ -234,7 +251,7 @@ function CreativeView({
         </span>
       </div>
 
-      <h1 className="text-[26px] md:text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] mb-5">
+      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-5">
         {item.prompt}
       </h1>
 
@@ -263,7 +280,7 @@ function CreativeView({
       </div>
 
       <button
-        onClick={() => canSubmit && onComplete()}
+        onClick={() => canSubmit && onComplete({ engine: 'creative', text: text.trim() })}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -275,8 +292,7 @@ function CreativeView({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   WATCH — link out to video, then reflect
-   (No iframe. Complies with constitution: no third-party embeds.)
+   WATCH
    ═══════════════════════════════════════════════════════════ */
 
 function WatchView({
@@ -285,7 +301,7 @@ function WatchView({
   item: Extract<DayItem, { engine: 'watch' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: () => void;
+  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
 }) {
   const [text, setText] = useState('');
   const [watched, setWatched] = useState(false);
@@ -301,7 +317,7 @@ function WatchView({
         </span>
       </div>
 
-      <h1 className="text-[26px] md:text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] mb-6">
+      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
         {item.title}
       </h1>
 
@@ -354,7 +370,7 @@ function WatchView({
       </div>
 
       <button
-        onClick={() => canSubmit && onComplete()}
+        onClick={() => canSubmit && onComplete({ engine: 'watch', text: text.trim() })}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -366,7 +382,7 @@ function WatchView({
 }
 
 /* ═══════════════════════════════════════════════════════════
-   PLACEHOLDER for m1–m5 while engines are wired
+   Mission placeholder
    ═══════════════════════════════════════════════════════════ */
 
 function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
@@ -379,7 +395,7 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
         </span>
       </div>
 
-      <h1 className="text-[26px] md:text-[30px] font-semibold leading-[1.15] tracking-[-0.02em] mb-6">
+      <h1 className="text-[24px] md:text-[28px] font-semibold leading-[1.2] tracking-[-0.02em] mb-6">
         This mission is being upgraded.
       </h1>
 
@@ -399,35 +415,48 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   DONE state
+   DONE — next item
    ═══════════════════════════════════════════════════════════ */
 
-function DoneState({ onNext }: { onNext: () => void }) {
+function DoneState({
+  onNext, nextIdx, currentIdx, total,
+}: {
+  onNext: () => void;
+  nextIdx: number;
+  currentIdx: number;
+  total: number;
+}) {
+  const allDone = nextIdx === -1;
+  const remaining = total - currentIdx - 1;
+
   return (
     <div className="text-center py-12">
       <div className="text-[64px] mb-4">✨</div>
       <div className="text-[22px] font-semibold mb-3">Nice thinking.</div>
-      <div className="text-[14px] leading-[1.7] mb-8" style={{ color: BRAND.inkDim }}>
-        Your answer is saved. Your parent can see how you think — not just what you got right.
+      <div className="text-[14px] leading-[1.7] mb-8 max-w-sm mx-auto" style={{ color: BRAND.inkDim }}>
+        {allDone
+          ? "That's everything for today. Come back tomorrow — a new day unlocks at midnight."
+          : remaining > 0
+          ? `${remaining} more to go today. Keep the streak alive.`
+          : 'One more left.'}
       </div>
+
       <button
         onClick={onNext}
-        className="rounded-full px-8 py-3.5 text-[14px] font-bold"
+        className="rounded-full px-8 py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
         style={{ background: BRAND.ink, color: BRAND.surface }}
       >
-        Back to today →
+        {allDone ? 'All done for today →' : 'Next item →'}
       </button>
     </div>
   );
 }
 
 function CenteredCard({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="max-w-md mx-auto text-center py-20 px-5">{children}</div>
-  );
+  return <div className="max-w-md mx-auto text-center py-20 px-5">{children}</div>;
 }
 
-/* ─── key for item ──────────────────────────────────────── */
+/* ─── item key ──────────────────────────────────────────── */
 function itemKey(item: DayItem, idx: number): string {
   switch (item.engine) {
     case 'm1':

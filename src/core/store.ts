@@ -9,6 +9,14 @@ export interface DayProgress {
   itemsCompleted: string[];
 }
 
+export interface SavedResponse {
+  itemKey: string;
+  engine: string;
+  text?: string;
+  picked?: number;
+  submittedAt: string;
+}
+
 type CubitXUser = User & {
   registeredAt: string;
   trialEndsAt: string;
@@ -20,12 +28,19 @@ interface AppState {
   days: Record<number, DayProgress>;
   events: MissionEvent[];
   sessions: Session[];
+  responses: Record<string, SavedResponse>;
 
   setUser: (user: { name: string; grade: number }, trialDays: number) => void;
 
   completeItem: (itemId: string, requiredCount: number) => void;
-  completeMission: (missionId: string) => void; // legacy alias
+  completeMission: (missionId: string) => void;
   isItemDoneToday: (itemId: string) => boolean;
+
+  saveResponse: (
+    itemKey: string,
+    data: { engine: string; text?: string; picked?: number }
+  ) => void;
+  getResponse: (itemKey: string) => SavedResponse | null;
 
   getActiveDay: () => number;
   getActiveDayProgress: () => DayProgress | null;
@@ -62,6 +77,7 @@ export const useApp = create<AppState>()(
       days: {},
       events: [],
       sessions: [],
+      responses: {},
 
       setUser: (input, trialDays) => {
         const existing = get().user;
@@ -97,6 +113,7 @@ export const useApp = create<AppState>()(
           },
           events: [],
           sessions: [],
+          responses: {},
         });
       },
 
@@ -154,6 +171,25 @@ export const useApp = create<AppState>()(
         const state = get();
         const active = state.days[state.getActiveDay()];
         return active ? active.itemsCompleted.includes(itemId) : false;
+      },
+
+      saveResponse: (itemKey, data) => {
+        set((s) => ({
+          responses: {
+            ...s.responses,
+            [itemKey]: {
+              itemKey,
+              engine: data.engine,
+              text: data.text,
+              picked: data.picked,
+              submittedAt: new Date().toISOString(),
+            },
+          },
+        }));
+      },
+
+      getResponse: (itemKey) => {
+        return get().responses[itemKey] ?? null;
       },
 
       getActiveDay: () => {
@@ -227,7 +263,8 @@ export const useApp = create<AppState>()(
       addEvent: (event) =>
         set((s) => ({ events: [...s.events, event].slice(-5000) })),
 
-      reset: () => set({ user: null, days: {}, events: [], sessions: [] }),
+      reset: () =>
+        set({ user: null, days: {}, events: [], sessions: [], responses: {} }),
     }),
     { name: 'cubitx-v1' }
   )
