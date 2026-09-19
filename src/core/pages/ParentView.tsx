@@ -100,7 +100,7 @@ export default function ParentView() {
   const openPayment = () =>
     window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
 
-  const isEarlyStage = profile.weekCount < 3;
+  const isEarlyStage = profile.weekTextCount < 3;
 
   return (
     <div className="max-w-3xl mx-auto px-5 pb-10">
@@ -116,7 +116,7 @@ export default function ParentView() {
           {user.name}'s thinking
         </h1>
         <div className="text-[13.5px] mt-1.5" style={{ color: BRAND.inkDim }}>
-          Class {user.grade} · {streak}-day streak · {totalItemsDone} answers so far
+          Class {user.grade} · {streak}-day streak · {totalItemsDone} items answered
         </div>
       </div>
 
@@ -150,20 +150,37 @@ export default function ParentView() {
           style={{ background: `${BRAND.blue}0e`, border: `1px solid ${BRAND.blue}30` }}
         >
           <div className="text-[14px] font-semibold mb-1.5">
-            The picture sharpens as more answers come in
+            The picture sharpens as more written answers come in
           </div>
           <div className="text-[13px] leading-[1.65]" style={{ color: BRAND.inkDim }}>
-            {profile.weekCount} answer{profile.weekCount === 1 ? '' : 's'} this week.
-            Analytical insights appear once your child has answered a few more —
-            usually within 2–3 days.
+            {profile.weekTextCount} written answer{profile.weekTextCount === 1 ? '' : 's'} this week.
+            Signals need a few more to become reliable — usually within 2–3 days.
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <StatCard value={profile.weekCount} label="Answers this week" />
-        <StatCard value={profile.lastWeekCount} label="Answers last week" />
-        <StatCard value={totalWords} label="Words written total" />
+      {/* Stats — separated written vs total */}
+      <div className="grid grid-cols-3 gap-3 mb-4">
+        <StatCard
+          value={profile.weekTextCount}
+          label="Written answers"
+          sub="feed the signals"
+        />
+        <StatCard
+          value={profile.weekCount}
+          label="Items this week"
+          sub="all types"
+        />
+        <StatCard value={totalWords} label="Words written total" sub="across all answers" />
+      </div>
+
+      <div
+        className="text-[11.5px] mb-6 leading-[1.6]"
+        style={{ color: BRAND.inkFaint }}
+      >
+        Thinking signals are derived from written answers only. Number machines and other
+        tap-only items count as items answered, but do not contribute to signals —
+        there is no text to analyse.
       </div>
 
       <Section
@@ -178,7 +195,7 @@ export default function ParentView() {
               label={SIGNAL_LABELS[k]}
               value={profile.signals[k]}
               previous={profile.lastWeekSignals[k]}
-              hasPrev={profile.lastWeekCount > 0}
+              hasPrev={profile.lastWeekTextCount > 0}
             />
           ))}
         </div>
@@ -346,7 +363,13 @@ function Eyebrow({ children, color }: { children: React.ReactNode; color: string
   );
 }
 
-function StatCard({ value, label }: { value: number; label: string }) {
+function StatCard({
+  value, label, sub,
+}: {
+  value: number;
+  label: string;
+  sub?: string;
+}) {
   return (
     <div
       className="rounded-2xl p-4 text-center"
@@ -355,9 +378,14 @@ function StatCard({ value, label }: { value: number; label: string }) {
       <div className="text-[26px] font-bold tabular-nums" style={{ color: BRAND.blueBright }}>
         {value}
       </div>
-      <div className="text-[11px] mt-1 leading-tight" style={{ color: BRAND.inkFaint }}>
+      <div className="text-[11px] mt-1 leading-tight" style={{ color: BRAND.inkDim }}>
         {label}
       </div>
+      {sub && (
+        <div className="text-[10px] mt-0.5 leading-tight" style={{ color: BRAND.inkFaint }}>
+          {sub}
+        </div>
+      )}
     </div>
   );
 }
@@ -377,15 +405,20 @@ function SignalBar({
         <div className="text-[12.5px] font-medium" style={{ color: BRAND.inkDim }}>
           {label}
         </div>
-        {hasPrev && delta !== 0 && (
-          <div
-            className="text-[11px] font-bold tabular-nums"
-            style={{ color: delta > 0 ? BRAND.emerald : BRAND.red }}
-          >
-            {delta > 0 ? '+' : ''}
-            {delta}
-          </div>
-        )}
+        <div className="flex items-baseline gap-2">
+          <span className="text-[11px] tabular-nums" style={{ color: BRAND.inkFaint }}>
+            {value}
+          </span>
+          {hasPrev && delta !== 0 && (
+            <span
+              className="text-[11px] font-bold tabular-nums"
+              style={{ color: delta > 0 ? BRAND.emerald : BRAND.red }}
+            >
+              {delta > 0 ? '+' : ''}
+              {delta}
+            </span>
+          )}
+        </div>
       </div>
       <div className="h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <div
@@ -476,6 +509,24 @@ function ResponseCard({ item, response }: { item: DayItem; response: any }) {
               >
                 <span>{item.options[response.picked].em}</span>
                 <span>{item.options[response.picked].label}</span>
+              </div>
+            )}
+          {item.engine === 'math' &&
+            typeof response.picked === 'number' &&
+            item.ruleOptions[response.picked] && (
+              <div
+                className="rounded-lg px-3 py-2 mb-2 text-[12.5px] font-semibold inline-flex items-center gap-2"
+                style={{
+                  background:
+                    response.picked === item.answerIdx
+                      ? 'rgba(52,211,153,0.12)'
+                      : `${BRAND.blue}1c`,
+                  color:
+                    response.picked === item.answerIdx ? BRAND.emerald : BRAND.blueBright,
+                }}
+              >
+                <span>{response.picked === item.answerIdx ? '✓' : '✗'}</span>
+                <span>{item.ruleOptions[response.picked]}</span>
               </div>
             )}
           {response.text && (

@@ -1,4 +1,3 @@
-// src/core/analytics/profile.ts
 import type { SavedResponse } from '../store';
 import { extractSignals, EMPTY_SIGNALS, type Signals } from './signals';
 
@@ -30,10 +29,7 @@ export type ThinkerType =
   | 'articulator'
   | 'developing';
 
-export const THINKER_INFO: Record<
-  ThinkerType,
-  { label: string; blurb: string }
-> = {
+export const THINKER_INFO: Record<ThinkerType, { label: string; blurb: string }> = {
   investigator: {
     label: 'The Investigator',
     blurb:
@@ -62,13 +58,20 @@ export const THINKER_INFO: Record<
   developing: {
     label: 'Developing',
     blurb:
-      "Still gathering enough answers to see the pattern. Keep going — the picture sharpens over the next week.",
+      "Still gathering enough written answers to see the pattern. Keep going — the picture sharpens over the next few days.",
   },
 };
 
 export interface ThinkingProfile {
+  /** Items answered (any type) this week. */
   weekCount: number;
+  /** Items answered (any type) last week. */
   lastWeekCount: number;
+  /** Of this week's items, how many have written answers (feed the signals). */
+  weekTextCount: number;
+  /** Of last week's items, how many have written answers. */
+  lastWeekTextCount: number;
+
   signals: Signals;
   lastWeekSignals: Signals;
   trend: Signals;
@@ -85,21 +88,27 @@ function daysAgo(iso: string): number {
   return Math.floor((now.getTime() - then.getTime()) / 86400000);
 }
 
+function hasText(r: SavedResponse): boolean {
+  return !!(r.text && r.text.trim().length >= 5);
+}
+
 function avgSignals(list: SavedResponse[]): Signals {
-  if (list.length === 0) return { ...EMPTY_SIGNALS };
+  const withText = list.filter(hasText);
+  if (withText.length === 0) return { ...EMPTY_SIGNALS };
+
   const sums: Signals = { ...EMPTY_SIGNALS };
-  for (const r of list) {
+  for (const r of withText) {
     const s = extractSignals(r.text ?? '');
     for (const k of Object.keys(sums) as SignalKey[]) sums[k] += s[k];
   }
   for (const k of Object.keys(sums) as SignalKey[]) {
-    sums[k] = Math.round(sums[k] / list.length);
+    sums[k] = Math.round(sums[k] / withText.length);
   }
   return sums;
 }
 
-function classify(s: Signals, count: number): ThinkerType {
-  if (count < 3) return 'developing';
+function classify(s: Signals, textCount: number): ThinkerType {
+  if (textCount < 3) return 'developing';
   if (s.revision >= 55 && s.reasoningChain >= 55) return 'investigator';
   if (s.alternatives >= 55 && s.calibration >= 55) return 'weigher';
   if (s.groundedness >= 60 && s.alternatives < 40) return 'observer';
@@ -118,8 +127,11 @@ export function computeProfile(
     return d >= 7 && d <= 13;
   });
 
-  const signals = avgSignals(thisWeek);
-  const lastWeekSignals = avgSignals(last);
+  const thisWeekText = thisWeek.filter(hasText);
+  const lastWeekText = last.filter(hasText);
+
+  const signals = avgSignals(thisWeekText);
+  const lastWeekSignals = avgSignals(lastWeekText);
 
   const trend: Signals = { ...EMPTY_SIGNALS };
   for (const k of Object.keys(trend) as SignalKey[]) {
@@ -144,12 +156,13 @@ export function computeProfile(
   return {
     weekCount: thisWeek.length,
     lastWeekCount: last.length,
+    weekTextCount: thisWeekText.length,
+    lastWeekTextCount: lastWeekText.length,
     signals,
     lastWeekSignals,
     trend,
-    type: classify(signals, thisWeek.length),
+    type: classify(signals, thisWeekText.length),
     strength,
     weakness,
   };
 }
-
