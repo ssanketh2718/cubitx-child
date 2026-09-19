@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, MissionEvent, Session, Tier } from './sdk/types';
 import { sdkTierForClass } from '../missions/tiers';
+import { isDevMode } from './auth/devMode';
 
 export interface DayProgress {
   unlockedAt: string;
@@ -24,11 +25,13 @@ type CubitXUser = User & {
 
 interface AppState {
   user: CubitXUser | null;
-
   days: Record<number, DayProgress>;
   events: MissionEvent[];
   sessions: Session[];
   responses: Record<string, SavedResponse>;
+
+  devDayOverride: number | null;
+  setDevDayOverride: (day: number | null) => void;
 
   setUser: (user: { name: string; grade: number }, trialDays: number) => void;
 
@@ -70,6 +73,23 @@ const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number =>
 
 const MAX_DAYS = 30;
 
+// Dev day lives in its own localStorage key. Never touches Zustand persistence.
+const DEV_DAY_KEY = 'cubitx-dev-day';
+
+const readDevDay = (): number | null => {
+  if (typeof window === 'undefined') return null;
+  const v = window.localStorage.getItem(DEV_DAY_KEY);
+  if (!v) return null;
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
+};
+
+const writeDevDay = (day: number | null): void => {
+  if (typeof window === 'undefined') return;
+  if (day === null) window.localStorage.removeItem(DEV_DAY_KEY);
+  else window.localStorage.setItem(DEV_DAY_KEY, String(day));
+};
+
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
@@ -78,6 +98,12 @@ export const useApp = create<AppState>()(
       events: [],
       sessions: [],
       responses: {},
+      devDayOverride: null,
+
+      setDevDayOverride: (day) => {
+        writeDevDay(day);
+        set({ devDayOverride: day });
+      },
 
       setUser: (input, trialDays) => {
         const existing = get().user;
@@ -196,6 +222,12 @@ export const useApp = create<AppState>()(
         const state = get();
         if (!state.user) return 1;
 
+        // Dev override — read fresh from localStorage every time.
+        if (isDevMode()) {
+          const override = readDevDay();
+          if (override !== null) return override;
+        }
+
         for (let n = 1; n <= MAX_DAYS; n++) {
           const day = state.days[n];
           const isCompleted = !!(day && day.completedAt);
@@ -223,6 +255,7 @@ export const useApp = create<AppState>()(
       isDayCalendarUnlocked: (day) => {
         const user = get().user;
         if (!user) return false;
+        if (isDevMode()) return true;
         return daysBetweenMidnights(user.registeredAt) >= day - 1;
       },
 
@@ -264,8 +297,25 @@ export const useApp = create<AppState>()(
         set((s) => ({ events: [...s.events, event].slice(-5000) })),
 
       reset: () =>
-        set({ user: null, days: {}, events: [], sessions: [], responses: {} }),
+        set({
+          user: null,
+          days: {},
+          events: [],
+          sessions: [],
+          responses: {},
+          devDayOverride: null,
+        }),
     }),
-    { name: 'cubitx-v1' }
+    {
+      name: 'cubitx-v1',
+      // ⬇️ Only persist real data. Dev fields are stored separately.
+      partialize: (state) => ({
+        user: state.user,
+        days: state.days,
+        events: state.events,
+        sessions: state.sessions,
+        responses: state.responses,
+      }),
+    }
   )
 );
