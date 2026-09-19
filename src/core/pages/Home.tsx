@@ -77,27 +77,64 @@ export default function Home() {
               const cfg = loadDayConfig(curriculumTier, d);
               const hasItems = !!(cfg && cfg.items.length > 0);
               const isCurrent = d === activeDay;
+              const isComplete = isDayComplete(d);
+
+              // Priority: complete → green | current → blue | has content → neutral | empty → dim
+              let bg = 'rgba(255,255,255,0.02)';
+              let color = 'rgba(255,255,255,0.25)';
+              let border = 'rgba(255,255,255,0.12)';
+              let cursor: 'pointer' | 'not-allowed' = 'not-allowed';
+
+              if (isComplete) {
+                bg = 'rgba(52,211,153,0.18)';
+                color = '#34d399';
+                border = 'rgba(52,211,153,0.5)';
+                cursor = 'pointer';
+              } else if (isCurrent) {
+                bg = '#7b8dff';
+                color = '#05091a';
+                border = '#7b8dff';
+                cursor = 'pointer';
+              } else if (hasItems) {
+                bg = 'rgba(255,255,255,0.06)';
+                color = '#fff';
+                border = 'rgba(255,255,255,0.12)';
+                cursor = 'pointer';
+              }
+
               return (
                 <button
                   key={d}
-                  onClick={() => setDevDayOverride(d)}
+                  onClick={() => hasItems && setDevDayOverride(d)}
                   disabled={!hasItems}
-                  className="w-8 h-8 rounded-lg text-[11px] font-bold transition"
-                  style={{
-                    background: isCurrent
-                      ? '#7b8dff'
+                  className="w-8 h-8 rounded-lg text-[11px] font-bold transition relative"
+                  style={{ background: bg, color, border: `1px solid ${border}`, cursor }}
+                  title={
+                    isComplete
+                      ? `Day ${d} — finished`
                       : hasItems
-                      ? 'rgba(255,255,255,0.06)'
-                      : 'rgba(255,255,255,0.02)',
-                    color: isCurrent ? '#05091a' : hasItems ? '#fff' : 'rgba(255,255,255,0.25)',
-                    border: `1px solid ${isCurrent ? '#7b8dff' : 'rgba(255,255,255,0.12)'}`,
-                    cursor: hasItems ? 'pointer' : 'not-allowed',
-                  }}
+                      ? `Day ${d}`
+                      : `Day ${d} — no content`
+                  }
                 >
                   {d}
+                  {isComplete && (
+                    <span
+                      className="absolute -top-1 -right-1 text-[9px] leading-none"
+                      style={{ color: '#34d399' }}
+                    >
+                      ✓
+                    </span>
+                  )}
                 </button>
               );
             })}
+          </div>
+          <div className="text-[10.5px] mt-2.5 flex flex-wrap gap-x-3 gap-y-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <span>🔵 current</span>
+            <span>🟢 finished</span>
+            <span>⬜ has content</span>
+            <span>▫️ empty</span>
           </div>
         </div>
       )}

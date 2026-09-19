@@ -1,9 +1,8 @@
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../store';
 import { computeProfile } from '../analytics/profile';
 import { HABITS } from '../analytics/habits';
-import { LEVEL_LABELS, LEVEL_ICONS, type Level } from '../analytics/signals';
+import { type Level } from '../analytics/signals';
 import { PAYMENT_LINK } from '../config';
 
 const BRAND = {
@@ -22,20 +21,17 @@ export default function ParentView() {
   const navigate = useNavigate();
   const user = useApp((s) => s.user);
   const responses = useApp((s) => s.responses);
-  const streak = useApp((s) => s.getStreak());
   const isTrialActive = useApp((s) => s.isTrialActive);
   const getTrialDaysLeft = useApp((s) => s.getTrialDaysLeft);
 
-  const profile = useMemo(() => computeProfile(responses), [responses]);
+  const profile = computeProfile(responses);
   const habit = HABITS[profile.weakest];
 
   if (!user) return null;
 
   const trialActive = isTrialActive();
   const trialDaysLeft = getTrialDaysLeft();
-
-  const openPayment = () =>
-    window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+  const openPayment = () => window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
 
   const strongestDim = profile.dimensions.find((d) => d.key === profile.strongest)!;
   const weakestDim = profile.dimensions.find((d) => d.key === profile.weakest)!;
@@ -51,10 +47,10 @@ export default function ParentView() {
           ← Back to today
         </button>
         <h1 className="text-[28px] font-semibold tracking-tight">
-          {user.name}'s thinking
+          {user.name}'s habits
         </h1>
         <div className="text-[13.5px] mt-1.5" style={{ color: BRAND.inkDim }}>
-          Class {user.grade} · {streak}-day streak
+          Class {user.grade} · {profile.activeDays} active days out of {profile.totalDays}
         </div>
       </div>
 
@@ -68,9 +64,6 @@ export default function ParentView() {
             <div className="text-[13.5px] font-bold">
               {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in trial
             </div>
-            <div className="text-[11.5px] mt-0.5" style={{ color: BRAND.inkFaint }}>
-              ₹999/year afterwards — cancel anytime
-            </div>
           </div>
           <button
             onClick={openPayment}
@@ -82,78 +75,77 @@ export default function ParentView() {
         </div>
       )}
 
-      {!profile.hasEnoughData ? (
-        <Block title="We need a few more answers">
-          <div className="text-[14px] leading-[1.75]" style={{ color: BRAND.inkDim }}>
-            {profile.writtenCount === 0
-              ? `${user.name} hasn't answered any written questions yet. Once they do, we'll show what we're noticing.`
-              : `${user.name} has answered ${profile.writtenCount} written ${
-                  profile.writtenCount === 1 ? 'question' : 'questions'
-                } this week. We need a few more to give you a clear picture — usually within 2–3 days.`}
+      <Block title="Consistency">
+        <ConsistencyCalendar days={profile.consistency} />
+        <div className="text-[13px] mt-4" style={{ color: BRAND.inkDim }}>
+          {profile.activeDays === 0
+            ? `No sessions yet. Once ${user.name} starts, their daily rhythm appears here.`
+            : `${profile.activeDays} of the last ${profile.totalDays} days had a session. Small, steady habits matter more than perfect ones.`}
+        </div>
+      </Block>
+
+      {profile.writtenCount > 0 && (
+        <Block title="Habits this week">
+          <div className="grid grid-cols-5 gap-3">
+            {profile.dimensions.map((d) => (
+              <Ring
+                key={d.key}
+                label={d.plain}
+                level={d.level}
+                previousLevel={d.previousLevel}
+              />
+            ))}
+          </div>
+          <div className="text-[12.5px] mt-5 leading-[1.65]" style={{ color: BRAND.inkFaint }}>
+            Each ring fills as {user.name} shows that habit more. The goal is steady growth — not a perfect score.
           </div>
         </Block>
-      ) : (
-        <>
-          <Block title="What we noticed this week">
-            <Observation
-              icon={LEVEL_ICONS[strongestDim.level]}
-              sentence={strongSentence(strongestDim.key, user.name)}
-              tone="positive"
-            />
-            <Observation
-              icon={LEVEL_ICONS[weakestDim.level]}
-              sentence={weakSentence(weakestDim.key, user.name)}
-              tone="gentle"
-            />
-          </Block>
-
-          {profile.exampleResponse && (
-            <Block title="One of their answers">
-              <div
-                className="rounded-xl p-4 text-[14px] leading-[1.75] italic mb-3"
-                style={{ background: 'rgba(0,0,0,0.2)', color: BRAND.inkDim }}
-              >
-                “{trim(profile.exampleResponse.text, 240)}”
-              </div>
-              <div className="text-[13px] leading-[1.7]" style={{ color: BRAND.inkDim }}>
-                {praiseFor(strongestDim.key, user.name)}
-              </div>
-            </Block>
-          )}
-
-          <Block title="Try this week">
-            <div className="text-[16px] font-semibold mb-2">{habit.title}</div>
-            <div className="text-[13.5px] leading-[1.75] mb-4" style={{ color: BRAND.inkDim }}>
-              {habit.why}
-            </div>
-            <div
-              className="rounded-xl p-4 text-[13.5px] leading-[1.75]"
-              style={{
-                background: `${BRAND.blue}10`,
-                border: `1px solid ${BRAND.blue}33`,
-              }}
-            >
-              {habit.script}
-            </div>
-          </Block>
-
-          <Block title="How they're growing">
-            <div className="grid gap-3">
-              {profile.dimensions.map((d) => (
-                <GrowthRow
-                  key={d.key}
-                  label={d.plain}
-                  current={d.level}
-                  previous={d.previousLevel}
-                />
-              ))}
-            </div>
-            <div className="text-[12.5px] mt-5 leading-[1.65]" style={{ color: BRAND.inkFaint }}>
-              Every week we look at how {user.name} thinks — not what they got right.
-            </div>
-          </Block>
-        </>
       )}
+
+      {profile.writtenCount > 0 && (
+        <Block title="What we noticed this week">
+          <Observation
+            icon="💪"
+            sentence={strongSentence(strongestDim.key, user.name)}
+            tone="positive"
+          />
+          <Observation
+            icon="🌱"
+            sentence={weakSentence(weakestDim.key, user.name)}
+            tone="gentle"
+          />
+        </Block>
+      )}
+
+      {profile.exampleResponse && (
+        <Block title="One of their answers">
+          <div
+            className="rounded-xl p-4 text-[14px] leading-[1.75] italic mb-3"
+            style={{ background: 'rgba(0,0,0,0.2)', color: BRAND.inkDim }}
+          >
+            “{trim(profile.exampleResponse.text, 240)}”
+          </div>
+          <div className="text-[13px] leading-[1.7]" style={{ color: BRAND.inkDim }}>
+            {praiseFor(strongestDim.key, user.name)}
+          </div>
+        </Block>
+      )}
+
+      <Block title="Try this week">
+        <div className="text-[16px] font-semibold mb-2">{habit.title}</div>
+        <div className="text-[13.5px] leading-[1.75] mb-4" style={{ color: BRAND.inkDim }}>
+          {habit.why}
+        </div>
+        <div
+          className="rounded-xl p-4 text-[13.5px] leading-[1.75]"
+          style={{
+            background: `${BRAND.blue}10`,
+            border: `1px solid ${BRAND.blue}33`,
+          }}
+        >
+          {habit.script}
+        </div>
+      </Block>
 
       {!trialActive && (
         <div
@@ -161,12 +153,9 @@ export default function ParentView() {
           style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
         >
           <div className="text-[16px] font-bold mb-2">Unlock CubitX for ₹999/year</div>
-          <div className="text-[13px] mb-4" style={{ color: BRAND.inkDim }}>
-            Keep the thinking habit going.
-          </div>
           <button
             onClick={openPayment}
-            className="px-8 py-3.5 rounded-full font-bold text-[14px]"
+            className="mt-4 px-8 py-3.5 rounded-full font-bold text-[14px]"
             style={{ background: BRAND.ink, color: BRAND.surface }}
           >
             Continue Learning →
@@ -189,6 +178,94 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
+function ConsistencyCalendar({
+  days,
+}: {
+  days: { date: string; count: number }[];
+}) {
+  const max = Math.max(1, ...days.map((d) => d.count));
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {days.map((d) => {
+        const intensity = d.count === 0 ? 0 : Math.min(1, d.count / max);
+        const bg =
+          d.count === 0
+            ? 'rgba(255,255,255,0.04)'
+            : `rgba(123,141,255,${0.25 + intensity * 0.65})`;
+        return (
+          <div
+            key={d.date}
+            title={`${d.date}: ${d.count} item${d.count === 1 ? '' : 's'}`}
+            className="w-7 h-7 rounded-md transition-colors"
+            style={{ background: bg, border: `1px solid ${BRAND.inkGhost}` }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function Ring({
+  label,
+  level,
+  previousLevel,
+}: {
+  label: string;
+  level: Level;
+  previousLevel: Level | null;
+}) {
+  const size = 52;
+  const stroke = 4;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const pct = level === 0 ? 0.15 : level === 1 ? 0.55 : 1;
+  const dash = circumference * pct;
+
+  const grew = previousLevel !== null && previousLevel < level;
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth={stroke}
+          />
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={level >= 2 ? BRAND.emerald : BRAND.blue}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={`${dash} ${circumference}`}
+            style={{ transition: 'stroke-dasharray 0.8s ease' }}
+          />
+        </svg>
+        {grew && (
+          <span
+            className="absolute -top-1 -right-1 text-[10px] font-bold"
+            style={{ color: BRAND.emerald }}
+          >
+            ↑
+          </span>
+        )}
+      </div>
+      <div
+        className="text-[9.5px] text-center font-semibold leading-tight"
+        style={{ color: BRAND.inkDim }}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
+
 function Observation({
   icon,
   sentence,
@@ -200,7 +277,7 @@ function Observation({
 }) {
   return (
     <div className="flex items-start gap-3 mb-3 last:mb-0">
-      <span className="text-[22px] leading-none mt-[2px]">{icon}</span>
+      <span className="text-[20px] leading-none mt-[3px]">{icon}</span>
       <div
         className="text-[14px] leading-[1.7] flex-1"
         style={{ color: tone === 'positive' ? BRAND.ink : BRAND.inkDim }}
@@ -211,81 +288,54 @@ function Observation({
   );
 }
 
-function GrowthRow({
-  label,
-  current,
-  previous,
-}: {
-  label: string;
-  current: Level;
-  previous: Level | null;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[18px] leading-none">{LEVEL_ICONS[current]}</span>
-      <span className="text-[13.5px] flex-1" style={{ color: BRAND.ink }}>
-        {label}
-      </span>
-      <span className="text-[12px] font-semibold" style={{ color: BRAND.inkFaint }}>
-        {LEVEL_LABELS[current]}
-      </span>
-      {previous !== null && previous < current && (
-        <span className="text-[11px] font-bold" style={{ color: BRAND.emerald }}>
-          ↑
-        </span>
-      )}
-    </div>
-  );
-}
-
 function strongSentence(key: string, name: string): string {
   switch (key) {
     case 'noticing':
-      return `${name} notices small things. When they answer, they often mention specific details — not just general ideas.`;
+      return `${name} notices details. When they answer, they mention specific things — not just general ideas.`;
     case 'reasoning':
       return `${name} explains why they chose something. That habit of giving reasons is a real strength.`;
     case 'openMindedness':
       return `${name} considers more than one possibility. They don't just jump to the first idea.`;
     case 'revising':
-      return `${name} is willing to change their mind when they see new information. That's a strong thinking habit — most adults struggle with it.`;
+      return `${name} changes their mind when new information appears. That's a strong habit.`;
     case 'curiosity':
-      return `${name} asks good questions. They push back on ideas and want to know more.`;
+      return `${name} asks good questions. They push back and want to know more.`;
     default:
-      return `${name} is showing strong thinking in one area this week.`;
+      return `${name} is showing a strong habit this week.`;
   }
 }
 
 function weakSentence(key: string, name: string): string {
   switch (key) {
     case 'noticing':
-      return `${name} tends to speak in general terms. We're working on noticing specific details.`;
+      return `${name} tends to speak in general terms. We're working on noticing specifics.`;
     case 'reasoning':
-      return `${name} often gives an answer without explaining why. This week we'll work on the habit of giving reasons.`;
+      return `${name} often answers without explaining why. This week we'll work on reasons.`;
     case 'openMindedness':
-      return `${name} usually commits to the first idea that comes. We're working on considering other possibilities.`;
+      return `${name} commits to the first idea quickly. We're working on considering other options.`;
     case 'revising':
-      return `${name} rarely changes their mind once they've decided. We're working on openness to revising.`;
+      return `${name} rarely changes their mind once decided. We're working on being open.`;
     case 'curiosity':
-      return `${name} answers what is asked, but rarely asks their own questions. We're working on the habit of questioning.`;
+      return `${name} answers what's asked but rarely asks their own questions.`;
     default:
-      return `${name} is still developing in one area this week.`;
+      return `${name} is still building one habit this week.`;
   }
 }
 
 function praiseFor(key: string, name: string): string {
   switch (key) {
     case 'noticing':
-      return `${name} grounded this answer in something specific — that's a habit worth keeping.`;
+      return `${name} grounded this answer in something specific.`;
     case 'reasoning':
-      return `${name} connected their choice to a reason. That's the core of clear thinking.`;
+      return `${name} connected their choice to a reason.`;
     case 'openMindedness':
-      return `${name} held more than one idea in mind before deciding. That's mature thinking.`;
+      return `${name} held more than one idea in mind.`;
     case 'revising':
-      return `${name} left room to change their mind. That's a strength, not a weakness.`;
+      return `${name} left room to change their mind.`;
     case 'curiosity':
-      return `${name} asked a real question here. That's what good thinkers do.`;
+      return `${name} asked a real question here.`;
     default:
-      return `A real example of ${name}'s thinking this week.`;
+      return `A real example of ${name}'s habit.`;
   }
 }
 

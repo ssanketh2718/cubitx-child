@@ -1,4 +1,3 @@
-// src/core/analytics/profile.ts
 import type { SavedResponse } from '../store';
 import {
   extractResponseSignals,
@@ -11,21 +10,31 @@ import {
 export interface DimensionResult {
   key: DimensionKey;
   plain: string;
-  description: string;
   level: Level;
   previousLevel: Level | null;
   score: number;
 }
 
+export interface ConsistencyDay {
+  date: string;
+  count: number;
+}
+
 export interface ThinkingProfile {
   hasEnoughData: boolean;
   weekCount: number;
-  lastWeekCount: number;
   writtenCount: number;
+  activeDays: number;
+  totalDays: number;
+  consistency: ConsistencyDay[];
   dimensions: DimensionResult[];
   strongest: DimensionKey;
   weakest: DimensionKey;
   exampleResponse: { text: string; itemKey: string } | null;
+}
+
+function dayKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 function daysAgo(iso: string): number {
@@ -36,10 +45,27 @@ function daysAgo(iso: string): number {
   return Math.floor((now.getTime() - then.getTime()) / 86400000);
 }
 
-function avgDimension(
-  responses: SavedResponse[],
-  key: DimensionKey
-): number {
+function buildConsistency(responses: SavedResponse[]): ConsistencyDay[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const byDay: Record<string, number> = {};
+  for (const r of responses) {
+    const k = dayKey(new Date(r.submittedAt));
+    byDay[k] = (byDay[k] ?? 0) + 1;
+  }
+
+  const days: ConsistencyDay[] = [];
+  for (let i = 20; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const k = dayKey(d);
+    days.push({ date: k, count: byDay[k] ?? 0 });
+  }
+  return days;
+}
+
+function avgDimension(responses: SavedResponse[], key: DimensionKey): number {
   if (responses.length === 0) return 0;
   let sum = 0;
   for (const r of responses) {
@@ -70,7 +96,6 @@ export function computeProfile(
     return {
       key: k,
       plain: DIMENSIONS[k].plain,
-      description: DIMENSIONS[k].description,
       score,
       level: levelFromScore(score),
       previousLevel: prevScore === null ? null : levelFromScore(prevScore),
@@ -96,11 +121,16 @@ export function computeProfile(
     (a, b) => (b.text?.length ?? 0) - (a.text?.length ?? 0)
   )[0];
 
+  const consistency = buildConsistency(all);
+  const activeDays = consistency.filter((c) => c.count > 0).length;
+
   return {
     hasEnoughData: thisWeekText.length >= 3,
     weekCount: thisWeek.length,
-    lastWeekCount: lastWeek.length,
     writtenCount: thisWeekText.length,
+    activeDays,
+    totalDays: consistency.length,
+    consistency,
     dimensions: dims,
     strongest,
     weakest,
