@@ -47,96 +47,125 @@ export default function Home() {
 
   const dev = isDevMode();
 
+  // Count completed days for progress label
+  const completedDaysCount = Array.from({ length: 30 }, (_, i) => i + 1).filter(
+    (d) => isDayComplete(d)
+  ).length;
+
   const openPayment = () => {
     window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
   };
 
   return (
     <div className="max-w-2xl mx-auto px-5">
-      {dev && (
-        <div
-          className="mb-5 rounded-2xl p-4"
-          style={{ background: 'rgba(123,141,255,0.08)', border: '1px solid rgba(123,141,255,0.35)' }}
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-[10px] font-bold uppercase tracking-[0.16em]" style={{ color: '#9aaaff' }}>
-              🧪 Dev · Jump to day
-            </div>
-            {devDayOverride !== null && (
-              <button
-                onClick={() => setDevDayOverride(null)}
-                className="text-[11px] font-semibold underline"
-                style={{ color: '#9aaaff' }}
-              >
-                reset to natural
-              </button>
-            )}
+      {/* ─── DAY PROGRESS STRIP — visible to everyone ───── */}
+      <div
+        className="mb-5 rounded-2xl p-4"
+        style={{
+          background: dev ? 'rgba(123,141,255,0.08)' : 'rgba(255,255,255,0.02)',
+          border: dev ? '1px solid rgba(123,141,255,0.35)' : '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <div
+            className="text-[10px] font-bold uppercase tracking-[0.16em]"
+            style={{ color: dev ? '#9aaaff' : 'rgba(255,255,255,0.4)' }}
+          >
+            {dev ? '🧪 Dev · Jump to day' : `Day ${activeDay} of 30 · ${completedDaysCount} finished`}
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
-              const cfg = loadDayConfig(curriculumTier, d);
-              const hasItems = !!(cfg && cfg.items.length > 0);
-              const isCurrent = d === activeDay;
-              const isComplete = isDayComplete(d);
+          {dev && devDayOverride !== null && (
+            <button
+              onClick={() => setDevDayOverride(null)}
+              className="text-[11px] font-semibold underline"
+              style={{ color: '#9aaaff' }}
+            >
+              reset to natural
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {Array.from({ length: 30 }, (_, i) => i + 1).map((d) => {
+            const cfg = loadDayConfig(curriculumTier, d);
+            const hasItems = !!(cfg && cfg.items.length > 0);
+            const isCurrent = d === activeDay;
+            const isComplete = isDayComplete(d);
 
-              let bg = 'rgba(255,255,255,0.02)';
-              let color = 'rgba(255,255,255,0.25)';
-              let border = 'rgba(255,255,255,0.12)';
-              let cursor: 'pointer' | 'not-allowed' = 'not-allowed';
+            let bg = 'rgba(255,255,255,0.02)';
+            let color = 'rgba(255,255,255,0.25)';
+            let border = 'rgba(255,255,255,0.12)';
+            let cursor: 'pointer' | 'not-allowed' | 'default' = dev ? 'not-allowed' : 'default';
 
-              if (isComplete) {
-                bg = 'rgba(52,211,153,0.18)';
-                color = '#34d399';
-                border = 'rgba(52,211,153,0.5)';
-                cursor = 'pointer';
-              } else if (isCurrent) {
-                bg = '#7b8dff';
-                color = '#05091a';
-                border = '#7b8dff';
-                cursor = 'pointer';
-              } else if (hasItems) {
-                bg = 'rgba(255,255,255,0.06)';
-                color = '#fff';
-                border = 'rgba(255,255,255,0.12)';
-                cursor = 'pointer';
-              }
+            if (isComplete) {
+              bg = 'rgba(52,211,153,0.18)';
+              color = '#34d399';
+              border = 'rgba(52,211,153,0.5)';
+              if (dev) cursor = 'pointer';
+            } else if (isCurrent) {
+              bg = '#7b8dff';
+              color = '#05091a';
+              border = '#7b8dff';
+              if (dev) cursor = 'pointer';
+            } else if (hasItems) {
+              bg = 'rgba(255,255,255,0.06)';
+              color = '#fff';
+              border = 'rgba(255,255,255,0.12)';
+              if (dev) cursor = 'pointer';
+            }
 
-              return (
-                <button
-                  key={d}
-                  onClick={() => hasItems && setDevDayOverride(d)}
-                  disabled={!hasItems}
-                  className="w-8 h-8 rounded-lg text-[11px] font-bold transition relative"
-                  style={{ background: bg, color, border: `1px solid ${border}`, cursor }}
-                  title={
-                    isComplete
+            return (
+              <button
+                key={d}
+                onClick={() => dev && hasItems && setDevDayOverride(d)}
+                disabled={!dev || !hasItems}
+                className="w-8 h-8 rounded-lg text-[11px] font-bold transition relative"
+                style={{ background: bg, color, border: `1px solid ${border}`, cursor }}
+                title={
+                  dev
+                    ? isComplete
                       ? `Day ${d} — finished`
                       : hasItems
                       ? `Day ${d}`
                       : `Day ${d} — no content`
-                  }
-                >
-                  {d}
-                  {isComplete && (
-                    <span
-                      className="absolute -top-1 -right-1 text-[9px] leading-none"
-                      style={{ color: '#34d399' }}
-                    >
-                      ✓
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          <div className="text-[10.5px] mt-2.5 flex flex-wrap gap-x-3 gap-y-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-            <span>🔵 current</span>
-            <span>🟢 finished</span>
-            <span>⬜ has content</span>
-            <span>▫️ empty</span>
-          </div>
+                    : isComplete
+                    ? `Day ${d} — done`
+                    : isCurrent
+                    ? `Today`
+                    : `Day ${d}`
+                }
+              >
+                {d}
+                {isComplete && (
+                  <span
+                    className="absolute -top-1 -right-1 text-[9px] leading-none"
+                    style={{ color: '#34d399' }}
+                  >
+                    ✓
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
-      )}
+        <div
+          className="text-[10.5px] mt-2.5 flex flex-wrap gap-x-3 gap-y-1"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
+        >
+          {dev ? (
+            <>
+              <span>🔵 current</span>
+              <span>🟢 finished</span>
+              <span>⬜ has content</span>
+              <span>▫️ empty</span>
+            </>
+          ) : (
+            <>
+              <span>🔵 today</span>
+              <span>🟢 done</span>
+              <span>⬜ coming soon</span>
+            </>
+          )}
+        </div>
+      </div>
 
       <div className="mb-6">
         <div className="text-[13px] text-white/40 font-semibold tracking-tight">
@@ -192,7 +221,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Habits link — high visibility for parents */}
       <button
         onClick={() => navigate('/parent')}
         className="w-full rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 mb-5 flex items-center gap-3 hover:bg-white/[0.04] hover:border-[#7b8dff]/30 transition text-left"
