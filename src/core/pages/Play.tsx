@@ -158,6 +158,8 @@ export default function Play() {
   );
 }
 
+/* ─── DoneState ─────────────────────────────────── */
+
 function DoneState({
   onNext,
   nextIdx,
@@ -177,6 +179,7 @@ function DoneState({
 }) {
   const allDone = nextIdx === -1;
 
+  /* Mid-day — still items left */
   if (!allDone) {
     const remaining = total - currentIdx - 1;
     return (
@@ -197,13 +200,15 @@ function DoneState({
     );
   }
 
+  /* Day complete — full ritual screen */
   return (
     <div className="text-center py-10">
       <div className="text-[64px] mb-4">🎉</div>
       <div className="text-[24px] font-semibold mb-3">Day {dayNumber} is done.</div>
 
+      {/* Identity observation */}
       <div
-        className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-7"
+        className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-4"
         style={{ background: `${BRAND.blue}10`, border: `1px solid ${BRAND.blue}33` }}
       >
         <div
@@ -217,9 +222,10 @@ function DoneState({
         </div>
       </div>
 
+      {/* Teaser for tomorrow */}
       {teaser && (
         <div
-          className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-7 text-left"
+          className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-4 text-left"
           style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
         >
           <div
@@ -234,9 +240,43 @@ function DoneState({
         </div>
       )}
 
-      <div className="text-[13.5px] leading-[1.7] mb-8 max-w-sm mx-auto" style={{ color: BRAND.inkFaint }}>
-        Show this to your parent.<br />
-        Tell them what you figured out today.
+      {/* NOW DO THIS — the show-your-parent step */}
+      <div
+        className="mx-auto max-w-md rounded-2xl px-6 py-5 mb-8 text-left relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${BRAND.blue}20 0%, ${BRAND.blue}08 100%)`,
+          border: `2px solid ${BRAND.blue}55`,
+          boxShadow: `0 8px 30px ${BRAND.blue}15`,
+        }}
+      >
+        {/* Left accent bar */}
+        <span
+          className="absolute left-0 top-0 bottom-0 w-1"
+          style={{ background: BRAND.blueBright }}
+        />
+
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[16px]">💬</span>
+          <span
+            className="text-[10px] font-bold uppercase"
+            style={{ color: BRAND.blueBright, letterSpacing: '0.18em' }}
+          >
+            Now do this
+          </span>
+        </div>
+
+        <div
+          className="text-[18px] font-bold leading-[1.35] mb-2"
+          style={{ color: BRAND.ink }}
+        >
+          Show this to your parent.
+        </div>
+        <div
+          className="text-[14px] leading-[1.6]"
+          style={{ color: BRAND.inkDim }}
+        >
+          Tell them what you figured out today.
+        </div>
       </div>
 
       <button
@@ -249,6 +289,8 @@ function DoneState({
     </div>
   );
 }
+
+/* ─── MathView ─────────────────────────────────── */
 
 function MathView({
   item, stage, setStage, onComplete,
