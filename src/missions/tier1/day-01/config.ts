@@ -4,6 +4,7 @@ export default {
   tier: 1 as const,
   day: 1,
   label: 'Day 1 · Your Thinking Starts Here',
+  teaser: 'Tomorrow: a machine that gives back a number you did not expect.',
   items: [
     {
       engine: 'opinion' as const,

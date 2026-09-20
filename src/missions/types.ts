@@ -40,5 +40,7 @@ export interface DayConfig {
   tier: CurriculumTier;
   day: number;
   label?: string;
+  /** Incomplete hook shown at the end of the previous day. */
+  teaser?: string;
   items: DayItem[];
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
 import { useAuth } from '../auth/AuthContext';
 
 const BRAND = {
@@ -17,31 +18,57 @@ const AVATARS = ['🦊', '🐼', '🦉', '🐯', '🐨', '🦁', '🐸', '🐧']
 
 export default function AddChild() {
   const navigate = useNavigate();
-  const { children, addChild, signOut } = useAuth();
+  const { children, addChild } = useAuth();
   const [name, setName] = useState('');
   const [classLevel, setClassLevel] = useState(5);
   const [avatar, setAvatar] = useState('🦊');
+  const [schoolCode, setSchoolCode] = useState('');
+  const [schoolLookup, setSchoolLookup] = useState<{ name: string; city: string | null } | null>(null);
+  const [schoolError, setSchoolError] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
 
-  const hasChildren = children.length > 0;
-
-  const handleBack = async () => {
-    if (hasChildren) {
-      navigate('/home');
-    } else {
-      await signOut();
-      navigate('/');
+  const checkSchool = async () => {
+    const code = schoolCode.trim().toUpperCase();
+    if (!code) {
+      setSchoolLookup(null);
+      setSchoolError('');
+      return;
     }
+    setChecking(true);
+    const { data, error: err } = await supabase.rpc('lookup_school_by_parent_code', {
+      p_code: code,
+    });
+    setChecking(false);
+    if (err || !data || data.length === 0) {
+      setSchoolLookup(null);
+      setSchoolError('We could not find that code. Check with your school.');
+      return;
+    }
+    setSchoolError('');
+    setSchoolLookup(data[0]);
   };
 
   const handleSave = async () => {
     if (name.trim().length < 2) return setError('Please enter a name');
+
     setSaving(true);
-    const { error: err } = await addChild(name.trim(), classLevel, avatar);
+
+    let schoolId: string | null = null;
+    if (schoolCode.trim()) {
+      const { data, error: err } = await supabase.rpc('lookup_school_by_parent_code', {
+        p_code: schoolCode.trim().toUpperCase(),
+      });
+      if (!err && data && data.length > 0) {
+        schoolId = data[0].id;
+      }
+    }
+
+    const { error: err } = await addChild(name.trim(), classLevel, avatar, schoolId);
     setSaving(false);
     if (err) return setError(err);
-    navigate(hasChildren ? '/home' : '/');
+    navigate('/');
   };
 
   return (
@@ -53,15 +80,6 @@ export default function AddChild() {
         className="w-full max-w-md rounded-[1.75rem] p-8"
         style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
       >
-        {/* Back / Sign out */}
-        <button
-          onClick={handleBack}
-          className="mb-6 flex items-center gap-1.5 text-[12.5px] font-semibold transition hover:text-white"
-          style={{ color: BRAND.inkFaint }}
-        >
-          {hasChildren ? '← Back' : '← Sign out'}
-        </button>
-
         <div className="text-[11px] font-bold uppercase tracking-[0.18em]" style={{ color: BRAND.blueBright }}>
           Step {children.length + 1} of 3
         </div>
@@ -126,6 +144,41 @@ export default function AddChild() {
           </div>
         </div>
 
+        {/* School code */}
+        <div className="mt-5">
+          <label className="text-[12px] font-semibold" style={{ color: BRAND.inkDim }}>
+            School code <span style={{ color: BRAND.inkFaint }}>(optional)</span>
+          </label>
+          <div className="mt-2 flex gap-2">
+            <input
+              value={schoolCode}
+              onChange={(e) => { setSchoolCode(e.target.value); setSchoolLookup(null); setSchoolError(''); }}
+              onBlur={checkSchool}
+              placeholder="e.g., CUB-PUN-001"
+              className="flex-1 rounded-xl px-4 py-3.5 text-[14px] outline-none uppercase tracking-wider"
+              style={{ background: 'rgba(0,0,0,0.2)', border: `1px solid ${BRAND.inkGhost}`, color: BRAND.ink }}
+            />
+          </div>
+          {checking && (
+            <div className="text-[11.5px] mt-1.5" style={{ color: BRAND.inkFaint }}>Checking…</div>
+          )}
+          {schoolLookup && (
+            <div
+              className="mt-1.5 rounded-lg px-3 py-2 text-[12px]"
+              style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.3)', color: '#34d399' }}
+            >
+              ✓ Linked to {schoolLookup.name}
+              {schoolLookup.city ? ` (${schoolLookup.city})` : ''}
+            </div>
+          )}
+          {schoolError && (
+            <div className="text-[11.5px] mt-1.5" style={{ color: '#f87171' }}>{schoolError}</div>
+          )}
+          <div className="text-[11px] mt-1.5" style={{ color: BRAND.inkFaint }}>
+            Ask your school for the code. Skip if you don't have one.
+          </div>
+        </div>
+
         {error && (
           <div
             className="mt-4 rounded-xl px-4 py-3 text-[12.5px]"
@@ -144,13 +197,13 @@ export default function AddChild() {
           {saving ? 'Saving…' : 'Save and start'}
         </button>
 
-        {hasChildren && (
+        {children.length > 0 && (
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate('/')}
             className="mt-3 block w-full text-center text-[12.5px]"
             style={{ color: BRAND.inkFaint }}
           >
-            Cancel
+            Skip — I'll add later
           </button>
         )}
       </div>

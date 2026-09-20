@@ -16,12 +16,24 @@ const BRAND = {
   inkGhost: 'rgba(255,255,255,0.14)',
   emerald: '#34d399',
   red: '#f87171',
+  amber: '#fbbf24',
 };
 
 type Stage = 'intro' | 'working' | 'done';
 
 function itemKey(tier: number, day: number, idx: number): string {
   return `t${tier}:d${day}:i${idx}`;
+}
+
+function identityFromItems(items: DayItem[]): string {
+  const engines = new Set(items.map((i) => i.engine));
+  if (engines.has('math') || engines.has('m1'))
+    return 'You tested before you guessed.';
+  if (engines.has('opinion'))
+    return 'You made a choice and explained why.';
+  if (engines.has('creative'))
+    return 'You wrote something only you could write.';
+  return 'You kept thinking, even when it was hard.';
 }
 
 export default function Play() {
@@ -122,7 +134,15 @@ export default function Play() {
       </div>
 
       {stage === 'done' ? (
-        <DoneState onNext={goNext} nextIdx={nextIdx} currentIdx={idx} total={requiredCount} />
+        <DoneState
+          onNext={goNext}
+          nextIdx={nextIdx}
+          currentIdx={idx}
+          total={requiredCount}
+          dayNumber={day}
+          teaser={dayConfig.teaser ?? null}
+          identity={identityFromItems(dayConfig.items)}
+        />
       ) : item.engine === 'math' ? (
         <MathView item={item} stage={stage} setStage={setStage} onComplete={onComplete} />
       ) : item.engine === 'opinion' ? (
@@ -134,6 +154,98 @@ export default function Play() {
       ) : (
         <MissionPlaceholder onComplete={() => onComplete({ engine: item.engine })} />
       )}
+    </div>
+  );
+}
+
+function DoneState({
+  onNext,
+  nextIdx,
+  currentIdx,
+  total,
+  dayNumber,
+  teaser,
+  identity,
+}: {
+  onNext: () => void;
+  nextIdx: number;
+  currentIdx: number;
+  total: number;
+  dayNumber: number;
+  teaser: string | null;
+  identity: string;
+}) {
+  const allDone = nextIdx === -1;
+
+  if (!allDone) {
+    const remaining = total - currentIdx - 1;
+    return (
+      <div className="text-center py-12">
+        <div className="text-[64px] mb-4">✨</div>
+        <div className="text-[22px] font-semibold mb-3">Nice thinking.</div>
+        <div className="text-[14px] leading-[1.7] mb-8 max-w-sm mx-auto" style={{ color: BRAND.inkDim }}>
+          {remaining > 0 ? `${remaining} more to go today.` : 'One more left.'}
+        </div>
+        <button
+          onClick={onNext}
+          className="rounded-full px-8 py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
+          style={{ background: BRAND.ink, color: BRAND.surface }}
+        >
+          Next item →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-10">
+      <div className="text-[64px] mb-4">🎉</div>
+      <div className="text-[24px] font-semibold mb-3">Day {dayNumber} is done.</div>
+
+      <div
+        className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-7"
+        style={{ background: `${BRAND.blue}10`, border: `1px solid ${BRAND.blue}33` }}
+      >
+        <div
+          className="text-[10px] font-bold uppercase mb-2"
+          style={{ color: BRAND.blueSoft, letterSpacing: '0.18em' }}
+        >
+          Today
+        </div>
+        <div className="text-[16px] font-semibold leading-[1.4]" style={{ color: BRAND.ink }}>
+          {identity}
+        </div>
+      </div>
+
+      {teaser && (
+        <div
+          className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-7 text-left"
+          style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}
+        >
+          <div
+            className="text-[10px] font-bold uppercase mb-2"
+            style={{ color: BRAND.amber, letterSpacing: '0.18em' }}
+          >
+            Tomorrow
+          </div>
+          <div className="text-[14.5px] leading-[1.6]" style={{ color: BRAND.inkDim }}>
+            {teaser}
+          </div>
+        </div>
+      )}
+
+      <div className="text-[13.5px] leading-[1.7] mb-8 max-w-sm mx-auto" style={{ color: BRAND.inkFaint }}>
+        Show this to your parent.<br />
+        Tell them what you figured out today.
+      </div>
+
+      <button
+        onClick={onNext}
+        className="rounded-full px-8 py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
+        style={{ background: BRAND.ink, color: BRAND.surface }}
+      >
+        See you tomorrow →
+      </button>
     </div>
   );
 }
@@ -653,40 +765,6 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
         style={{ background: BRAND.ink, color: BRAND.surface }}
       >
         Mark done
-      </button>
-    </div>
-  );
-}
-
-function DoneState({
-  onNext, nextIdx, currentIdx, total,
-}: {
-  onNext: () => void;
-  nextIdx: number;
-  currentIdx: number;
-  total: number;
-}) {
-  const allDone = nextIdx === -1;
-  const remaining = total - currentIdx - 1;
-
-  return (
-    <div className="text-center py-12">
-      <div className="text-[64px] mb-4">✨</div>
-      <div className="text-[22px] font-semibold mb-3">Nice thinking.</div>
-      <div className="text-[14px] leading-[1.7] mb-8 max-w-sm mx-auto" style={{ color: BRAND.inkDim }}>
-        {allDone
-          ? "That's everything for today. Come back tomorrow — a new day unlocks at midnight."
-          : remaining > 0
-          ? `${remaining} more to go today. Keep the streak alive.`
-          : 'One more left.'}
-      </div>
-
-      <button
-        onClick={onNext}
-        className="rounded-full px-8 py-4 text-[15px] font-bold transition-transform hover:-translate-y-0.5"
-        style={{ background: BRAND.ink, color: BRAND.surface }}
-      >
-        {allDone ? 'All done for today →' : 'Next item →'}
       </button>
     </div>
   );

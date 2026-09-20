@@ -1,3 +1,4 @@
+// src/core/auth/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -8,6 +9,9 @@ interface ParentProfile {
   id: string;
   email: string | null;
   name: string | null;
+  first_name: string | null;
+  surname: string | null;
+  consent_given: boolean;
 }
 
 interface Child {
@@ -15,6 +19,7 @@ interface Child {
   name: string;
   class_level: number;
   avatar: string;
+  school_id: string | null;
 }
 
 interface AuthContextType {
@@ -24,11 +29,18 @@ interface AuthContextType {
   children: Child[];
   loading: boolean;
   isDev: boolean;
+  hasConsent: boolean;
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
-  addChild: (name: string, classLevel: number, avatar: string) => Promise<{ error: string | null }>;
+  addChild: (
+    name: string,
+    classLevel: number,
+    avatar: string,
+    schoolId?: string | null
+  ) => Promise<{ error: string | null }>;
   refreshChildren: () => Promise<void>;
+  refreshParent: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -49,6 +61,23 @@ const MOCK_SESSION = {
   },
 } as unknown as Session;
 
+const MOCK_PARENT_PROFILE: ParentProfile = {
+  id: MOCK_PARENT.id,
+  email: MOCK_PARENT.email,
+  name: MOCK_PARENT.name,
+  first_name: 'Dev',
+  surname: 'Parent',
+  consent_given: true,
+};
+
+const MOCK_CHILD_LIST: Child[] = MOCK_CHILDREN.map((c) => ({
+  id: c.id,
+  name: c.name,
+  class_level: c.class_level,
+  avatar: c.avatar,
+  school_id: null,
+}));
+
 export function AuthProvider({ children: reactChildren }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [parent, setParent] = useState<ParentProfile | null>(null);
@@ -56,6 +85,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [loading, setLoading] = useState(true);
   const [dev, setDev] = useState<boolean>(() => isDevMode());
 
+  /* ─── Session listener ───────────────────────────── */
   useEffect(() => {
     if (dev) {
       setLoading(false);
@@ -81,6 +111,7 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     return () => subscription.unsubscribe();
   }, [dev]);
 
+  /* ─── Load parent + children when session exists ─── */
   useEffect(() => {
     if (dev) return;
     if (!session?.user) return;
@@ -88,22 +119,23 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     (async () => {
       const { data: parentRow } = await supabase
         .from('parents')
-        .select('*')
+        .select('id, email, name, first_name, surname, consent_given')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      setParent(parentRow);
+      setParent(parentRow ?? null);
 
       const { data: childRows } = await supabase
         .from('children')
-        .select('*')
+        .select('id, name, class_level, avatar, school_id')
         .order('created_at', { ascending: true });
 
-      setKids(childRows ?? []);
+      setKids((childRows as Child[]) ?? []);
       setLoading(false);
     })();
   }, [session?.user?.id, dev]);
 
+  /* ─── Auth methods ──────────────────────────────── */
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -133,12 +165,28 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     if (dev) return;
     const { data } = await supabase
       .from('children')
-      .select('*')
+      .select('id, name, class_level, avatar, school_id')
       .order('created_at', { ascending: true });
-    setKids(data ?? []);
+    setKids((data as Child[]) ?? []);
   };
 
-  const addChild = async (name: string, classLevel: number, avatar: string) => {
+  const refreshParent = async () => {
+    if (dev) return;
+    if (!session?.user) return;
+    const { data } = await supabase
+      .from('parents')
+      .select('id, email, name, first_name, surname, consent_given')
+      .eq('id', session.user.id)
+      .maybeSingle();
+    setParent(data ?? null);
+  };
+
+  const addChild = async (
+    name: string,
+    classLevel: number,
+    avatar: string,
+    schoolId?: string | null
+  ) => {
     if (dev) return { error: 'Not available in dev mode' };
     if (!session?.user) return { error: 'Not signed in' };
     if (kids.length >= 3) return { error: 'Maximum 3 children' };
@@ -148,16 +196,21 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       name,
       class_level: classLevel,
       avatar,
+      school_id: schoolId ?? null,
     });
 
     if (!error) await refreshChildren();
     return { error: error?.message ?? null };
   };
 
+  /* ─── Dev mode: synthesize everything ────────────── */
   const effectiveSession = dev ? MOCK_SESSION : session;
-  const effectiveParent = dev ? MOCK_PARENT : parent;
-  const effectiveChildren = dev ? MOCK_CHILDREN : kids;
+  const effectiveParent = dev ? MOCK_PARENT_PROFILE : parent;
+  const effectiveChildren = dev ? MOCK_CHILD_LIST : kids;
   const effectiveUser = dev ? MOCK_SESSION.user : (session?.user ?? null);
+  const hasConsent = dev
+    ? true
+    : !!parent?.consent_given;
 
   return (
     <AuthContext.Provider
@@ -168,11 +221,13 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         children: effectiveChildren,
         loading: dev ? false : loading,
         isDev: dev,
+        hasConsent,
         signInWithGoogle,
         signInWithEmail,
         signOut,
         addChild,
         refreshChildren,
+        refreshParent,
       }}
     >
       {reactChildren}
