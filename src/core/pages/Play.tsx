@@ -27,6 +27,7 @@ function itemKey(tier: number, day: number, idx: number): string {
 
 function identityFromItems(items: DayItem[]): string {
   const engines = new Set(items.map((i) => i.engine));
+  if (engines.has('observe')) return 'You looked before you decided.';
   if (engines.has('math') || engines.has('m1'))
     return 'You tested before you guessed.';
   if (engines.has('opinion'))
@@ -83,6 +84,10 @@ export default function Play() {
       testsBeforeGuess?: number;
       wentBackToTest?: boolean;
       secondsOnItem?: number;
+      timeToFirstTapMs?: number;
+      backtrackCount?: number;
+      changedAnswerCount?: number;
+      hintsUsed?: number;
     };
   }) => {
     saveResponse(key, response);
@@ -158,7 +163,9 @@ export default function Play() {
   );
 }
 
-/* ─── DoneState ─────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   DoneState
+   ═══════════════════════════════════════════════════════════ */
 
 function DoneState({
   onNext,
@@ -179,7 +186,6 @@ function DoneState({
 }) {
   const allDone = nextIdx === -1;
 
-  /* Mid-day — still items left */
   if (!allDone) {
     const remaining = total - currentIdx - 1;
     return (
@@ -200,13 +206,11 @@ function DoneState({
     );
   }
 
-  /* Day complete — full ritual screen */
   return (
     <div className="text-center py-10">
       <div className="text-[64px] mb-4">🎉</div>
       <div className="text-[24px] font-semibold mb-3">Day {dayNumber} is done.</div>
 
-      {/* Identity observation */}
       <div
         className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-4"
         style={{ background: `${BRAND.blue}10`, border: `1px solid ${BRAND.blue}33` }}
@@ -222,7 +226,6 @@ function DoneState({
         </div>
       </div>
 
-      {/* Teaser for tomorrow */}
       {teaser && (
         <div
           className="mx-auto max-w-md rounded-2xl px-5 py-4 mb-4 text-left"
@@ -240,41 +243,24 @@ function DoneState({
         </div>
       )}
 
-      {/* NOW DO THIS — the show-your-parent step */}
       <div
         className="mx-auto max-w-md rounded-2xl px-6 py-5 mb-8 text-left relative overflow-hidden"
         style={{
           background: `linear-gradient(135deg, ${BRAND.blue}20 0%, ${BRAND.blue}08 100%)`,
           border: `2px solid ${BRAND.blue}55`,
-          boxShadow: `0 8px 30px ${BRAND.blue}15`,
         }}
       >
-        {/* Left accent bar */}
-        <span
-          className="absolute left-0 top-0 bottom-0 w-1"
-          style={{ background: BRAND.blueBright }}
-        />
-
+        <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: BRAND.blueBright }} />
         <div className="flex items-center gap-2 mb-2">
           <span className="text-[16px]">💬</span>
-          <span
-            className="text-[10px] font-bold uppercase"
-            style={{ color: BRAND.blueBright, letterSpacing: '0.18em' }}
-          >
+          <span className="text-[10px] font-bold uppercase" style={{ color: BRAND.blueBright, letterSpacing: '0.18em' }}>
             Now do this
           </span>
         </div>
-
-        <div
-          className="text-[18px] font-bold leading-[1.35] mb-2"
-          style={{ color: BRAND.ink }}
-        >
+        <div className="text-[18px] font-bold leading-[1.35] mb-2" style={{ color: BRAND.ink }}>
           Show this to your parent.
         </div>
-        <div
-          className="text-[14px] leading-[1.6]"
-          style={{ color: BRAND.inkDim }}
-        >
+        <div className="text-[14px] leading-[1.6]" style={{ color: BRAND.inkDim }}>
           Tell them what you figured out today.
         </div>
       </div>
@@ -290,7 +276,9 @@ function DoneState({
   );
 }
 
-/* ─── MathView ─────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   MathView
+   ═══════════════════════════════════════════════════════════ */
 
 function MathView({
   item, stage, setStage, onComplete,
@@ -305,6 +293,10 @@ function MathView({
       testsBeforeGuess?: number;
       wentBackToTest?: boolean;
       secondsOnItem?: number;
+      timeToFirstTapMs?: number;
+      backtrackCount?: number;
+      changedAnswerCount?: number;
+      hintsUsed?: number;
     };
   }) => void;
 }) {
@@ -313,8 +305,15 @@ function MathView({
   const [picked, setPicked] = useState<number | null>(null);
   const [wentBack, setWentBack] = useState(false);
 
-  const startedAt = useRef<number>(Date.now());
+  const screenShownAt = useRef<number>(Date.now());
+  const firstTapAt = useRef<number | null>(null);
   const testsBeforeGuess = useRef<number>(0);
+
+  const recordFirstTap = () => {
+    if (firstTapAt.current === null) {
+      firstTapAt.current = Date.now();
+    }
+  };
 
   const inputs = item.tests.map((t) => t.in);
   const testedIn = new Set(tested.map((t) => t.in));
@@ -324,6 +323,7 @@ function MathView({
 
   const testInput = (n: number) => {
     if (testedIn.has(n)) return;
+    recordFirstTap();
     const pair = item.tests.find((t) => t.in === n);
     if (!pair) return;
     setTested((prev) => [...prev, pair]);
@@ -347,7 +347,13 @@ function MathView({
       behaviours: {
         testsBeforeGuess: testsBeforeGuess.current,
         wentBackToTest: wentBack,
-        secondsOnItem: Math.round((Date.now() - startedAt.current) / 1000),
+        secondsOnItem: Math.round((Date.now() - screenShownAt.current) / 1000),
+        timeToFirstTapMs: firstTapAt.current
+          ? firstTapAt.current - screenShownAt.current
+          : undefined,
+        backtrackCount: wentBack ? 1 : 0,
+        changedAnswerCount: 0,
+        hintsUsed: 0,
       },
     });
   };
@@ -466,7 +472,10 @@ function MathView({
               return (
                 <button
                   key={i}
-                  onClick={() => setPicked(i)}
+                  onClick={() => {
+                    recordFirstTap();
+                    setPicked(i);
+                  }}
                   className="flex items-center gap-3 rounded-2xl p-4 text-left transition-all"
                   style={{
                     background: selected ? `${BRAND.blue}18` : 'rgba(255,255,255,0.025)',
@@ -539,17 +548,70 @@ function MathView({
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   OpinionView
+   ═══════════════════════════════════════════════════════════ */
+
 function OpinionView({
   item, stage, setStage, onComplete,
 }: {
   item: Extract<DayItem, { engine: 'opinion' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string; picked?: number }) => void;
+  onComplete: (r: {
+    engine: string;
+    text?: string;
+    picked?: number;
+    behaviours?: {
+      timeToFirstTapMs?: number;
+      backtrackCount?: number;
+      changedAnswerCount?: number;
+      hintsUsed?: number;
+      secondsOnItem?: number;
+    };
+  }) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [reason, setReason] = useState('');
+  const [changeCount, setChangeCount] = useState(0);
+
+  const screenShownAt = useRef<number>(Date.now());
+  const firstTapAt = useRef<number | null>(null);
+
+  const recordFirstTap = () => {
+    if (firstTapAt.current === null) {
+      firstTapAt.current = Date.now();
+    }
+  };
+
   const canSubmit = picked !== null && reason.trim().length >= 20;
+
+  const handlePick = (i: number) => {
+    recordFirstTap();
+    if (picked !== null && picked !== i) {
+      setChangeCount((c) => c + 1);
+    }
+    setPicked(i);
+    if (stage === 'intro') setStage('working');
+  };
+
+  const handleSubmit = () => {
+    if (!canSubmit || picked === null) return;
+    onComplete({
+      engine: 'opinion',
+      text: reason.trim(),
+      picked,
+      behaviours: {
+        secondsOnItem: Math.round((Date.now() - screenShownAt.current) / 1000),
+        timeToFirstTapMs: firstTapAt.current
+          ? firstTapAt.current - screenShownAt.current
+          : undefined,
+        changedAnswerCount: changeCount,
+        backtrackCount: 0,
+        hintsUsed: 0,
+      },
+    });
+  };
 
   return (
     <div>
@@ -570,7 +632,7 @@ function OpinionView({
           return (
             <button
               key={i}
-              onClick={() => { setPicked(i); if (stage === 'intro') setStage('working'); }}
+              onClick={() => handlePick(i)}
               className="flex items-start gap-3 rounded-2xl p-4 text-left transition-all"
               style={{
                 background: selected ? `${BRAND.blue}18` : 'rgba(255,255,255,0.025)',
@@ -625,7 +687,7 @@ function OpinionView({
       )}
 
       <button
-        onClick={() => canSubmit && picked !== null && onComplete({ engine: 'opinion', text: reason.trim(), picked })}
+        onClick={handleSubmit}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -636,17 +698,59 @@ function OpinionView({
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   CreativeView
+   ═══════════════════════════════════════════════════════════ */
+
 function CreativeView({
   item, stage, setStage, onComplete,
 }: {
   item: Extract<DayItem, { engine: 'creative' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string }) => void;
+  onComplete: (r: {
+    engine: string;
+    text?: string;
+    behaviours?: {
+      timeToFirstTapMs?: number;
+      secondsOnItem?: number;
+      changedAnswerCount?: number;
+      backtrackCount?: number;
+      hintsUsed?: number;
+    };
+  }) => void;
 }) {
   const [text, setText] = useState('');
+  const screenShownAt = useRef<number>(Date.now());
+  const firstTypedAt = useRef<number | null>(null);
+
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const canSubmit = wordCount >= 20;
+
+  const handleChange = (v: string) => {
+    if (firstTypedAt.current === null && v.length > 0) {
+      firstTypedAt.current = Date.now();
+    }
+    setText(v);
+    if (stage === 'intro' && v.length > 0) setStage('working');
+  };
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    onComplete({
+      engine: 'creative',
+      text: text.trim(),
+      behaviours: {
+        secondsOnItem: Math.round((Date.now() - screenShownAt.current) / 1000),
+        timeToFirstTapMs: firstTypedAt.current
+          ? firstTypedAt.current - screenShownAt.current
+          : undefined,
+        changedAnswerCount: 0,
+        backtrackCount: 0,
+        hintsUsed: 0,
+      },
+    });
+  };
 
   return (
     <div>
@@ -669,7 +773,7 @@ function CreativeView({
 
       <textarea
         value={text}
-        onChange={(e) => { setText(e.target.value); if (stage === 'intro' && e.target.value.length > 0) setStage('working'); }}
+        onChange={(e) => handleChange(e.target.value)}
         placeholder="Start writing..."
         rows={8}
         className="w-full rounded-2xl p-5 text-[15px] leading-[1.7] outline-none resize-none"
@@ -686,7 +790,7 @@ function CreativeView({
       </div>
 
       <button
-        onClick={() => canSubmit && onComplete({ engine: 'creative', text: text.trim() })}
+        onClick={handleSubmit}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -697,18 +801,60 @@ function CreativeView({
   );
 }
 
+/* ═══════════════════════════════════════════════════════════
+   WatchView
+   ═══════════════════════════════════════════════════════════ */
+
 function WatchView({
   item, stage, setStage, onComplete,
 }: {
   item: Extract<DayItem, { engine: 'watch' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: { engine: string; text?: string }) => void;
+  onComplete: (r: {
+    engine: string;
+    text?: string;
+    behaviours?: {
+      timeToFirstTapMs?: number;
+      secondsOnItem?: number;
+      changedAnswerCount?: number;
+      backtrackCount?: number;
+      hintsUsed?: number;
+    };
+  }) => void;
 }) {
   const [text, setText] = useState('');
   const [watched, setWatched] = useState(false);
+  const screenShownAt = useRef<number>(Date.now());
+  const firstInteractAt = useRef<number | null>(null);
+
   const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
   const canSubmit = watched && wordCount >= 15;
+
+  const handleWatch = () => {
+    if (firstInteractAt.current === null) {
+      firstInteractAt.current = Date.now();
+    }
+    setWatched(true);
+    if (stage === 'intro') setStage('working');
+  };
+
+  const handleSubmit = () => {
+    if (!canSubmit) return;
+    onComplete({
+      engine: 'watch',
+      text: text.trim(),
+      behaviours: {
+        secondsOnItem: Math.round((Date.now() - screenShownAt.current) / 1000),
+        timeToFirstTapMs: firstInteractAt.current
+          ? firstInteractAt.current - screenShownAt.current
+          : undefined,
+        changedAnswerCount: 0,
+        backtrackCount: 0,
+        hintsUsed: 0,
+      },
+    });
+  };
 
   return (
     <div>
@@ -738,7 +884,7 @@ function WatchView({
           href={item.video}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => { setWatched(true); if (stage === 'intro') setStage('working'); }}
+          onClick={handleWatch}
           className="rounded-full px-5 py-2.5 text-[13px] font-bold transition"
           style={{ background: BRAND.ink, color: BRAND.surface }}
         >
@@ -772,7 +918,7 @@ function WatchView({
       </div>
 
       <button
-        onClick={() => canSubmit && onComplete({ engine: 'watch', text: text.trim() })}
+        onClick={handleSubmit}
         disabled={!canSubmit}
         className="mt-8 w-full rounded-full py-4 text-[15px] font-bold transition disabled:opacity-30"
         style={{ background: BRAND.ink, color: BRAND.surface }}
@@ -782,6 +928,10 @@ function WatchView({
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MissionPlaceholder
+   ═══════════════════════════════════════════════════════════ */
 
 function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
   return (
@@ -811,6 +961,10 @@ function MissionPlaceholder({ onComplete }: { onComplete: () => void }) {
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════════
+   CenteredCard
+   ═══════════════════════════════════════════════════════════ */
 
 function CenteredCard({ children }: { children: React.ReactNode }) {
   return <div className="max-w-md mx-auto text-center py-20 px-5">{children}</div>;

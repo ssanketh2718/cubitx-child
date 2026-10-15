@@ -11,9 +11,15 @@ export interface DayProgress {
 }
 
 export interface SavedBehaviouralSignals {
+  // Math-specific
   testsBeforeGuess?: number;
   wentBackToTest?: boolean;
   secondsOnItem?: number;
+  // Cross-mission signals (for the analysis engine)
+  timeToFirstTapMs?: number;
+  backtrackCount?: number;
+  changedAnswerCount?: number;
+  hintsUsed?: number;
 }
 
 export interface SavedResponse {

@@ -1,49 +1,41 @@
 // src/core/analytics/profile.ts
 import type { SavedResponse } from '../store';
+import { detectParameters, type ParameterSet } from './parameters';
+import { detectBehaviours, type BehaviourSignals } from './behavioural';
 import {
-  extractFlags,
-  dimensionCountsForWeek,
-  levelFromPct,
-  DIMENSIONS,
-  type DimensionKey,
+  computeFullScore,
+  type DimensionScore,
   type Level,
-  type AnswerFlags,
-} from './signals';
+  LEVEL_LABELS,
+} from './scoring';
 
-export const TOTAL_WEEKS = 48;
-export const MAX_PCT = 90;
+export type { Level, DimensionScore };
+export { LEVEL_LABELS };
 
-export interface DimensionResult {
-  key: DimensionKey;
-  plain: string;
-  level: Level;
-  previousLevel: Level | null;
-  pct: number;
-  weeksCounted: number;
-}
-
-export interface ConsistencyDay {
-  date: string;
-  count: number;
+export interface AnswerAnalysis {
+  itemKey: string;
+  submittedAt: string;
+  answerText: string;
+  parameters: ParameterSet;
+  dimensions: DimensionScore[];
+  composite: number;
+  evidence: string[];
 }
 
 export interface ThinkingProfile {
   hasEnoughData: boolean;
-  weekCount: number;
-  writtenCount: number;
-  activeDays: number;
-  totalDays: number;
-  weeksCounted: number;
-  consistency: ConsistencyDay[];
-  dimensions: DimensionResult[];
-  strongest: DimensionKey;
-  weakest: DimensionKey;
-  exampleResponse: { text: string; itemKey: string } | null;
+  totalAnswers: number;
+  answersThisWeek: number;
+  dimensions: DimensionScore[];      // averaged across all answers
+  composite: number;                 // averaged
+  lastWeekComposite: number | null;
+  strongest: DimensionScore | null;
+  weakest: DimensionScore | null;
+  recentAnswers: AnswerAnalysis[];   // last 5
+  evidence: string[];                // top 3 quotes for parent view
 }
 
-function dayKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
+// ─── Time helpers ────────────────────────────────────────────
 
 function daysAgo(iso: string): number {
   const then = new Date(iso);
@@ -53,164 +45,144 @@ function daysAgo(iso: string): number {
   return Math.floor((now.getTime() - then.getTime()) / 86400000);
 }
 
-/** Returns the ISO date (YYYY-MM-DD) of the Monday on or before `date`. */
-function weekStartKey(date: Date): string {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  // getDay() → 0 (Sun) to 6 (Sat). We treat Monday as start of week.
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  return dayKey(d);
+// ─── Single-answer analysis ──────────────────────────────────
+
+function analyseAnswer(
+  itemKey: string,
+  response: SavedResponse
+): AnswerAnalysis | null {
+  const text = response.text?.trim() ?? '';
+  if (text.length < 3) return null;
+
+  const params = detectParameters({
+    answer: text,
+    question: '',
+    sceneKeywords: [],
+  });
+
+  const behaviours = detectBehaviours({
+    timeToFirstTapMs: (response.behaviours as any)?.timeToFirstTapMs,
+    totalTimeMs: (response.behaviours as any)?.secondsOnItem
+      ? (response.behaviours as any).secondsOnItem * 1000
+      : undefined,
+    backtrackCount: (response.behaviours as any)?.wentBackToTest ? 1 : 0,
+    hintsUsed: 0,
+    changedAnswerCount: 0,
+  } as BehaviourSignals);
+
+  const score = computeFullScore({ parameters: params, behaviours });
+
+  return {
+    itemKey,
+    submittedAt: response.submittedAt,
+    answerText: text,
+    parameters: params,
+    dimensions: score.dimensions,
+    composite: score.composite,
+    evidence: score.totalEvidence,
+  };
 }
 
-function buildConsistency(responses: SavedResponse[]): ConsistencyDay[] {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+// ─── Aggregate across answers ────────────────────────────────
 
-  const byDay: Record<string, number> = {};
-  for (const r of responses) {
-    const k = dayKey(new Date(r.submittedAt));
-    byDay[k] = (byDay[k] ?? 0) + 1;
-  }
+function averageDimensions(all: AnswerAnalysis[]): DimensionScore[] {
+  const names: DimensionScore['dimension'][] = [
+    'interpretation',
+    'reasoning',
+    'openMindedness',
+    'evaluation',
+    'revision',
+  ];
 
-  const days: ConsistencyDay[] = [];
-  for (let i = 20; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = dayKey(d);
-    days.push({ date: k, count: byDay[k] ?? 0 });
-  }
-  return days;
+  return names.map(name => {
+    const scores = all
+      .flatMap(a => a.dimensions)
+      .filter(d => d.dimension === name)
+      .map(d => d.score);
+
+    const avg = scores.length > 0
+      ? Math.round(scores.reduce((s, v) => s + v, 0) / scores.length)
+      : 0;
+
+    // Best parameter across all answers for this dimension
+    const allParams = all
+      .flatMap(a => a.dimensions)
+      .filter(d => d.dimension === name)
+      .flatMap(d => d.parameters);
+
+    const strongest = allParams.sort((a, b) => b.level - a.level)[0] ?? null;
+    const weakest = allParams.sort((a, b) => a.level - b.level)[0] ?? null;
+
+    // Level thresholds from score
+    const level: Level = avg >= 75 ? 4 : avg >= 50 ? 3 : avg >= 25 ? 2 : avg > 0 ? 1 : 0;
+
+    return {
+      dimension: name,
+      score: avg,
+      level,
+      parameters: [],
+      strongest,
+      weakest,
+    };
+  });
 }
 
-/**
- * Groups responses by their calendar week (Monday-start).
- * Returns, per week, how many active days and the answer flags.
- * A "day is active" if it has >=3 responses.
- * A "week counts" if it has >=4 active days.
- */
-interface WeekBucket {
-  weekStart: string;
-  activeDays: number;
-  flags: AnswerFlags[];
-  countsFor: Record<DimensionKey, boolean>;
+function averageComposite(all: AnswerAnalysis[]): number {
+  if (all.length === 0) return 0;
+  return Math.round(all.reduce((s, a) => s + a.composite, 0) / all.length);
 }
 
-function buildWeekBuckets(responses: SavedResponse[]): WeekBucket[] {
-  const byWeek: Record<string, { days: Record<string, number>; flags: AnswerFlags[] }> = {};
-
-  for (const r of responses) {
-    const d = new Date(r.submittedAt);
-    const wk = weekStartKey(d);
-    const dk = dayKey(d);
-    if (!byWeek[wk]) byWeek[wk] = { days: {}, flags: [] };
-    byWeek[wk].days[dk] = (byWeek[wk].days[dk] ?? 0) + 1;
-    byWeek[wk].flags.push(extractFlags(r.text ?? '', r.behaviours));
-  }
-
-  const out: WeekBucket[] = [];
-  for (const wk of Object.keys(byWeek)) {
-    const bucket = byWeek[wk];
-    const activeDays = Object.values(bucket.days).filter((c) => c >= 3).length;
-    const countsFor = dimensionCountsForWeek(bucket.flags);
-    out.push({
-      weekStart: wk,
-      activeDays,
-      flags: bucket.flags,
-      countsFor,
-    });
-  }
-  return out;
-}
+// ─── Main API ────────────────────────────────────────────────
 
 export function computeProfile(
   responses: Record<string, SavedResponse>
 ): ThinkingProfile {
-  const all = Object.values(responses);
-  const thisWeek = all.filter((r) => daysAgo(r.submittedAt) <= 6);
-  const thisWeekText = thisWeek.filter(
-    (r) => r.text && r.text.trim().length >= 3
-  );
+  const entries = Object.entries(responses);
 
-  const consistency = buildConsistency(all);
-  const activeDays = consistency.filter((c) => c.count > 0).length;
-
-  const weeks = buildWeekBuckets(all);
-
-  // Count weeks that fully qualified (>=4 active days) per dimension
-  const qualifyingWeeks = weeks.filter((w) => w.activeDays >= 4);
-  const weeksCounted = qualifyingWeeks.length;
-
-  const dimCount: Record<DimensionKey, number> = {
-    noticing: 0,
-    reasoning: 0,
-    openMindedness: 0,
-    revising: 0,
-    curiosity: 0,
-  };
-  for (const w of qualifyingWeeks) {
-    for (const k of Object.keys(dimCount) as DimensionKey[]) {
-      if (w.countsFor[k]) dimCount[k]++;
-    }
+  // Analyse each
+  const analysed: AnswerAnalysis[] = [];
+  for (const [key, r] of entries) {
+    const a = analyseAnswer(key, r);
+    if (a) analysed.push(a);
   }
 
-  // Previous-period comparison: weeks from the prior 48 weeks (older than this month)
-  // For simplicity, previous level is estimated from half the currently counted weeks.
-  const dims: DimensionResult[] = (Object.keys(DIMENSIONS) as DimensionKey[]).map(
-    (k) => {
-      const wc = dimCount[k];
-      const pct = Math.min(MAX_PCT, Math.round((wc / TOTAL_WEEKS) * MAX_PCT));
-      // "Previous" is the level they were at ~halfway through their practice,
-      // so parents see progress on the bar for young accounts too.
-      const prevWc = Math.max(0, wc - 1);
-      const prevPct = Math.min(MAX_PCT, Math.round((prevWc / TOTAL_WEEKS) * MAX_PCT));
-      return {
-        key: k,
-        plain: DIMENSIONS[k].plain,
-        pct,
-        weeksCounted: wc,
-        level: levelFromPct(pct),
-        previousLevel: levelFromPct(prevPct),
-      };
-    }
-  );
+  // Split by time
+  const thisWeek = analysed.filter(a => daysAgo(a.submittedAt) <= 6);
+  const lastWeek = analysed.filter(a => {
+    const d = daysAgo(a.submittedAt);
+    return d >= 7 && d <= 13;
+  });
 
-  let strongest: DimensionKey = 'reasoning';
-  let weakest: DimensionKey = 'curiosity';
-  let max = -1;
-  let min = 999;
-  for (const d of dims) {
-    if (d.pct > max) {
-      max = d.pct;
-      strongest = d.key;
-    }
-    if (d.pct < min) {
-      min = d.pct;
-      weakest = d.key;
-    }
-  }
+  const dimensions = averageDimensions(thisWeek);
+  const composite = averageComposite(thisWeek);
+  const lastWeekComposite = lastWeek.length > 0 ? averageComposite(lastWeek) : null;
 
-  const example = [...thisWeekText].sort(
-    (a, b) => (b.text?.length ?? 0) - (a.text?.length ?? 0)
-  )[0];
+  // Strongest and weakest dimensions
+  const sorted = [...dimensions].sort((a, b) => b.score - a.score);
+  const strongest = sorted[0]?.score > 0 ? sorted[0] : null;
+  const weakest = sorted[sorted.length - 1]?.score > 0 ? sorted[sorted.length - 1] : null;
+
+  // Recent 5 answers
+  const recentAnswers = [...analysed]
+    .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
+    .slice(0, 5);
+
+  // Top evidence quotes
+  const evidence = recentAnswers
+    .flatMap(a => a.evidence)
+    .filter(e => e.length > 10)
+    .slice(0, 3);
 
   return {
-    hasEnoughData: thisWeekText.length >= 3,
-    weekCount: thisWeek.length,
-    writtenCount: thisWeekText.length,
-    activeDays,
-    totalDays: consistency.length,
-    weeksCounted,
-    consistency,
-    dimensions: dims,
+    hasEnoughData: thisWeek.length >= 3,
+    totalAnswers: analysed.length,
+    answersThisWeek: thisWeek.length,
+    dimensions,
+    composite,
+    lastWeekComposite,
     strongest,
     weakest,
-    exampleResponse: example
-      ? { text: example.text ?? '', itemKey: example.itemKey }
-      : null,
+    recentAnswers,
+    evidence,
   };
 }
-
-export { DIMENSIONS, levelFromPct };
-export type { DimensionKey, Level };

@@ -9,7 +9,8 @@ export type EngineId =
   | 'math'
   | 'opinion'
   | 'creative'
-  | 'watch';
+  | 'watch'
+  | 'observe';
 
 export type DayItem =
   | { engine: 'm1' | 'm2' | 'm3' | 'm4' | 'm5'; puzzle: string }
@@ -34,13 +35,28 @@ export type DayItem =
       title: string;
       video: string;
       reflect: string;
+    }
+  | {
+      engine: 'observe';
+      title: string;
+      image: string;
+      imageVisibleSeconds: number;
+      question: string;
+      answerMode: 'choice' | 'text';
+      options?: string[];
+      answerIdx?: number;
+      reasonPrompt: string;
+      reveal: {
+        title: string;
+        text: string;
+        revisionPrompt: string;
+      };
     };
 
 export interface DayConfig {
   tier: CurriculumTier;
   day: number;
   label?: string;
-  /** Incomplete hook shown at the end of the previous day. */
   teaser?: string;
   items: DayItem[];
 }

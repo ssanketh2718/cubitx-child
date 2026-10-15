@@ -47,7 +47,6 @@ export default function Home() {
 
   const dev = isDevMode();
 
-  // Count completed days for progress label
   const completedDaysCount = Array.from({ length: 30 }, (_, i) => i + 1).filter(
     (d) => isDayComplete(d)
   ).length;
@@ -58,12 +57,14 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto px-5">
-      {/* ─── DAY PROGRESS STRIP — visible to everyone ───── */}
+      {/* Day progress strip */}
       <div
         className="mb-5 rounded-2xl p-4"
         style={{
           background: dev ? 'rgba(123,141,255,0.08)' : 'rgba(255,255,255,0.02)',
-          border: dev ? '1px solid rgba(123,141,255,0.35)' : '1px solid rgba(255,255,255,0.08)',
+          border: dev
+            ? '1px solid rgba(123,141,255,0.35)'
+            : '1px solid rgba(255,255,255,0.08)',
         }}
       >
         <div className="flex items-center justify-between mb-3">
@@ -71,7 +72,9 @@ export default function Home() {
             className="text-[10px] font-bold uppercase tracking-[0.16em]"
             style={{ color: dev ? '#9aaaff' : 'rgba(255,255,255,0.4)' }}
           >
-            {dev ? '🧪 Dev · Jump to day' : `Day ${activeDay} of 30 · ${completedDaysCount} finished`}
+            {dev
+              ? '🧪 Dev · Jump to day'
+              : `Day ${activeDay} of 30 · ${completedDaysCount} finished`}
           </div>
           {dev && devDayOverride !== null && (
             <button
@@ -93,7 +96,9 @@ export default function Home() {
             let bg = 'rgba(255,255,255,0.02)';
             let color = 'rgba(255,255,255,0.25)';
             let border = 'rgba(255,255,255,0.12)';
-            let cursor: 'pointer' | 'not-allowed' | 'default' = dev ? 'not-allowed' : 'default';
+            let cursor: 'pointer' | 'not-allowed' | 'default' = dev
+              ? 'not-allowed'
+              : 'default';
 
             if (isComplete) {
               bg = 'rgba(52,211,153,0.18)';
@@ -118,20 +123,12 @@ export default function Home() {
                 onClick={() => dev && hasItems && setDevDayOverride(d)}
                 disabled={!dev || !hasItems}
                 className="w-8 h-8 rounded-lg text-[11px] font-bold transition relative"
-                style={{ background: bg, color, border: `1px solid ${border}`, cursor }}
-                title={
-                  dev
-                    ? isComplete
-                      ? `Day ${d} — finished`
-                      : hasItems
-                      ? `Day ${d}`
-                      : `Day ${d} — no content`
-                    : isComplete
-                    ? `Day ${d} — done`
-                    : isCurrent
-                    ? `Today`
-                    : `Day ${d}`
-                }
+                style={{
+                  background: bg,
+                  color,
+                  border: `1px solid ${border}`,
+                  cursor,
+                }}
               >
                 {d}
                 {isComplete && (
@@ -145,25 +142,6 @@ export default function Home() {
               </button>
             );
           })}
-        </div>
-        <div
-          className="text-[10.5px] mt-2.5 flex flex-wrap gap-x-3 gap-y-1"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-        >
-          {dev ? (
-            <>
-              <span>🔵 current</span>
-              <span>🟢 finished</span>
-              <span>⬜ has content</span>
-              <span>▫️ empty</span>
-            </>
-          ) : (
-            <>
-              <span>🔵 today</span>
-              <span>🟢 done</span>
-              <span>⬜ coming soon</span>
-            </>
-          )}
         </div>
       </div>
 
@@ -228,7 +206,7 @@ export default function Home() {
         <span className="text-[22px] leading-none">📈</span>
         <div className="flex-1">
           <div className="text-[13.5px] font-semibold text-white">
-            See {user.name}'s habits
+            See {user.name}'s thinking
           </div>
           <div className="text-[11.5px] text-white/40 mt-0.5">
             What they're building, in plain language
@@ -344,6 +322,8 @@ export default function Home() {
   );
 }
 
+/* ─── Item helpers ─────────────────────────── */
+
 function itemEmoji(item: DayItem): string {
   switch (item.engine) {
     case 'm1': return '🔢';
@@ -355,6 +335,8 @@ function itemEmoji(item: DayItem): string {
     case 'opinion': return '🗣️';
     case 'creative': return '✨';
     case 'watch': return '🎬';
+    case 'observe': return '👁️';
+    default: return '🧩';
   }
 }
 
@@ -369,6 +351,8 @@ function itemTitle(item: DayItem): string {
     case 'opinion': return 'Your Opinion';
     case 'creative': return 'Create';
     case 'watch': return 'Watch & Think';
+    case 'observe': return item.title;
+    default: return 'Mission';
   }
 }
 
@@ -383,5 +367,7 @@ function itemSub(item: DayItem): string {
     case 'opinion': return 'What do you think?';
     case 'creative': return 'Make something new';
     case 'watch': return 'A short film + a question';
+    case 'observe': return 'Look closer';
+    default: return '';
   }
 }
