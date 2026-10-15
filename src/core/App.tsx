@@ -13,15 +13,39 @@ import AddChild from './pages/AddChild';
 import ParentView from './pages/ParentView';
 import WhoIsPlaying from './pages/WhoIsPlaying';
 import Play from './pages/Play';
+import Consent from './pages/Consent';
+import TeacherDashboard from './pages/TeacherDashboard';
+import DevAnalysis from './pages/DevAnalysis';
 
 export default function App() {
   const { session, children: kids, loading } = useAuth();
   const { activeChild } = useChild();
   const location = useLocation();
 
+  // Dev routes — bypass auth, only for testing
+  if (location.pathname.startsWith('/dev/')) {
+    return (
+      <Routes>
+        <Route path="/dev/analysis" element={<DevAnalysis />} />
+        <Route path="*" element={<Navigate to="/dev/analysis" replace />} />
+      </Routes>
+    );
+  }
+
+  // Teacher route — bypasses all parent flow
+  if (location.pathname.startsWith('/teacher')) {
+    return (
+      <Routes>
+        <Route path="/teacher" element={<TeacherDashboard />} />
+        <Route path="*" element={<Navigate to="/teacher" replace />} />
+      </Routes>
+    );
+  }
+
   const isImmersive =
     location.pathname.startsWith('/mission/') ||
-    location.pathname.startsWith('/play/');
+    location.pathname.startsWith('/play/') ||
+    location.pathname === '/consent';
 
   const isOnboard = location.pathname === '/onboard';
 
@@ -40,10 +64,23 @@ export default function App() {
     );
   }
 
+  // If consent not yet given, force parent through /consent
+  const consentGiven = !!(session.user.user_metadata as any)?.consent_given;
+
+  if (!consentGiven && location.pathname !== '/consent') {
+    return (
+      <Routes>
+        <Route path="/consent" element={<Consent />} />
+        <Route path="*" element={<Navigate to="/consent" replace />} />
+      </Routes>
+    );
+  }
+
   if (kids.length === 0) {
     return (
       <>
         <Routes>
+          <Route path="/consent" element={<Consent />} />
           <Route path="/onboard" element={<AddChild />} />
           <Route path="*" element={<Navigate to="/onboard" replace />} />
         </Routes>
