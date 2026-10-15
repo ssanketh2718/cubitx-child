@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './auth/AuthContext';
 import { useChild } from './auth/ChildContext';
+import { isDevMode } from './auth/devMode';
 import DevBar from './components/DevBar';
 import TopBar from './components/TopBar';
 import BottomNav from './components/BottomNav';
@@ -21,8 +22,9 @@ export default function App() {
   const { session, children: kids, loading } = useAuth();
   const { activeChild } = useChild();
   const location = useLocation();
+  const dev = isDevMode();
 
-  // Dev routes — bypass auth, only for testing
+  // Dev routes — bypass auth
   if (location.pathname.startsWith('/dev/')) {
     return (
       <Routes>
@@ -64,8 +66,9 @@ export default function App() {
     );
   }
 
-  // If consent not yet given, force parent through /consent
-  const consentGiven = !!(session.user.user_metadata as any)?.consent_given;
+  // Skip consent gate entirely in dev mode
+  const consentGiven =
+    dev || !!(session.user.user_metadata as any)?.consent_given;
 
   if (!consentGiven && location.pathname !== '/consent') {
     return (
