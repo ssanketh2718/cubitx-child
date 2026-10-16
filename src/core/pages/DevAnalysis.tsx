@@ -20,35 +20,38 @@ const BRAND = {
   red: '#f87171',
 };
 
-const SAMPLE_ANSWERS = [
-  'yes.',
-  'Because metal moves heat fast.',
-  'The metal spoon pulled heat out of the chai, so the chai got cold. The plastic spoon could not do this.',
-  'I think the metal spoon made it colder because metal is a better conductor than plastic. I saw the metal spoon get hot in my hand when I stirred. But maybe the shape of the spoon matters too.',
-  'At first I thought it was because the spoon was metal. Now I think the metal pulled heat out. I changed my mind when I read the explanation.',
-  'I do not know if it was the metal. Maybe it was something else. But I think the metal moves heat.',
-  'Metal always cools things. Never plastic. Everyone knows this.',
-  'The tea became cold because it lost heat.',
-];
-
 export default function DevAnalysis() {
   const navigate = useNavigate();
   const [answer, setAnswer] = useState('');
   const [question, setQuestion] = useState('');
   const [scene, setScene] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [err, setErr] = useState('');
 
-  const run = (text?: string) => {
-    const t = text ?? answer;
-    if (t.trim().length < 1) return;
+  const run = () => {
+    if (answer.trim().length < 2) {
+      setErr("Enter the child's answer.");
+      return;
+    }
+    if (question.trim().length < 3) {
+      setErr('Enter the question — the engine needs it to check relevance.');
+      return;
+    }
+    if (scene.trim().length < 3) {
+      setErr('Enter at least one scene keyword — the engine needs it to detect specifics.');
+      return;
+    }
+    setErr('');
+
+    const sceneKeywords = scene
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
 
     const params = detectParameters({
-      answer: t,
+      answer,
       question,
-      sceneKeywords: scene
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean),
+      sceneKeywords,
     });
 
     const behaviours = detectBehaviours({
@@ -60,7 +63,7 @@ export default function DevAnalysis() {
     });
 
     const score = computeFullScore({ parameters: params, behaviours });
-    setResult({ params, score, normalised: normalise(t) });
+    setResult({ params, score, normalised: normalise(answer) });
   };
 
   return (
@@ -83,13 +86,13 @@ export default function DevAnalysis() {
         Does the engine judge right?
       </h1>
       <p className="text-[14px] leading-[1.7] mb-6 max-w-2xl" style={{ color: BRAND.inkDim }}>
-        Paste a child's answer. See exactly what the engine detects — markers, parameter levels,
-        dimension scores. Nothing here is saved. Only visible in dev mode.
+        All three fields are required. The engine uses the question and scene keywords
+        to check relevance. An off-topic answer must score 0.
       </p>
 
       <div className="rounded-2xl p-5 mb-5" style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}>
         <div className="text-[12px] font-semibold mb-2" style={{ color: BRAND.inkDim }}>
-          Question (optional)
+          Question
         </div>
         <input
           value={question}
@@ -100,12 +103,12 @@ export default function DevAnalysis() {
         />
 
         <div className="text-[12px] font-semibold mb-2" style={{ color: BRAND.inkDim }}>
-          Scene keywords (comma-separated, optional)
+          Scene keywords (comma-separated)
         </div>
         <input
           value={scene}
           onChange={(e) => setScene(e.target.value)}
-          placeholder="e.g. metal, spoon, chai, colder"
+          placeholder="e.g. metal, spoon, chai, colder, heat, plastic"
           className="w-full rounded-xl px-4 py-3 text-[14px] mb-3 outline-none"
           style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${BRAND.inkGhost}`, color: BRAND.ink }}
         />
@@ -122,32 +125,19 @@ export default function DevAnalysis() {
           style={{ background: 'rgba(0,0,0,0.25)', border: `1px solid ${BRAND.inkGhost}`, color: BRAND.ink }}
         />
 
+        {err && (
+          <div className="mt-3 rounded-xl px-3 py-2 text-[12.5px]" style={{ background: 'rgba(248,113,113,0.12)', color: BRAND.red }}>
+            {err}
+          </div>
+        )}
+
         <button
-          onClick={() => run()}
-          disabled={answer.trim().length < 1}
-          className="mt-4 rounded-full px-6 py-3 text-[13px] font-bold transition disabled:opacity-30"
+          onClick={run}
+          className="mt-4 rounded-full px-6 py-3 text-[13px] font-bold transition"
           style={{ background: BRAND.ink, color: BRAND.surface }}
         >
           Analyze →
         </button>
-      </div>
-
-      <div className="rounded-2xl p-5 mb-5" style={{ background: BRAND.surface2, border: `1px solid ${BRAND.inkGhost}` }}>
-        <div className="text-[12px] font-semibold mb-3" style={{ color: BRAND.inkDim }}>
-          Or try a sample answer
-        </div>
-        <div className="grid gap-2">
-          {SAMPLE_ANSWERS.map((s, i) => (
-            <button
-              key={i}
-              onClick={() => { setAnswer(s); run(s); }}
-              className="text-left rounded-xl px-4 py-3 text-[13px] leading-[1.5] transition hover:bg-white/[0.04]"
-              style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${BRAND.inkGhost}`, color: BRAND.inkDim }}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
       </div>
 
       {result && (
