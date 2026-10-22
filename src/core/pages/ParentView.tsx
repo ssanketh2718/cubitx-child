@@ -1,7 +1,7 @@
 // src/core/pages/ParentView.tsx
 import { useState } from 'react';
 import CognitiveDashboard from '../../components/CognitiveDashboard';
-import { supabase } from '../lib/supabase'; // Adjust path if needed
+import { supabase } from '../lib/supabase';
 
 export default function ParentView() {
   const [isResetting, setIsResetting] = useState(false);
@@ -13,13 +13,17 @@ export default function ParentView() {
     const devUserId = '857393a7-66f1-4aa7-be30-5885f17cecd1';
 
     try {
-      // Delete from scores first (because of Foreign Key constraint)
+      // 1. Delete from Supabase Database
       await supabase.from('scores').delete().eq('student_id', devUserId);
-      // Then delete from attempts
       await supabase.from('attempts').delete().eq('student_id', devUserId);
       
-      // Refresh the page to show the empty state
-      window.location.reload();
+      // 2. Clear all local browser storage (This fixes the green checkmarks!)
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // 3. Force a hard refresh to the home page
+      window.location.href = '/home';
+      
     } catch (error) {
       console.error("Failed to reset:", error);
       alert("Failed to reset data. Check console.");
@@ -36,40 +40,26 @@ export default function ParentView() {
           <p className="text-gray-400 text-sm mt-1">Track habits and cognitive growth.</p>
         </div>
 
-        {/* ========================================= */}
-        {/* WEEKLY HABITS UI                          */}
-        {/* ========================================= */}
+        {/* WEEKLY HABITS UI */}
         <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl space-y-5">
           <h2 className="text-xl font-bold text-white">Weekly Habits</h2>
           
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[#0f1a38] p-4 rounded-2xl border border-[#1e2e5c] text-center">
               <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Streak</p>
-              <p className="text-2xl font-bold text-[#fbbf24]">🔥 4 Days</p>
+              <p className="text-2xl font-bold text-[#fbbf24]">🔥 0 Days</p>
             </div>
             <div className="bg-[#0f1a38] p-4 rounded-2xl border border-[#1e2e5c] text-center">
               <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Missions</p>
-              <p className="text-2xl font-bold text-[#5b7fff]">3 Done</p>
+              <p className="text-2xl font-bold text-[#5b7fff]">0 Done</p>
             </div>
-          </div>
-
-          <div className="bg-[#0f1a38] p-4 rounded-2xl border border-[#1e2e5c] flex justify-between items-center">
-             <div>
-               <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Time Spent</p>
-               <p className="text-lg font-bold text-white">45 mins</p>
-             </div>
-             <div className="text-3xl">⏱️</div>
           </div>
         </div>
 
-        {/* ========================================= */}
-        {/* THE NEW COGNITIVE DASHBOARD               */}
-        {/* ========================================= */}
+        {/* THE NEW COGNITIVE DASHBOARD */}
         <CognitiveDashboard />
 
-        {/* ========================================= */}
-        {/* DEV RESET BUTTON                          */}
-        {/* ========================================= */}
+        {/* DEV RESET BUTTON */}
         <div className="pt-8 pb-4 text-center">
           <button 
             onClick={resetData}
@@ -78,7 +68,7 @@ export default function ParentView() {
           >
             {isResetting ? "Deleting Data..." : "Dev Only: Reset All Data"}
           </button>
-          <p className="text-xs text-gray-500 mt-2">This will delete all attempts and scores for your test user.</p>
+          <p className="text-xs text-gray-500 mt-2">Wipes database and local browser cache.</p>
         </div>
 
       </div>
