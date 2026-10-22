@@ -1,7 +1,6 @@
 // src/components/CognitiveDashboard.tsx
 import { useEffect, useState } from 'react';
-// ✅ FIXED PATH: Going up one folder to src, then into core/lib
-import { supabase } from '../core/lib/supabase'; 
+import { supabase } from '../core/lib/supabase'; // Adjust if your supabase.ts is elsewhere
 
 interface Score {
   id: string;
@@ -20,6 +19,7 @@ export default function CognitiveDashboard() {
   useEffect(() => {
     const fetchCognitiveScores = async () => {
       try {
+        // We use your test user ID for now. In production, use the logged-in user's ID.
         const devUserId = '857393a7-66f1-4aa7-be30-5885f17cecd1';
         
         const { data, error } = await supabase
@@ -50,7 +50,7 @@ export default function CognitiveDashboard() {
   }
 
   return (
-    <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl w-full space-y-6 mt-6">
+    <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl w-full space-y-6">
       
       <div className="flex justify-between items-end border-b border-[#1e2e5c] pb-4">
         <div>
