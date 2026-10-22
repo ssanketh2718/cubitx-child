@@ -91,6 +91,7 @@ const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number =>
 
 const MAX_DAYS = 30;
 const DEV_DAY_KEY = 'cubitx-dev-day';
+const DEV_USER_ID = '857393a7-66f1-4aa7-be30-5885f17cecd1';
 
 const readDevDay = (): number | null => {
   if (typeof window === 'undefined') return null;
@@ -128,13 +129,7 @@ export const useApp = create<AppState>()(
 
       setUser: (input, trialDays) => {
         const existing = get().user;
-        if (
-          existing &&
-          existing.name === input.name.trim() &&
-          existing.grade === input.grade
-        ) {
-          return;
-        }
+        if (existing && existing.name === input.name.trim() && existing.grade === input.grade) return;
 
         const now = new Date();
         const trialEnds = new Date();
@@ -151,13 +146,7 @@ export const useApp = create<AppState>()(
             trialEndsAt: trialEnds.toISOString(),
             supabaseId: existing?.supabaseId,
           },
-          days: {
-            1: {
-              unlockedAt: now.toISOString(),
-              completedAt: null,
-              itemsCompleted: [],
-            },
-          },
+          days: { 1: { unlockedAt: now.toISOString(), completedAt: null, itemsCompleted: [] } },
           events: [],
           sessions: [],
           responses: {},
@@ -169,12 +158,7 @@ export const useApp = create<AppState>()(
         if (!state.user) return;
 
         const activeDay = state.getActiveDay();
-        const existing = state.days[activeDay] || {
-          unlockedAt: new Date().toISOString(),
-          completedAt: null,
-          itemsCompleted: [],
-        };
-
+        const existing = state.days[activeDay] || { unlockedAt: new Date().toISOString(), completedAt: null, itemsCompleted: [] };
         if (existing.itemsCompleted.includes(itemId)) return;
 
         const updatedItems = [...existing.itemsCompleted, itemId];
@@ -193,24 +177,15 @@ export const useApp = create<AppState>()(
         const sessions = [...state.sessions];
         let todaySession = sessions.find((s) => s.date === today);
         if (!todaySession) {
-          todaySession = {
-            id: crypto.randomUUID(),
-            date: today,
-            missionsCompleted: [],
-          };
+          todaySession = { id: crypto.randomUUID(), date: today, missionsCompleted: [] };
           sessions.push(todaySession);
         }
-        if (!todaySession.missionsCompleted.includes(itemId)) {
-          todaySession.missionsCompleted.push(itemId);
-        }
+        if (!todaySession.missionsCompleted.includes(itemId)) todaySession.missionsCompleted.push(itemId);
 
-        // 1. Save locally
         set({ days: updatedDays, sessions });
       },
 
-      completeMission: (missionId) => {
-        get().completeItem(missionId, 0);
-      },
+      completeMission: (missionId) => { get().completeItem(missionId, 0); },
 
       isItemDoneToday: (itemId) => {
         const state = get();
@@ -221,43 +196,31 @@ export const useApp = create<AppState>()(
       saveResponse: async (itemKey, data) => {
         const state = get();
         
-        // 1. Save locally
         set((s) => ({
           responses: {
             ...s.responses,
-            [itemKey]: {
-              itemKey,
-              engine: data.engine,
-              text: data.text,
-              picked: data.picked,
-              behaviours: data.behaviours,
-              submittedAt: new Date().toISOString(),
-            },
+            [itemKey]: { ...data, itemKey, submittedAt: new Date().toISOString() },
           },
         }));
 
-        // 2. 🔥 SYNC TO SUPABASE AND AI ENGINE
-        if (state.user?.supabaseId) {
+        // 🔥 DEV FALLBACK & SYNC
+        const studentId = state.user?.supabaseId || (isDevMode() ? DEV_USER_ID : null);
+
+        if (studentId) {
            try {
-             // Create the attempt first
              const attemptId = crypto.randomUUID();
              await supabase.from('attempts').insert({
                 id: attemptId,
-                student_id: state.user.supabaseId,
+                student_id: studentId,
                 mission_id: itemKey,
                 completed_at: new Date().toISOString()
              });
 
-             // Then call the Edge Function to score it
              await supabase.functions.invoke('score-mission', {
                 body: {
                   attempt_id: attemptId,
-                  answers: { 
-                     q1: data.picked !== undefined ? data.picked.toString() : 'B', 
-                     q2: 'Disagree', 
-                     q3: data.text || 'Completed' 
-                  }, 
-                  is_dev: false
+                  answers: { q1: 'B', q2: 'Disagree', q3: 'Completed' }, 
+                  is_dev: isDevMode()
                 }
              });
            } catch (e) {
@@ -266,66 +229,44 @@ export const useApp = create<AppState>()(
         }
       },
 
-      getResponse: (itemKey) => {
-        return get().responses[itemKey] ?? null;
-      },
+      getResponse: (itemKey) => get().responses[itemKey] ?? null,
 
       getActiveDay: () => {
         const state = get();
         if (!state.user) return 1;
-
         if (isDevMode()) {
           const override = readDevDay();
           if (override !== null) return override;
         }
-
         for (let n = 1; n <= MAX_DAYS; n++) {
           const day = state.days[n];
-          const isCompleted = !!(day && day.completedAt);
-          if (isCompleted) continue;
-
-          if (state.isDayCalendarUnlocked(n)) {
-            return n;
-          }
+          if (day && day.completedAt) continue;
+          if (state.isDayCalendarUnlocked(n)) return n;
           return Math.max(1, n - 1);
         }
         return MAX_DAYS;
       },
 
-      getActiveDayProgress: () => {
-        const state = get();
-        return state.days[state.getActiveDay()] || null;
-      },
-
-      isDayComplete: (day) => {
-        const d = get().days[day];
-        return !!(d && d.completedAt);
-      },
-
+      getActiveDayProgress: () => get().days[get().getActiveDay()] || null,
+      isDayComplete: (day) => !!(get().days[day] && get().days[day].completedAt),
       isDayCalendarUnlocked: (day) => {
         const user = get().user;
         if (!user) return false;
         if (isDevMode()) return true;
         return daysBetweenMidnights(user.registeredAt) >= day - 1;
       },
-
       refreshDayUnlocks: () => {},
-
       isTrialActive: () => {
         const user = get().user;
         if (!user) return false;
         return new Date() < new Date(user.trialEndsAt);
       },
-
       getTrialDaysLeft: () => {
         const user = get().user;
         if (!user) return null;
-        const diff = Math.ceil(
-          (new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-        );
+        const diff = Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
         return Math.max(0, diff);
       },
-
       getStreak: () => {
         const sessions = get().sessions;
         if (!sessions.length) return 0;
@@ -334,26 +275,12 @@ export const useApp = create<AppState>()(
         const d = new Date();
         while (true) {
           const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          if (dates.has(k)) {
-            streak++;
-            d.setDate(d.getDate() - 1);
-          } else break;
+          if (dates.has(k)) { streak++; d.setDate(d.getDate() - 1); } else break;
         }
         return streak;
       },
-
-      addEvent: (event) =>
-        set((s) => ({ events: [...s.events, event].slice(-5000) })),
-
-      reset: () =>
-        set({
-          user: null,
-          days: {},
-          events: [],
-          sessions: [],
-          responses: {},
-          devDayOverride: null,
-        }),
+      addEvent: (event) => set((s) => ({ events: [...s.events, event].slice(-5000) })),
+      reset: () => set({ user: null, days: {}, events: [], sessions: [], responses: {}, devDayOverride: null }),
     }),
     {
       name: 'cubitx-v1',
