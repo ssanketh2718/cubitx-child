@@ -1,16 +1,16 @@
 // src/components/MissionRunner.tsx
 import { useState, useEffect, useRef } from 'react';
 import type { Mission } from '../types/mission';
-// ✅ FIXED PATH: Going up to components, then into core/lib
 import { supabase } from '../core/lib/supabase'; 
 
 interface MissionRunnerProps {
   mission: Mission;
   attemptId: string;
   onComplete: (result: any) => void;
+  isDev?: boolean; // <-- ADDED THIS
 }
 
-export default function MissionRunner({ mission, attemptId, onComplete }: MissionRunnerProps) {
+export default function MissionRunner({ mission, attemptId, onComplete, isDev = false }: MissionRunnerProps) {
   const [phase, setPhase] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   
@@ -50,7 +50,8 @@ export default function MissionRunner({ mission, attemptId, onComplete }: Missio
             q1: answer1,
             q2: answer2,
             q3: finalAnswer
-          }
+          },
+          is_dev: isDev // <-- ADDED THIS
         }
       });
 

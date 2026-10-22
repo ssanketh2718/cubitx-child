@@ -1,85 +1,111 @@
+// src/core/pages/DevAnalysis.tsx
 import { useState } from 'react';
-import { supabase } from '../lib/supabase'; 
+import MissionRunner from '../../components/MissionRunner';
+import { cryptoScamMission } from '../../data/missions';
+import { supabase } from '../lib/supabase';
 
 export default function DevAnalysis() {
-  const [question, setQuestion] = useState('What describes you as a person?');
-  const [keywords, setKeywords] = useState('kind, helpful, beautiful');
-  const [answer, setAnswer] = useState('I am kind hearted. Helps other people a lot.');
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [gameState, setGameState] = useState<'lobby' | 'loading' | 'playing' | 'results'>('lobby');
+  const [attemptId, setAttemptId] = useState<string | null>(null);
+  const [resultData, setResultData] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleAnalyze = async () => {
-    if (!keywords) return alert("Enter at least one scene keyword");
-    setLoading(true);
-    setResult(null);
-
+  const startMission = async () => {
+    setGameState('loading');
+    setErrorMsg('');
+    
     try {
-      const { data, error } = await supabase.functions.invoke('score-mission', {
-        body: {
-          attempt_id: 'test-attempt-uuid-1234',
-          answers: { text: answer },
-          mission_context: { question, keywords }
-        }
-      });
+      const { data: { user } } = await supabase.auth.getUser();
+      const studentId = user?.id || '857393a7-66f1-4aa7-be30-5885f17cecd1'; 
 
-      if (error) throw error;
-      setResult(data);
+      const { data: attemptData, error: attemptError } = await supabase
+        .from('attempts')
+        .insert({ student_id: studentId })
+        .select('id')
+        .single();
+
+      if (attemptError) throw attemptError;
+
+      setAttemptId(attemptData.id);
+      setGameState('playing');
+
     } catch (err: any) {
       console.error(err);
-      setResult({ 
-        status: 'pending_review', 
-        message: 'Feedback coming soon. System encountered an error.',
-        scores: [] 
-      });
-    } finally {
-      setLoading(false);
+      setErrorMsg(err.message || "Failed to start mission.");
+      setGameState('lobby');
     }
   };
 
+  const handleMissionComplete = (result: any) => {
+    setResultData(result);
+    setGameState('results');
+  };
+
   return (
-    <div className="min-h-screen bg-[#05091a] text-white p-8 font-sans">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <h1 className="text-3xl font-bold text-blue-400">CubitX v8.0 Cognitive Engine</h1>
-        
-        <div className="bg-[#0a1228] p-6 rounded-lg border border-[#16244a] space-y-4">
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Question</label>
-            <input value={question} onChange={(e) => setQuestion(e.target.value)} className="w-full bg-[#0f1a38] p-3 rounded border border-[#1e2e5c] outline-none focus:border-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Scene keywords</label>
-            <input value={keywords} onChange={(e) => setKeywords(e.target.value)} className="w-full bg-[#0f1a38] p-3 rounded border border-[#1e2e5c] outline-none focus:border-blue-500" />
-          </div>
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Child's answer</label>
-            <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} className="w-full bg-[#0f1a38] p-3 rounded border border-[#1e2e5c] outline-none focus:border-blue-500 h-32" />
-          </div>
-          <button onClick={handleAnalyze} disabled={loading} className="bg-white text-black px-8 py-3 rounded-full font-bold hover:bg-gray-200 transition-colors disabled:opacity-50">
-            {loading ? 'Analyzing with Gemini...' : 'Analyze →'}
+    <div className="min-h-screen bg-[#05091a] text-white flex flex-col items-center justify-center p-4 font-sans">
+      
+      {gameState === 'lobby' && (
+        <div className="max-w-md w-full bg-[#0a1228] border border-[#16244a] p-8 rounded-3xl text-center space-y-6 shadow-2xl">
+          <div className="text-6xl">💸</div>
+          <h1 className="text-3xl font-bold">Dev Analysis Room</h1>
+          <p className="text-gray-400 text-sm">Secure AI Mission Test</p>
+          
+          {errorMsg && <p className="text-red-400 text-sm bg-red-900/20 p-2 rounded">{errorMsg}</p>}
+          
+          <button 
+            onClick={startMission}
+            className="w-full bg-[#5b7fff] text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-colors"
+          >
+            Start Crypto Scam Mission →
           </button>
         </div>
+      )}
 
-        {result && (
-          <div className="bg-[#0a1228] p-6 rounded-lg border border-[#16244a]">
-            <h2 className="text-sm text-blue-300 font-bold tracking-wider mb-4">COMPOSITE SCORE</h2>
-            {result.status === 'pending_review' ? (
-               <p className="text-yellow-400">{result.message}</p>
-            ) : (
-              <div className="space-y-4">
-                <div className="text-5xl font-bold text-white">
-                  {/* Math: Assuming 1 skill is tested, score is 0-4. Max = 4. 4*25 = 100 */}
-                  {result.scores?.[0]?.score !== undefined ? `${result.scores[0].score * 25} / 100` : 'Pending'}
+      {gameState === 'loading' && (
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-[#5b7fff] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-gray-400 text-sm animate-pulse">Connecting securely...</p>
+        </div>
+      )}
+
+      {gameState === 'playing' && attemptId && (
+        <MissionRunner 
+          mission={cryptoScamMission} 
+          attemptId={attemptId} 
+          onComplete={handleMissionComplete} 
+          isDev={true} // <-- ADDED THIS
+        />
+      )}
+
+      {gameState === 'results' && resultData && (
+        <div className="max-w-md w-full bg-[#0a1228] border border-[#16244a] p-8 rounded-3xl text-center space-y-6 shadow-2xl">
+          <div className="text-6xl">🧠</div>
+          <h1 className="text-2xl font-bold text-[#4ade80]">Mission Complete!</h1>
+          
+          {resultData.status === 'pending_review' ? (
+            <p className="text-yellow-400 bg-yellow-900/20 p-4 rounded-xl">{resultData.message}</p>
+          ) : (
+            <div className="space-y-4 text-left">
+              <p className="text-sm text-gray-400 text-center">The AI analyzed your choices:</p>
+              {resultData.scores?.map((score: any, index: number) => (
+                <div key={index} className="bg-[#0f1a38] p-4 rounded-xl border border-[#1e2e5c]">
+                  <p className="text-[#5b7fff] font-bold text-sm uppercase">{score.skill.replace('_', ' ')}</p>
+                  <p className="text-xl font-bold text-white mb-2">Score: {score.score} / 4</p>
+                  <p className="text-gray-400 text-xs italic">"{score.reason}"</p>
                 </div>
-                {/* Show the AI's evidence quote */}
-                <div className="bg-[#0f1a38] p-4 rounded border border-[#1e2e5c]">
-                    <p className="text-sm text-gray-400">AI Evidence Quote:</p>
-                    <p className="text-white italic">"{result.scores?.[0]?.evidence_quote}"</p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              ))}
+            </div>
+          )}
+
+          <button 
+            onClick={() => { setGameState('lobby'); setAttemptId(null); setResultData(null); }}
+            className="w-full bg-transparent border-2 border-[#5b7fff] text-[#5b7fff] font-bold py-3 rounded-xl hover:bg-[#1e2e5c] transition-colors mt-4"
+          >
+            Back to Dev Lobby
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }
