@@ -49,7 +49,7 @@ interface AppState {
   setSupabaseId: (id: string) => void;
 
   completeItem: (itemId: string, requiredCount: number) => Promise<void>;
-  completeMission: (missionId: string) => void;
+  completeMission: (missionId: string, requiredCount?: number) => void;
   isItemDoneToday: (itemId: string) => boolean;
 
   saveResponse: (
@@ -184,7 +184,10 @@ export const useApp = create<AppState>()(
         set({ days: updatedDays, sessions });
       },
 
-      completeMission: (missionId) => { get().completeItem(missionId, 0); },
+      // 🔥 FIXED: Now accepts requiredCount
+      completeMission: (missionId, requiredCount = 1) => { 
+        get().completeItem(missionId, requiredCount); 
+      },
 
       isItemDoneToday: (itemId) => {
         const state = get();
@@ -204,8 +207,11 @@ export const useApp = create<AppState>()(
 
         if (state.user?.supabaseId) {
            try {
-             const attemptId = crypto.randomUUID();
-             
+             // 🔥 FIXED: Safe UUID fallback for older browsers
+             const attemptId = typeof crypto?.randomUUID === 'function'
+               ? crypto.randomUUID()
+               : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
              const { error: attemptError } = await supabase.from('attempts').insert({
                 id: attemptId,
                 student_id: state.user.supabaseId,
@@ -214,15 +220,16 @@ export const useApp = create<AppState>()(
              });
              if (attemptError) throw attemptError;
 
+             // 🔥 FIXED: Sent actual data instead of hardcoded 'Disagree'
              await supabase.functions.invoke('score-mission', {
                 body: {
                   attempt_id: attemptId,
                   answers: { 
-                     q1: data.picked !== undefined ? data.picked.toString() : 'B', 
-                     q2: 'Disagree', 
-                     q3: data.text || 'Completed' 
+                     picked: data.picked !== undefined ? data.picked : null,
+                     text: data.text || '',
+                     behaviours: data.behaviours || {}
                   }, 
-                  is_dev: false 
+                  is_dev: false
                 }
              });
            } catch (e) {
@@ -243,8 +250,11 @@ export const useApp = create<AppState>()(
         for (let n = 1; n <= MAX_DAYS; n++) {
           const day = state.days[n];
           if (day && day.completedAt) continue;
+          
           if (state.isDayCalendarUnlocked(n)) return n;
-          return Math.max(1, n - 1);
+          
+          // 🔥 FIXED: If locked, return n (the locked day) instead of n-1
+          return n;
         }
         return MAX_DAYS;
       },

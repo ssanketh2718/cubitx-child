@@ -1,15 +1,22 @@
-// src/core/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Debugging: Check your browser console to see what is printing
-console.log("URL Loaded:", supabaseUrl)
-console.log("Key Loaded:", supabaseKey ? "Yes (Hidden for security)" : "No")
-
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase env vars. Check .env.local")
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error(
+    "Missing Supabase Environment Variables! Check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env or Vercel settings."
+  );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true, // Required for processing email magic links
+    },
+  }
+);

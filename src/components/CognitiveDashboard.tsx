@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '../core/lib/supabase'; 
+import { supabase } from '../core/lib/supabase';
+import { useApp } from '../core/store';
 
 interface Score {
   id: string;
@@ -10,40 +11,52 @@ interface Score {
   model_version: string;
 }
 
-export default function CognitiveDashboard() {
+export default function CognitiveDashboard({ targetStudentId }: { targetStudentId?: string }) {
   const [scores, setScores] = useState<Score[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const storeSupabaseId = useApp((s) => s.user?.supabaseId);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchCognitiveScores = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          setError("Please log in to view cognitive data.");
-          setLoading(false);
+        let studentId = targetStudentId || storeSupabaseId;
+
+        if (!studentId) {
+          const { data: { user } } = await supabase.auth.getUser();
+          studentId = user?.id;
+        }
+
+        if (!studentId) {
+          if (isMounted) {
+            setError("No student profile linked. Complete a mission first.");
+            setLoading(false);
+          }
           return;
         }
-        
+
         const { data, error } = await supabase
           .from('scores')
           .select('*')
-          .eq('student_id', user.id) 
+          .eq('student_id', studentId)
           .order('created_at', { ascending: false })
-          .limit(10); 
+          .limit(10);
 
         if (error) throw error;
-        setScores(data || []);
+        if (isMounted) setScores(data || []);
       } catch (err: any) {
-        setError(err.message);
+        if (isMounted) setError(err.message);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchCognitiveScores();
-  }, []);
+
+    return () => { isMounted = false; };
+  }, [targetStudentId, storeSupabaseId]);
 
   if (loading) {
     return (
@@ -55,12 +68,9 @@ export default function CognitiveDashboard() {
 
   return (
     <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl w-full space-y-6">
-      
       <div className="flex justify-between items-end border-b border-[#1e2e5c] pb-4">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            🧠 Cognitive Profile
-          </h2>
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">🧠 Cognitive Profile</h2>
           <p className="text-gray-400 text-sm mt-1">Deep analysis of critical thinking skills</p>
         </div>
         <div className="text-right">
@@ -78,7 +88,6 @@ export default function CognitiveDashboard() {
       <div className="space-y-4">
         {scores.map((score) => (
           <div key={score.id} className="bg-[#0f1a38] border border-[#1e2e5c] p-4 rounded-2xl flex flex-col gap-3">
-            
             <div className="flex justify-between items-center">
               <h3 className="text-[#5b7fff] font-bold text-sm uppercase tracking-wider">
                 {score.skill.replace(/_/g, ' ')}
@@ -91,17 +100,14 @@ export default function CognitiveDashboard() {
                 {score.score} / 4
               </span>
             </div>
-
             <div className="bg-[#05091a] p-3 rounded-xl border-l-2 border-[#5b7fff]">
               <p className="text-xs text-gray-500 font-bold mb-1 uppercase">AI Evidence</p>
               <p className="text-gray-300 text-sm italic">"{score.evidence_quote}"</p>
             </div>
-
             <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>Engine: {score.model_version}</span>
               <span>{new Date(score.created_at).toLocaleDateString()}</span>
             </div>
-
           </div>
         ))}
       </div>

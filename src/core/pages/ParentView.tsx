@@ -28,7 +28,10 @@ export default function ParentView() {
       await supabase.from('scores').delete().eq('student_id', user.id);
       await supabase.from('attempts').delete().eq('student_id', user.id);
       
+      // 🔥 FIXED: Zustand persist race condition
+      useApp.persist.clearStorage();
       useApp.getState().reset();
+      
       localStorage.clear();
       sessionStorage.clear();
       
