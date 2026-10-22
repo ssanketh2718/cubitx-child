@@ -202,7 +202,6 @@ export const useApp = create<AppState>()(
           },
         }));
 
-        // 🔥 SECURE: Only sync if we have the real logged-in Supabase ID
         if (state.user?.supabaseId) {
            try {
              const attemptId = crypto.randomUUID();
@@ -223,7 +222,7 @@ export const useApp = create<AppState>()(
                      q2: 'Disagree', 
                      q3: data.text || 'Completed' 
                   }, 
-                  is_dev: false // Strictly false. No bypasses.
+                  is_dev: false 
                 }
              });
            } catch (e) {

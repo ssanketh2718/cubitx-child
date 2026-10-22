@@ -32,7 +32,7 @@ export default function ParentView() {
       localStorage.clear();
       sessionStorage.clear();
       
-      window.location.href = '/home';
+      window.location.replace('/'); 
       
     } catch (error: any) {
       console.error("Failed to reset:", error);

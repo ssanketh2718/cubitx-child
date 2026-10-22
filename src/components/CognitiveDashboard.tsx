@@ -18,7 +18,6 @@ export default function CognitiveDashboard() {
   useEffect(() => {
     const fetchCognitiveScores = async () => {
       try {
-        // 🔥 SECURE: Only fetch for the real logged-in user
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {

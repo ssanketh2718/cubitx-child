@@ -79,12 +79,20 @@ export default function App() {
     );
   }
 
+  // 🔥 FIXED: Infinite Loop Protection for Onboarding
   if (kids.length === 0) {
-    return (
-      <>
+    if (location.pathname === '/onboard' || location.pathname === '/consent') {
+      return (
         <Routes>
           <Route path="/consent" element={<Consent />} />
           <Route path="/onboard" element={<AddChild />} />
+        </Routes>
+      );
+    }
+
+    return (
+      <>
+        <Routes>
           <Route path="*" element={<Navigate to="/onboard" replace />} />
         </Routes>
         <DevBar />
