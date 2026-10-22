@@ -4,7 +4,6 @@ import { supabase } from './lib/supabase';
 import { useApp } from './store';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useAuth } from './auth/AuthContext';
-import { useChild } from './auth/ChildContext';
 import { isDevMode } from './auth/devMode';
 import DevBar from './components/DevBar';
 import TopBar from './components/TopBar';
@@ -23,32 +22,34 @@ import TeacherDashboard from './pages/TeacherDashboard';
 import DevAnalysis from './pages/DevAnalysis';
 
 export default function App() {
-  const { session, children: kids, loading } = useAuth();
-  const { activeChild } = useChild();
+  const { session, loading: authLoading } = useAuth();
   const location = useLocation();
   const dev = isDevMode();
+  
+  // Use the Zustand user instead of 'kids' to prevent undefined crashes
+  const user = useApp((s) => s.user); 
   const setSupabaseId = useApp((s) => s.setSupabaseId);
 
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Intercept URL hash authentication errors
+    // 1. Check for URL hash errors
     if (window.location.hash.includes('error=')) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const desc = hashParams.get('error_description') || 'Authentication link is invalid or expired.';
-      setAuthError(desc.replace(/\+/g, ' '));
+      const params = new URLSearchParams(window.location.hash.substring(1));
+      const description = params.get('error_description') || 'Magic link is invalid or expired.';
+      setAuthError(description.replace(/\+/g, ' '));
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    // 2. Hydrate session safely
+    // 2. Establish auth session
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (session?.user) setSupabaseId(session.user.id);
       } catch (err: any) {
-        console.warn("Session check error:", err.message);
+        console.warn("Auth initialization warning:", err.message);
       } finally {
         setAuthInitialized(true);
       }
@@ -56,8 +57,13 @@ export default function App() {
 
     initAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) setSupabaseId(session.user.id);
+    // 3. Only reset on explicit SIGNED_OUT to prevent loop crashes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT') {
+        useApp.getState().reset();
+      } else if (session?.user) {
+        setSupabaseId(session.user.id);
+      }
       setAuthInitialized(true);
     });
 
@@ -66,17 +72,17 @@ export default function App() {
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-6">
         <div className="bg-[#0f1a38] border border-amber-500/30 p-6 rounded-2xl max-w-sm text-center space-y-4">
-          <p className="text-amber-400 font-bold text-lg">Login Notice</p>
+          <p className="text-amber-400 font-bold">Authentication Error</p>
           <p className="text-sm text-gray-300">{authError}</p>
-          <a href="/signin" className="inline-block bg-[#5b7fff] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#4a6ee0] transition-colors">Back to Login</a>
+          <a href="/signin" className="inline-block bg-[#5b7fff] text-white px-5 py-2.5 rounded-xl font-semibold text-sm">Request New Link</a>
         </div>
       </div>
     );
   }
 
-  if (loading || !authInitialized) {
+  if (authLoading || !authInitialized) {
     return (
       <div className="min-h-screen bg-[#05091a] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-[#5b7fff] border-t-transparent rounded-full animate-spin"></div>
@@ -84,7 +90,7 @@ export default function App() {
     );
   }
 
-  // Dev routes — bypass auth
+  // Dev routes
   if (location.pathname.startsWith('/dev/')) {
     return (
       <ErrorBoundary>
@@ -96,7 +102,7 @@ export default function App() {
     );
   }
 
-  // Teacher route — bypasses all parent flow
+  // Teacher route
   if (location.pathname.startsWith('/teacher')) {
     return (
       <ErrorBoundary>
@@ -137,20 +143,8 @@ export default function App() {
     );
   }
 
-  // 🔥 FIXED: Infinite Loop Protection
-  if (kids.length === 0) {
-    if (isOnboard || location.pathname === '/consent') {
-      return (
-        <ErrorBoundary>
-          <Routes>
-            <Route path="/consent" element={<Consent />} />
-            <Route path="/onboard" element={<AddChild />} />
-            <Route path="/add-child" element={<AddChild />} />
-          </Routes>
-          <DevBar />
-        </ErrorBoundary>
-      );
-    }
+  // Infinite Loop Protection using 'user' instead of 'kids'
+  if (!user && !isOnboard) {
     return (
       <ErrorBoundary>
         <Routes>
@@ -161,12 +155,13 @@ export default function App() {
     );
   }
 
-  if (kids.length > 1 && !activeChild) {
+  if (isOnboard) {
     return (
       <ErrorBoundary>
         <Routes>
-          <Route path="/play-who" element={<WhoIsPlaying />} />
-          <Route path="*" element={<Navigate to="/play-who" replace />} />
+          <Route path="/onboard" element={<AddChild />} />
+          <Route path="/add-child" element={<AddChild />} />
+          <Route path="*" element={<Navigate to="/onboard" replace />} />
         </Routes>
         <DevBar />
       </ErrorBoundary>
@@ -176,7 +171,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen flex flex-col relative z-10">
-        {!isImmersive && !isOnboard && <TopBar />}
+        {!isImmersive && <TopBar />}
         <main className={`flex-1 ${isImmersive ? 'px-4 pt-5 pb-5' : 'px-4 pt-5 pb-24'}`}>
           <Routes>
             <Route path="/" element={<Navigate to="/home" replace />} />
