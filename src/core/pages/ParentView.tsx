@@ -1,27 +1,33 @@
-// src/core/pages/ParentView.tsx
 import { useState } from 'react';
 import CognitiveDashboard from '../../components/CognitiveDashboard';
-import { supabase } from '../lib/supabase';
+import { useApp } from '../store';
+import { supabase } from '../lib/supabase'; 
 
 export default function ParentView() {
   const [isResetting, setIsResetting] = useState(false);
+  
+  // 🔥 READ REAL DATA FROM STORE
+  const streak = useApp((s) => s.getStreak());
+  const days = useApp((s) => s.days);
+  
+  // Calculate total missions done across all days
+  const totalMissionsDone = Object.values(days).reduce((acc, day) => acc + day.itemsCompleted.length, 0);
 
   const resetData = async () => {
     if (!window.confirm("DEV ONLY: Are you sure you want to delete all solved missions and scores?")) return;
     
     setIsResetting(true);
-    const devUserId = '857393a7-66f1-4aa7-be30-5885f17cecd1';
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
 
     try {
-      // 1. Delete from Supabase Database
-      await supabase.from('scores').delete().eq('student_id', devUserId);
-      await supabase.from('attempts').delete().eq('student_id', devUserId);
+      if (userId) {
+        await supabase.from('scores').delete().eq('student_id', userId);
+        await supabase.from('attempts').delete().eq('student_id', userId);
+      }
       
-      // 2. Clear all local browser storage (This fixes the green checkmarks!)
       localStorage.clear();
       sessionStorage.clear();
-
-      // 3. Force a hard refresh to the home page
       window.location.href = '/home';
       
     } catch (error) {
@@ -40,18 +46,18 @@ export default function ParentView() {
           <p className="text-gray-400 text-sm mt-1">Track habits and cognitive growth.</p>
         </div>
 
-        {/* WEEKLY HABITS UI */}
+        {/* WEEKLY HABITS UI (Now Dynamic) */}
         <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl space-y-5">
           <h2 className="text-xl font-bold text-white">Weekly Habits</h2>
           
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[#0f1a38] p-4 rounded-2xl border border-[#1e2e5c] text-center">
               <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Streak</p>
-              <p className="text-2xl font-bold text-[#fbbf24]">🔥 0 Days</p>
+              <p className="text-2xl font-bold text-[#fbbf24]">🔥 {streak} Days</p>
             </div>
             <div className="bg-[#0f1a38] p-4 rounded-2xl border border-[#1e2e5c] text-center">
               <p className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-1">Missions</p>
-              <p className="text-2xl font-bold text-[#5b7fff]">0 Done</p>
+              <p className="text-2xl font-bold text-[#5b7fff]">{totalMissionsDone} Done</p>
             </div>
           </div>
         </div>
@@ -68,7 +74,6 @@ export default function ParentView() {
           >
             {isResetting ? "Deleting Data..." : "Dev Only: Reset All Data"}
           </button>
-          <p className="text-xs text-gray-500 mt-2">Wipes database and local browser cache.</p>
         </div>
 
       </div>

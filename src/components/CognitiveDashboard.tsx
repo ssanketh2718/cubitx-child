@@ -1,6 +1,5 @@
-// src/components/CognitiveDashboard.tsx
 import { useEffect, useState } from 'react';
-import { supabase } from '../core/lib/supabase'; // Adjust if your supabase.ts is elsewhere
+import { supabase } from '../core/lib/supabase'; 
 
 interface Score {
   id: string;
@@ -19,13 +18,19 @@ export default function CognitiveDashboard() {
   useEffect(() => {
     const fetchCognitiveScores = async () => {
       try {
-        // We use your test user ID for now. In production, use the logged-in user's ID.
-        const devUserId = '857393a7-66f1-4aa7-be30-5885f17cecd1';
+        // 🔥 FETCH THE REAL LOGGED IN USER
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          setError("Please log in to view cognitive data.");
+          setLoading(false);
+          return;
+        }
         
         const { data, error } = await supabase
           .from('scores')
           .select('*')
-          .eq('student_id', devUserId)
+          .eq('student_id', user.id) // 🔥 Use real ID
           .order('created_at', { ascending: false })
           .limit(10); 
 

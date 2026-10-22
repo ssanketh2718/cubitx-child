@@ -1,10 +1,9 @@
-
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, MissionEvent, Session, Tier } from './sdk/types';
 import { sdkTierForClass } from '../missions/tiers';
 import { isDevMode } from './auth/devMode';
-import { supabase } from './lib/supabase'; // Ensure this path is correct
+import { supabase } from './lib/supabase'; 
 
 export interface DayProgress {
   unlockedAt: string;
@@ -32,7 +31,7 @@ export interface SavedResponse {
 }
 
 type CubitXUser = User & {
-  supabaseId?: string; // Added for Auth Sync
+  supabaseId?: string; 
   registeredAt: string;
   trialEndsAt: string;
 };
@@ -207,19 +206,6 @@ export const useApp = create<AppState>()(
 
         // 1. Save locally
         set({ days: updatedDays, sessions });
-
-        // 2. Sync to Supabase
-        if (state.user.supabaseId) {
-          try {
-            await supabase.from('attempts').insert({
-              student_id: state.user.supabaseId,
-              mission_id: itemId,
-              completed_at: new Date().toISOString()
-            });
-          } catch (err) {
-            console.error("Failed to sync attempt to Supabase:", err);
-          }
-        }
       },
 
       completeMission: (missionId) => {
@@ -250,18 +236,32 @@ export const useApp = create<AppState>()(
           },
         }));
 
-        // 2. Sync to Supabase AI Engine
-        if (state.user?.supabaseId && (data.text || data.picked !== undefined)) {
+        // 2. 🔥 SYNC TO SUPABASE AND AI ENGINE
+        if (state.user?.supabaseId) {
            try {
+             // Create the attempt first
+             const attemptId = crypto.randomUUID();
+             await supabase.from('attempts').insert({
+                id: attemptId,
+                student_id: state.user.supabaseId,
+                mission_id: itemKey,
+                completed_at: new Date().toISOString()
+             });
+
+             // Then call the Edge Function to score it
              await supabase.functions.invoke('score-mission', {
                 body: {
-                  attempt_id: crypto.randomUUID(),
-                  answers: { q1: 'B', q2: 'Disagree', q3: data.text || 'Option selected' }, 
+                  attempt_id: attemptId,
+                  answers: { 
+                     q1: data.picked !== undefined ? data.picked.toString() : 'B', 
+                     q2: 'Disagree', 
+                     q3: data.text || 'Completed' 
+                  }, 
                   is_dev: false
                 }
              });
            } catch (e) {
-             console.error("AI Scoring failed to sync:", e);
+             console.error("Score sync failed:", e);
            }
         }
       },
