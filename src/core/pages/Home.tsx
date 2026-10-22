@@ -6,6 +6,7 @@ import { curriculumTierFrom } from '../../missions/tiers';
 import { isDevMode } from '../auth/devMode';
 import type { DayItem } from '../../missions/types';
 import { PAYMENT_LINK } from '../config';
+import { supabase } from '../lib/supabase'; // Ensure this path is correct
 
 function itemKey(tier: number, day: number, idx: number): string {
   return `t${tier}:d${day}:i${idx}`;
@@ -14,6 +15,7 @@ function itemKey(tier: number, day: number, idx: number): string {
 export default function Home() {
   const navigate = useNavigate();
   const user = useApp((s) => s.user);
+  const setSupabaseId = useApp((s) => s.setSupabaseId);
   const streak = useApp((s) => s.getStreak());
   const isItemDone = useApp((s) => s.isItemDoneToday);
   const isTrialActive = useApp((s) => s.isTrialActive);
@@ -24,9 +26,17 @@ export default function Home() {
   const devDayOverride = useApp((s) => s.devDayOverride);
   const setDevDayOverride = useApp((s) => s.setDevDayOverride);
 
+  // Sync Auth User ID to Zustand on load
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        setSupabaseId(authUser.id);
+      }
+    };
+    fetchUser();
     refreshDayUnlocks();
-  }, [refreshDayUnlocks]);
+  }, [refreshDayUnlocks, setSupabaseId]);
 
   if (!user) return null;
 
@@ -57,7 +67,6 @@ export default function Home() {
 
   return (
     <div className="max-w-2xl mx-auto px-5">
-      {/* Day progress strip */}
       <div
         className="mb-5 rounded-2xl p-4"
         style={{
@@ -321,8 +330,6 @@ export default function Home() {
     </div>
   );
 }
-
-/* ─── Item helpers ─────────────────────────── */
 
 function itemEmoji(item: DayItem): string {
   switch (item.engine) {

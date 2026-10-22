@@ -1,8 +1,10 @@
+
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User, MissionEvent, Session, Tier } from './sdk/types';
 import { sdkTierForClass } from '../missions/tiers';
 import { isDevMode } from './auth/devMode';
+import { supabase } from './lib/supabase'; // Ensure this path is correct
 
 export interface DayProgress {
   unlockedAt: string;
@@ -11,11 +13,9 @@ export interface DayProgress {
 }
 
 export interface SavedBehaviouralSignals {
-  // Math-specific
   testsBeforeGuess?: number;
   wentBackToTest?: boolean;
   secondsOnItem?: number;
-  // Cross-mission signals (for the analysis engine)
   timeToFirstTapMs?: number;
   backtrackCount?: number;
   changedAnswerCount?: number;
@@ -32,6 +32,7 @@ export interface SavedResponse {
 }
 
 type CubitXUser = User & {
+  supabaseId?: string; // Added for Auth Sync
   registeredAt: string;
   trialEndsAt: string;
 };
@@ -45,10 +46,10 @@ interface AppState {
 
   devDayOverride: number | null;
   setDevDayOverride: (day: number | null) => void;
-
   setUser: (user: { name: string; grade: number }, trialDays: number) => void;
+  setSupabaseId: (id: string) => void;
 
-  completeItem: (itemId: string, requiredCount: number) => void;
+  completeItem: (itemId: string, requiredCount: number) => Promise<void>;
   completeMission: (missionId: string) => void;
   isItemDoneToday: (itemId: string) => boolean;
 
@@ -60,7 +61,7 @@ interface AppState {
       picked?: number;
       behaviours?: SavedBehaviouralSignals;
     }
-  ) => void;
+  ) => Promise<void>;
   getResponse: (itemKey: string) => SavedResponse | null;
 
   getActiveDay: () => number;
@@ -121,6 +122,11 @@ export const useApp = create<AppState>()(
         set({ devDayOverride: day });
       },
 
+      setSupabaseId: (id) => {
+        const user = get().user;
+        if (user) set({ user: { ...user, supabaseId: id } });
+      },
+
       setUser: (input, trialDays) => {
         const existing = get().user;
         if (
@@ -134,7 +140,6 @@ export const useApp = create<AppState>()(
         const now = new Date();
         const trialEnds = new Date();
         trialEnds.setDate(trialEnds.getDate() + trialDays);
-
         const tier: Tier = sdkTierForClass(input.grade);
 
         set({
@@ -145,6 +150,7 @@ export const useApp = create<AppState>()(
             createdAt: now.toISOString(),
             registeredAt: now.toISOString(),
             trialEndsAt: trialEnds.toISOString(),
+            supabaseId: existing?.supabaseId,
           },
           days: {
             1: {
@@ -159,7 +165,7 @@ export const useApp = create<AppState>()(
         });
       },
 
-      completeItem: (itemId, requiredCount) => {
+      completeItem: async (itemId, requiredCount) => {
         const state = get();
         if (!state.user) return;
 
@@ -173,17 +179,14 @@ export const useApp = create<AppState>()(
         if (existing.itemsCompleted.includes(itemId)) return;
 
         const updatedItems = [...existing.itemsCompleted, itemId];
-        const dayJustCompleted =
-          requiredCount > 0 && updatedItems.length >= requiredCount;
+        const dayJustCompleted = requiredCount > 0 && updatedItems.length >= requiredCount;
 
         const updatedDays = {
           ...state.days,
           [activeDay]: {
             ...existing,
             itemsCompleted: updatedItems,
-            completedAt: dayJustCompleted
-              ? new Date().toISOString()
-              : existing.completedAt,
+            completedAt: dayJustCompleted ? new Date().toISOString() : existing.completedAt,
           },
         };
 
@@ -202,7 +205,21 @@ export const useApp = create<AppState>()(
           todaySession.missionsCompleted.push(itemId);
         }
 
+        // 1. Save locally
         set({ days: updatedDays, sessions });
+
+        // 2. Sync to Supabase
+        if (state.user.supabaseId) {
+          try {
+            await supabase.from('attempts').insert({
+              student_id: state.user.supabaseId,
+              mission_id: itemId,
+              completed_at: new Date().toISOString()
+            });
+          } catch (err) {
+            console.error("Failed to sync attempt to Supabase:", err);
+          }
+        }
       },
 
       completeMission: (missionId) => {
@@ -215,7 +232,10 @@ export const useApp = create<AppState>()(
         return active ? active.itemsCompleted.includes(itemId) : false;
       },
 
-      saveResponse: (itemKey, data) => {
+      saveResponse: async (itemKey, data) => {
+        const state = get();
+        
+        // 1. Save locally
         set((s) => ({
           responses: {
             ...s.responses,
@@ -229,6 +249,21 @@ export const useApp = create<AppState>()(
             },
           },
         }));
+
+        // 2. Sync to Supabase AI Engine
+        if (state.user?.supabaseId && (data.text || data.picked !== undefined)) {
+           try {
+             await supabase.functions.invoke('score-mission', {
+                body: {
+                  attempt_id: crypto.randomUUID(),
+                  answers: { q1: 'B', q2: 'Disagree', q3: data.text || 'Option selected' }, 
+                  is_dev: false
+                }
+             });
+           } catch (e) {
+             console.error("AI Scoring failed to sync:", e);
+           }
+        }
       },
 
       getResponse: (itemKey) => {
@@ -252,7 +287,6 @@ export const useApp = create<AppState>()(
           if (state.isDayCalendarUnlocked(n)) {
             return n;
           }
-
           return Math.max(1, n - 1);
         }
         return MAX_DAYS;
@@ -287,8 +321,7 @@ export const useApp = create<AppState>()(
         const user = get().user;
         if (!user) return null;
         const diff = Math.ceil(
-          (new Date(user.trialEndsAt).getTime() - Date.now()) /
-            (1000 * 60 * 60 * 24)
+          (new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
         );
         return Math.max(0, diff);
       },

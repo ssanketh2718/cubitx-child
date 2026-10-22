@@ -76,7 +76,8 @@ export default function Play() {
 
   const key = itemKey(tier, day, idx);
 
-  const onComplete = (response: {
+  // FIXED: Made this async to wait for Supabase sync
+  const onComplete = async (response: {
     engine: string;
     text?: string;
     picked?: number;
@@ -90,8 +91,8 @@ export default function Play() {
       hintsUsed?: number;
     };
   }) => {
-    saveResponse(key, response);
-    completeItem(key, requiredCount);
+    await saveResponse(key, response);
+    await completeItem(key, requiredCount);
     setStage('done');
   };
 
@@ -286,19 +287,7 @@ function MathView({
   item: Extract<DayItem, { engine: 'math' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: {
-    engine: string;
-    picked?: number;
-    behaviours?: {
-      testsBeforeGuess?: number;
-      wentBackToTest?: boolean;
-      secondsOnItem?: number;
-      timeToFirstTapMs?: number;
-      backtrackCount?: number;
-      changedAnswerCount?: number;
-      hintsUsed?: number;
-    };
-  }) => void;
+  onComplete: (r: any) => void;
 }) {
   const [tested, setTested] = useState<{ in: number; out: number }[]>([]);
   const [phase, setPhase] = useState<'test' | 'guess' | 'reveal'>('test');
@@ -558,18 +547,7 @@ function OpinionView({
   item: Extract<DayItem, { engine: 'opinion' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: {
-    engine: string;
-    text?: string;
-    picked?: number;
-    behaviours?: {
-      timeToFirstTapMs?: number;
-      backtrackCount?: number;
-      changedAnswerCount?: number;
-      hintsUsed?: number;
-      secondsOnItem?: number;
-    };
-  }) => void;
+  onComplete: (r: any) => void;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [reason, setReason] = useState('');
@@ -708,17 +686,7 @@ function CreativeView({
   item: Extract<DayItem, { engine: 'creative' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: {
-    engine: string;
-    text?: string;
-    behaviours?: {
-      timeToFirstTapMs?: number;
-      secondsOnItem?: number;
-      changedAnswerCount?: number;
-      backtrackCount?: number;
-      hintsUsed?: number;
-    };
-  }) => void;
+  onComplete: (r: any) => void;
 }) {
   const [text, setText] = useState('');
   const screenShownAt = useRef<number>(Date.now());
@@ -811,17 +779,7 @@ function WatchView({
   item: Extract<DayItem, { engine: 'watch' }>;
   stage: Stage;
   setStage: (s: Stage) => void;
-  onComplete: (r: {
-    engine: string;
-    text?: string;
-    behaviours?: {
-      timeToFirstTapMs?: number;
-      secondsOnItem?: number;
-      changedAnswerCount?: number;
-      backtrackCount?: number;
-      hintsUsed?: number;
-    };
-  }) => void;
+  onComplete: (r: any) => void;
 }) {
   const [text, setText] = useState('');
   const [watched, setWatched] = useState(false);
