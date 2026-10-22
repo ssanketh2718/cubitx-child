@@ -145,7 +145,8 @@ export const useApp = create<AppState>()(
             trialEndsAt: trialEnds.toISOString(),
             supabaseId: existing?.supabaseId,
           },
-          days: { 1: { unlockedAt: now.toISOString(), completedAt: null, itemsCompleted: [] } },
+          // 🔥 FIX: Do not wipe existing days if they exist
+          days: Object.keys(get().days).length > 0 ? get().days : { 1: { unlockedAt: now.toISOString(), completedAt: null, itemsCompleted: [] } },
           events: [],
           sessions: [],
           responses: {},
@@ -184,7 +185,7 @@ export const useApp = create<AppState>()(
         set({ days: updatedDays, sessions });
       },
 
-      // 🔥 FIXED: Now accepts requiredCount
+      // 🔥 FIX: Now requires requiredCount
       completeMission: (missionId, requiredCount = 1) => { 
         get().completeItem(missionId, requiredCount); 
       },
@@ -207,10 +208,10 @@ export const useApp = create<AppState>()(
 
         if (state.user?.supabaseId) {
            try {
-             // 🔥 FIXED: Safe UUID fallback for older browsers
-             const attemptId = typeof crypto?.randomUUID === 'function'
+             // 🔥 FIX: Safe UUID fallback for older browsers
+             const attemptId = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
                ? crypto.randomUUID()
-               : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+               : `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
              const { error: attemptError } = await supabase.from('attempts').insert({
                 id: attemptId,
@@ -220,12 +221,12 @@ export const useApp = create<AppState>()(
              });
              if (attemptError) throw attemptError;
 
-             // 🔥 FIXED: Sent actual data instead of hardcoded 'Disagree'
+             // 🔥 FIX: Sent actual data instead of hardcoded 'Disagree'
              await supabase.functions.invoke('score-mission', {
                 body: {
                   attempt_id: attemptId,
                   answers: { 
-                     picked: data.picked !== undefined ? data.picked : null,
+                     picked: data.picked ?? null,
                      text: data.text || '',
                      behaviours: data.behaviours || {}
                   }, 
@@ -250,11 +251,10 @@ export const useApp = create<AppState>()(
         for (let n = 1; n <= MAX_DAYS; n++) {
           const day = state.days[n];
           if (day && day.completedAt) continue;
-          
           if (state.isDayCalendarUnlocked(n)) return n;
           
-          // 🔥 FIXED: If locked, return n (the locked day) instead of n-1
-          return n;
+          // 🔥 FIX: Return n (the locked day) instead of n-1
+          return n; 
         }
         return MAX_DAYS;
       },

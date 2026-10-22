@@ -33,22 +33,22 @@ export default function App() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. Check URL for Supabase hash errors
+    // 1. Intercept URL hash authentication errors
     if (window.location.hash.includes('error=')) {
-      const params = new URLSearchParams(window.location.hash.substring(1));
-      const description = params.get('error_description') || 'Magic link is invalid or expired.';
-      setAuthError(description.replace(/\+/g, ' '));
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const desc = hashParams.get('error_description') || 'Authentication link is invalid or expired.';
+      setAuthError(desc.replace(/\+/g, ' '));
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    // 2. Establish auth session
+    // 2. Hydrate session safely
     const initAuth = async () => {
       try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) throw error;
         if (session?.user) setSupabaseId(session.user.id);
       } catch (err: any) {
-        console.warn("Auth initialization warning:", err.message);
+        console.warn("Session check error:", err.message);
       } finally {
         setAuthInitialized(true);
       }
@@ -66,11 +66,11 @@ export default function App() {
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-4">
         <div className="bg-[#0f1a38] border border-amber-500/30 p-6 rounded-2xl max-w-sm text-center space-y-4">
-          <p className="text-amber-400 font-bold">Authentication Error</p>
+          <p className="text-amber-400 font-bold text-lg">Login Notice</p>
           <p className="text-sm text-gray-300">{authError}</p>
-          <a href="/signin" className="inline-block bg-[#5b7fff] text-white px-5 py-2.5 rounded-xl font-semibold text-sm">Request New Link</a>
+          <a href="/signin" className="inline-block bg-[#5b7fff] text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-[#4a6ee0] transition-colors">Back to Login</a>
         </div>
       </div>
     );

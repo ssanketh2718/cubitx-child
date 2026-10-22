@@ -4,9 +4,7 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error(
-    "Missing Supabase Environment Variables! Check VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in your .env or Vercel settings."
-  );
+  console.error("Critical: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY is missing from environment variables.");
 }
 
 export const supabase = createClient(
@@ -16,7 +14,7 @@ export const supabase = createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true, // Required for processing email magic links
+      detectSessionInUrl: true,
     },
   }
 );

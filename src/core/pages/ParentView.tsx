@@ -8,6 +8,8 @@ export default function ParentView() {
   
   const streak = useApp((s) => s.getStreak());
   const days = useApp((s) => s.days);
+  const userSupabaseId = useApp((s) => s.user?.supabaseId);
+  
   const totalMissionsDone = Object.values(days).reduce(
     (acc, day) => acc + day.itemsCompleted.length, 
     0
@@ -20,15 +22,16 @@ export default function ParentView() {
     
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const studentId = userSupabaseId || user?.id;
       
-      if (authError || !user) {
+      if (authError || !studentId) {
         throw new Error("You must be logged in to delete data.");
       }
 
-      await supabase.from('scores').delete().eq('student_id', user.id);
-      await supabase.from('attempts').delete().eq('student_id', user.id);
+      await supabase.from('scores').delete().eq('student_id', studentId);
+      await supabase.from('attempts').delete().eq('student_id', studentId);
       
-      // 🔥 FIXED: Zustand persist race condition
+      // 🔥 FIX: Zustand persist race condition
       useApp.persist.clearStorage();
       useApp.getState().reset();
       

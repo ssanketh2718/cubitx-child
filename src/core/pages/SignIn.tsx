@@ -17,24 +17,25 @@ export default function SignIn() {
     setError('');
     setMessage('');
 
+    // 🔥 FIX: Sanitize inputs to prevent "Invalid Login Credentials"
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
     try {
       if (isLogin) {
-        // Sign In
         const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
         });
         if (error) throw error;
         navigate('/home');
       } else {
-        // Sign Up
         const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
+          email: cleanEmail,
+          password: cleanPassword,
         });
         if (error) throw error;
         
-        // If email confirmation is disabled, they are logged in immediately
         if (data.session) {
           navigate('/onboard');
         } else {
