@@ -6,33 +6,37 @@ import { supabase } from '../lib/supabase';
 export default function ParentView() {
   const [isResetting, setIsResetting] = useState(false);
   
-  // 🔥 READ REAL DATA FROM STORE
   const streak = useApp((s) => s.getStreak());
   const days = useApp((s) => s.days);
-  
-  // Calculate total missions done across all days
-  const totalMissionsDone = Object.values(days).reduce((acc, day) => acc + day.itemsCompleted.length, 0);
+  const totalMissionsDone = Object.values(days).reduce(
+    (acc, day) => acc + day.itemsCompleted.length, 
+    0
+  );
 
   const resetData = async () => {
-    if (!window.confirm("DEV ONLY: Are you sure you want to delete all solved missions and scores?")) return;
+    if (!window.confirm("Are you sure you want to delete all progress and scores for this account?")) return;
     
     setIsResetting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    const userId = user?.id;
-
+    
     try {
-      if (userId) {
-        await supabase.from('scores').delete().eq('student_id', userId);
-        await supabase.from('attempts').delete().eq('student_id', userId);
-      }
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
       
+      if (authError || !user) {
+        throw new Error("You must be logged in to delete data.");
+      }
+
+      await supabase.from('scores').delete().eq('student_id', user.id);
+      await supabase.from('attempts').delete().eq('student_id', user.id);
+      
+      useApp.getState().reset();
       localStorage.clear();
       sessionStorage.clear();
+      
       window.location.href = '/home';
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to reset:", error);
-      alert("Failed to reset data. Check console.");
+      alert(error.message || "Failed to delete data. Check console.");
       setIsResetting(false);
     }
   };
@@ -46,7 +50,6 @@ export default function ParentView() {
           <p className="text-gray-400 text-sm mt-1">Track habits and cognitive growth.</p>
         </div>
 
-        {/* WEEKLY HABITS UI (Now Dynamic) */}
         <div className="bg-[#0a1228] border border-[#16244a] rounded-3xl p-6 shadow-xl space-y-5">
           <h2 className="text-xl font-bold text-white">Weekly Habits</h2>
           
@@ -62,17 +65,15 @@ export default function ParentView() {
           </div>
         </div>
 
-        {/* THE NEW COGNITIVE DASHBOARD */}
         <CognitiveDashboard />
 
-        {/* DEV RESET BUTTON */}
         <div className="pt-8 pb-4 text-center">
           <button 
             onClick={resetData}
             disabled={isResetting}
             className="bg-[#f87171]/10 text-[#f87171] border border-[#f87171]/30 px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#f87171]/20 transition-all disabled:opacity-50"
           >
-            {isResetting ? "Deleting Data..." : "Dev Only: Reset All Data"}
+            {isResetting ? "Deleting Data..." : "Delete My Data"}
           </button>
         </div>
 

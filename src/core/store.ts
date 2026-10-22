@@ -91,7 +91,6 @@ const daysBetweenMidnights = (fromIso: string, to: Date = new Date()): number =>
 
 const MAX_DAYS = 30;
 const DEV_DAY_KEY = 'cubitx-dev-day';
-const DEV_USER_ID = '857393a7-66f1-4aa7-be30-5885f17cecd1';
 
 const readDevDay = (): number | null => {
   if (typeof window === 'undefined') return null;
@@ -203,24 +202,28 @@ export const useApp = create<AppState>()(
           },
         }));
 
-        // 🔥 DEV FALLBACK & SYNC
-        const studentId = state.user?.supabaseId || (isDevMode() ? DEV_USER_ID : null);
-
-        if (studentId) {
+        // 🔥 SECURE: Only sync if we have the real logged-in Supabase ID
+        if (state.user?.supabaseId) {
            try {
              const attemptId = crypto.randomUUID();
-             await supabase.from('attempts').insert({
+             
+             const { error: attemptError } = await supabase.from('attempts').insert({
                 id: attemptId,
-                student_id: studentId,
+                student_id: state.user.supabaseId,
                 mission_id: itemKey,
                 completed_at: new Date().toISOString()
              });
+             if (attemptError) throw attemptError;
 
              await supabase.functions.invoke('score-mission', {
                 body: {
                   attempt_id: attemptId,
-                  answers: { q1: 'B', q2: 'Disagree', q3: 'Completed' }, 
-                  is_dev: isDevMode()
+                  answers: { 
+                     q1: data.picked !== undefined ? data.picked.toString() : 'B', 
+                     q2: 'Disagree', 
+                     q3: data.text || 'Completed' 
+                  }, 
+                  is_dev: false // Strictly false. No bypasses.
                 }
              });
            } catch (e) {

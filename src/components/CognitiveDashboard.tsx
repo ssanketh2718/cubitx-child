@@ -18,14 +18,10 @@ export default function CognitiveDashboard() {
   useEffect(() => {
     const fetchCognitiveScores = async () => {
       try {
-        // 1. Try to get the real Auth User
+        // 🔥 SECURE: Only fetch for the real logged-in user
         const { data: { user } } = await supabase.auth.getUser();
         
-        // 2. DEV FALLBACK: If no user, use the test ID we created earlier
-        const devUserId = '857393a7-66f1-4aa7-be30-5885f17cecd1';
-        const studentId = user?.id || devUserId;
-        
-        if (!studentId) {
+        if (!user) {
           setError("Please log in to view cognitive data.");
           setLoading(false);
           return;
@@ -34,7 +30,7 @@ export default function CognitiveDashboard() {
         const { data, error } = await supabase
           .from('scores')
           .select('*')
-          .eq('student_id', studentId)
+          .eq('student_id', user.id) 
           .order('created_at', { ascending: false })
           .limit(10); 
 
