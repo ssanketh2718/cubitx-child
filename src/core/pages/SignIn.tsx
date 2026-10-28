@@ -1,116 +1,289 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../auth/AuthContext';
+import { enableDevMode } from '../auth/devMode';
+
+const BRAND = {
+  surface: '#05091a',
+  surface2: '#0a1228',
+  blue: '#7b8dff',
+  blueBright: '#9aaaff',
+  ink: '#ffffff',
+  inkDim: 'rgba(255,255,255,0.62)',
+  inkFaint: 'rgba(255,255,255,0.38)',
+  inkGhost: 'rgba(255,255,255,0.14)',
+};
 
 export default function SignIn() {
   const navigate = useNavigate();
-  const [isLogin, setIsLogin] = useState(true);
+  const { signInWithGoogle, signInWithEmail } = useAuth();
+
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<
+    'idle' | 'sending' | 'sent' | 'error'
+  >('idle');
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setMessage('');
+  const handleEmail = async () => {
+    const cleanedEmail = email.trim();
 
-    // 🔥 FIX: Sanitize inputs to prevent "Invalid Login Credentials"
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPassword = password.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanedEmail)) {
+      setErrorMsg('Enter a valid email address.');
+      setStatus('error');
+      return;
+    }
+
+    setStatus('sending');
+    setErrorMsg('');
 
     try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password: cleanPassword,
-        });
-        if (error) throw error;
-        navigate('/home');
-      } else {
-        const { data, error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password: cleanPassword,
-        });
-        if (error) throw error;
-        
-        if (data.session) {
-          navigate('/onboard');
-        } else {
-          setMessage("Account created! You can now log in.");
-          setIsLogin(true);
-        }
+      const { error } = await signInWithEmail(cleanedEmail);
+
+      if (error) {
+        setErrorMsg(error);
+        setStatus('error');
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication.');
-    } finally {
-      setLoading(false);
+
+      setStatus('sent');
+    } catch {
+      setErrorMsg('We could not send your sign-in link. Please try again.');
+      setStatus('error');
     }
   };
 
+  const handleGoogle = async () => {
+    setErrorMsg('');
+
+    try {
+      await signInWithGoogle();
+    } catch {
+      setErrorMsg('Google sign-in could not be started. Please try again.');
+      setStatus('error');
+    }
+  };
+
+  const handleSkip = () => {
+    // The handler is unavailable in production, even if called manually.
+    if (!import.meta.env.DEV) return;
+
+    enableDevMode();
+    window.location.href = '/';
+  };
+
   return (
-    <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-4 font-sans">
-      <div className="max-w-md w-full bg-[#0a1228] border border-[#16244a] p-8 rounded-3xl shadow-2xl space-y-6">
-        
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-extrabold text-white mb-2">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
-          </h1>
-          <p className="text-gray-400 text-sm">
-            {isLogin ? 'Log in to continue your thinking journey.' : 'Start your 30-day critical thinking trial.'}
-          </p>
-        </div>
+    <div
+      className="flex min-h-screen items-center justify-center px-5"
+      style={{
+        background: BRAND.surface,
+        color: BRAND.ink,
+        fontFamily: 'Inter, system-ui, sans-serif',
+      }}
+    >
+      <div
+        className="w-full max-w-md rounded-[1.75rem] p-8 md:p-10"
+        style={{
+          background: BRAND.surface2,
+          border: `1px solid ${BRAND.inkGhost}`,
+        }}
+      >
+        <img
+          src="/cubitx-logo.jpg"
+          alt="CubitX"
+          className="mx-auto h-10 w-auto"
+        />
 
-        {error && <p className="bg-red-500/10 text-red-400 p-3 rounded-xl text-sm border border-red-500/20 text-center">{error}</p>}
-        {message && <p className="bg-green-500/10 text-green-400 p-3 rounded-xl text-sm border border-green-500/20 text-center">{message}</p>}
+        {status === 'sent' ? (
+          <div className="mt-8 text-center">
+            <div className="text-[48px]" aria-hidden="true">
+              📬
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-400 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#0f1a38] border border-[#1e2e5c] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-[#5b7fff]"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-400 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#0f1a38] border border-[#1e2e5c] text-white px-4 py-3 rounded-xl focus:outline-none focus:border-[#5b7fff]"
-              placeholder="••••••••"
-            />
-          </div>
+            <h1 className="mt-4 text-[22px] font-semibold">
+              Check your email
+            </h1>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#5b7fff] text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 mt-4"
-          >
-            {loading ? 'Processing...' : isLogin ? 'Log In' : 'Sign Up'}
-          </button>
-        </form>
-
-        <div className="text-center pt-4 border-t border-[#16244a]">
-          <p className="text-gray-400 text-sm">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button
-              onClick={() => { setIsLogin(!isLogin); setError(''); setMessage(''); }}
-              className="text-[#5b7fff] font-bold hover:underline"
+            <p
+              className="mt-3 text-[14px] leading-[1.7]"
+              style={{ color: BRAND.inkDim }}
             >
-              {isLogin ? 'Sign up' : 'Log in'}
-            </button>
-          </p>
-        </div>
+              We sent a sign-in link to{' '}
+              <span style={{ color: BRAND.ink }}>{email.trim()}</span>.
+              Tap it to continue.
+            </p>
 
+            <button
+              type="button"
+              onClick={() => {
+                setStatus('idle');
+                setErrorMsg('');
+              }}
+              className="mt-6 text-[13px] font-semibold"
+              style={{ color: BRAND.blueBright }}
+            >
+              ← Use a different email
+            </button>
+          </div>
+        ) : (
+          <>
+            <h1 className="mt-7 text-center text-[22px] font-semibold">
+              Start your 30 days free
+            </h1>
+
+            <p
+              className="mt-2 text-center text-[13px]"
+              style={{ color: BRAND.inkDim }}
+            >
+              No card required
+            </p>
+
+            <button
+              type="button"
+              onClick={handleGoogle}
+              className="mt-8 flex w-full items-center justify-center gap-3 rounded-full py-3.5 text-[14px] font-semibold transition hover:-translate-y-0.5"
+              style={{ background: BRAND.ink, color: BRAND.surface }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 48 48"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#EA4335"
+                  d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+                />
+              </svg>
+              Continue with Google
+            </button>
+
+            <div className="my-6 flex items-center gap-4">
+              <div
+                className="h-px flex-1"
+                style={{ background: BRAND.inkGhost }}
+              />
+              <span
+                className="text-[11px]"
+                style={{ color: BRAND.inkFaint }}
+              >
+                or
+              </span>
+              <div
+                className="h-px flex-1"
+                style={{ background: BRAND.inkGhost }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="signin-email"
+                className="text-[12px] font-semibold"
+                style={{ color: BRAND.inkDim }}
+              >
+                Email address
+              </label>
+
+              <input
+                id="signin-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (status === 'error') {
+                    setStatus('idle');
+                    setErrorMsg('');
+                  }
+                }}
+                placeholder="you@example.com"
+                disabled={status === 'sending'}
+                className="mt-2 w-full rounded-xl px-4 py-3.5 text-[14px] outline-none"
+                style={{
+                  background: 'rgba(0,0,0,0.2)',
+                  border: `1px solid ${BRAND.inkGhost}`,
+                  color: BRAND.ink,
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    void handleEmail();
+                  }
+                }}
+              />
+            </div>
+
+            {status === 'error' && (
+              <div
+                role="alert"
+                className="mt-3 rounded-xl px-4 py-3 text-[12.5px]"
+                style={{
+                  background: 'rgba(248,113,113,0.12)',
+                  border: '1px solid rgba(248,113,113,0.3)',
+                  color: '#f87171',
+                }}
+              >
+                {errorMsg}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => void handleEmail()}
+              disabled={
+                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ||
+                status === 'sending'
+              }
+              className="mt-6 w-full rounded-full py-3.5 text-[14px] font-bold transition disabled:opacity-40"
+              style={{ background: BRAND.blue, color: BRAND.surface }}
+            >
+              {status === 'sending' ? 'Sending…' : 'Send magic link'}
+            </button>
+
+            <p
+              className="mt-5 text-center text-[11px] leading-[1.6]"
+              style={{ color: BRAND.inkFaint }}
+            >
+              By continuing you agree to our terms and privacy policy.
+            </p>
+          </>
+        )}
+
+        {import.meta.env.DEV && (
+          <div
+            className="mt-8 border-t pt-5"
+            style={{ borderColor: BRAND.inkGhost }}
+          >
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="w-full text-center text-[12px] transition hover:text-white"
+              style={{ color: BRAND.inkFaint }}
+            >
+              🧪 Skip sign-in (development only)
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="mt-4 block w-full text-center text-[12px]"
+          style={{ color: BRAND.inkFaint }}
+        >
+          ← Back
+        </button>
       </div>
     </div>
   );

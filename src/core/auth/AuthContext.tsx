@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { useApp } from '../store';
 import { isDevMode, MOCK_PARENT, MOCK_CHILDREN, disableDevMode } from './devMode';
 
 interface ParentProfile {
@@ -152,6 +153,17 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   };
 
   const signOut = async () => {
+    // Clear child-specific cached state before leaving the account. Remove only
+    // CubitX keys; do not clear unrelated origin storage.
+    useApp.getState().reset();
+    useApp.persist.clearStorage();
+    try {
+      window.localStorage.removeItem('cubitx-active-child-id');
+      window.localStorage.removeItem('cubitx-dev-day');
+    } catch {
+      // The auth sign-out must still proceed if browser storage is unavailable.
+    }
+
     if (dev) {
       disableDevMode();
       setDev(false);

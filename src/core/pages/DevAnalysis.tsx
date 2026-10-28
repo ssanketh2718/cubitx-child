@@ -1,8 +1,6 @@
-// src/core/pages/DevAnalysis.tsx
 import { useState } from 'react';
 import MissionRunner from '../../components/MissionRunner';
 import { cryptoScamMission } from '../../data/missions';
-import { supabase } from '../lib/supabase';
 
 export default function DevAnalysis() {
   const [gameState, setGameState] = useState<'lobby' | 'loading' | 'playing' | 'results'>('lobby');
@@ -13,25 +11,17 @@ export default function DevAnalysis() {
   const startMission = async () => {
     setGameState('loading');
     setErrorMsg('');
-    
+
+    // Development preview is local-only: never create a database attempt or
+    // use a hard-coded user UUID from a browser session.
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const studentId = user?.id || '857393a7-66f1-4aa7-be30-5885f17cecd1'; 
-
-      const { data: attemptData, error: attemptError } = await supabase
-        .from('attempts')
-        .insert({ student_id: studentId })
-        .select('id')
-        .single();
-
-      if (attemptError) throw attemptError;
-
-      setAttemptId(attemptData.id);
+      const localAttemptId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `local-${Date.now()}`;
+      setAttemptId(localAttemptId);
       setGameState('playing');
-
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || "Failed to start mission.");
+    } catch {
+      setErrorMsg('Could not start the local preview. Please try again.');
       setGameState('lobby');
     }
   };
@@ -43,15 +33,15 @@ export default function DevAnalysis() {
 
   return (
     <div className="min-h-screen bg-[#05091a] text-white flex flex-col items-center justify-center p-4 font-sans">
-      
+
       {gameState === 'lobby' && (
         <div className="max-w-md w-full bg-[#0a1228] border border-[#16244a] p-8 rounded-3xl text-center space-y-6 shadow-2xl">
           <div className="text-6xl">💸</div>
           <h1 className="text-3xl font-bold">Dev Analysis Room</h1>
           <p className="text-gray-400 text-sm">Secure AI Mission Test</p>
-          
+
           {errorMsg && <p className="text-red-400 text-sm bg-red-900/20 p-2 rounded">{errorMsg}</p>}
-          
+
           <button 
             onClick={startMission}
             className="w-full bg-[#5b7fff] text-white font-bold py-4 rounded-xl hover:bg-blue-600 transition-colors"
@@ -73,7 +63,7 @@ export default function DevAnalysis() {
           mission={cryptoScamMission} 
           attemptId={attemptId} 
           onComplete={handleMissionComplete} 
-          isDev={true} // <-- ADDED THIS
+          isDev={true}
         />
       )}
 
@@ -81,7 +71,7 @@ export default function DevAnalysis() {
         <div className="max-w-md w-full bg-[#0a1228] border border-[#16244a] p-8 rounded-3xl text-center space-y-6 shadow-2xl">
           <div className="text-6xl">🧠</div>
           <h1 className="text-2xl font-bold text-[#4ade80]">Mission Complete!</h1>
-          
+
           {resultData.status === 'pending_review' ? (
             <p className="text-yellow-400 bg-yellow-900/20 p-4 rounded-xl">{resultData.message}</p>
           ) : (

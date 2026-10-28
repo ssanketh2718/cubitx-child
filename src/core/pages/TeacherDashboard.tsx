@@ -38,8 +38,6 @@ export default function TeacherDashboard() {
   const [stats, setStats] = useState<null | {
     totalChildren: number;
     byClass: Record<number, number>;
-    totalProgress: number;
-    topEngines: { engine: string; count: number }[];
   }>(null);
 
   useEffect(() => {
@@ -80,24 +78,12 @@ export default function TeacherDashboard() {
         byClass[c.class_level] = (byClass[c.class_level] ?? 0) + 1;
       });
 
-      const { data: progress } = await supabase
-        .from('child_progress')
-        .select('engine, day');
-
-      const engines: Record<string, number> = {};
-      (progress ?? []).forEach((p: any) => {
-        engines[p.engine] = (engines[p.engine] ?? 0) + 1;
-      });
-      const topEngines = Object.entries(engines)
-        .map(([engine, count]) => ({ engine, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5);
-
+      // Do not query child_progress without an explicit school-scoped filter.
+      // Until the schema and RLS policies are reviewed, show only aggregate
+      // enrollment counts for the linked school.
       setStats({
         totalChildren: children?.length ?? 0,
         byClass,
-        totalProgress: progress?.length ?? 0,
-        topEngines,
       });
     })();
   }, [stage, school]);
@@ -269,9 +255,8 @@ export default function TeacherDashboard() {
 
         {stats && (
           <>
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
               <StatCard value={stats.totalChildren} label="children enrolled" />
-              <StatCard value={stats.totalProgress} label="thinking items done" />
               <StatCard
                 value={Object.keys(stats.byClass).length}
                 label="class levels active"
@@ -296,27 +281,6 @@ export default function TeacherDashboard() {
                 ))}
               </div>
             </Block>
-
-            {stats.topEngines.length > 0 && (
-              <Block title="What they're spending time on">
-                <div className="grid gap-2">
-                  {stats.topEngines.map((e) => (
-                    <div
-                      key={e.engine}
-                      className="flex items-center justify-between rounded-xl px-4 py-3"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${BRAND.inkGhost}` }}
-                    >
-                      <span className="text-[13.5px] font-semibold" style={{ color: BRAND.ink }}>
-                        {engineLabel(e.engine)}
-                      </span>
-                      <span className="text-[14px] font-bold tabular-nums" style={{ color: BRAND.blueBright }}>
-                        {e.count} items
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </Block>
-            )}
 
             <div
               className="rounded-2xl p-5 mt-2"
@@ -366,15 +330,4 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
       {children}
     </div>
   );
-}
-
-function engineLabel(e: string): string {
-  switch (e) {
-    case 'math': return 'Number Machine';
-    case 'opinion': return 'Opinion';
-    case 'creative': return 'Creative';
-    case 'watch': return 'Watch & Think';
-    case 'observe': return 'Look Closer';
-    default: return e;
-  }
 }

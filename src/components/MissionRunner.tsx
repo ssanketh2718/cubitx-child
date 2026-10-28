@@ -7,13 +7,13 @@ interface MissionRunnerProps {
   mission: Mission;
   attemptId: string;
   onComplete: (result: any) => void;
-  isDev?: boolean; // <-- ADDED THIS
+  isDev?: boolean;
 }
 
 export default function MissionRunner({ mission, attemptId, onComplete, isDev = false }: MissionRunnerProps) {
   const [phase, setPhase] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const [answer1, setAnswer1] = useState("");
   const [answer2, setAnswer2] = useState("");
 
@@ -42,6 +42,18 @@ export default function MissionRunner({ mission, attemptId, onComplete, isDev = 
     isSubmitting.current = true;
     setIsLoading(true);
 
+    if (isDev) {
+      window.speechSynthesis.cancel();
+      onComplete({
+        status: 'pending_review',
+        message: 'Local preview only. No answers were sent or scored.',
+        scores: [],
+      });
+      setIsLoading(false);
+      isSubmitting.current = false;
+      return;
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('score-mission', {
         body: {
@@ -50,8 +62,7 @@ export default function MissionRunner({ mission, attemptId, onComplete, isDev = 
             q1: answer1,
             q2: answer2,
             q3: finalAnswer
-          },
-          is_dev: isDev // <-- ADDED THIS
+          }
         }
       });
 
@@ -68,7 +79,7 @@ export default function MissionRunner({ mission, attemptId, onComplete, isDev = 
 
   return (
     <div className="max-w-md w-full bg-[#0a1228] rounded-3xl border border-[#16244a] p-6 shadow-xl space-y-6 fade-in text-white font-sans">
-      
+
       <div className="flex justify-center space-x-2 mb-4">
         {[1, 2, 3, 4].map((dot) => (
           <div key={dot} className={`w-3 h-3 rounded-full transition-colors ${phase >= dot ? 'bg-[#5b7fff]' : 'bg-[#1e2e5c]'}`} />
