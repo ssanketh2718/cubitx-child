@@ -1,0 +1,27 @@
+/* Public landing page wrapper. The standalone landing page owns its styles. */
+.cubitx-landing-shell {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #f7f8fc;
+}
+
+.cubitx-landing-frame {
+  display: block;
+  width: 100%;
+  height: 100vh;
+  min-height: 100vh;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: #f7f8fc;
+}
+
+@supports (height: 100dvh) {
+  .cubitx-landing-frame {
+    height: 100dvh;
+    min-height: 100dvh;
+  }
+}

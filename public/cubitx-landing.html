@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta content="#080D20" name="theme-color"/>
+<link href="data:image/png;base64,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" rel="icon" type="image/png"/>
+<meta content="CubitX helps children in Classes 5–7 practise critical thinking through interactive adventures. Try five free adventures." name="description"/>
+<title>CubitX — Develop the Mind Behind the Marks</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+:root{
+ --mint:#DDF2ED;--mint2:#BFE8DE;--lilac:#B98AF4;--lilac2:#E9D9FF;
+ --ink:#11172B;--paper:#F8F8F4;--white:#fff;--yellow:#FFD84D;
+ --coral:#FF826E;--blue:#A9C9F5;--brand-blue:#91A8FF;--muted:#626B67;--line:rgba(23,26,23,.13);
+ --purple:#7042C8;--dark:#080D20;--max:1320px;--ease:cubic-bezier(.2,.75,.25,1);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",Arial,sans-serif;overflow-x:hidden}
+a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
+img{max-width:100%;display:block}
+.wrap{width:min(var(--max),calc(100% - 72px));margin-inline:auto}
+.eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
+.display{font-family:Manrope,"DM Sans",sans-serif;font-weight:800;letter-spacing:-.075em;line-height:.94}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--ink);border-radius:100px;padding:16px 23px;font-weight:800;font-size:14px;transition:transform .3s var(--ease),background .3s,color .3s;white-space:nowrap}
+.btn:hover{transform:translateY(-3px)}
+.btn-dark{background:var(--dark);color:white}.btn-dark:hover{background:var(--purple);border-color:var(--purple)}
+.btn-purple{background:var(--lilac);border-color:var(--lilac);color:var(--ink)}.btn-purple:hover{background:var(--yellow);border-color:var(--yellow)}
+.btn-outline{background:transparent}.btn-outline:hover{background:var(--dark);color:white}
+.arrow{font-size:18px;line-height:0}
+.topbar{height:82px;position:sticky;top:0;z-index:100;background:rgba(248,248,244,.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(23,26,23,.08)}
+.nav{height:100%;display:flex;align-items:center;justify-content:space-between;gap:28px}
+.brand{display:flex;align-items:center;gap:11px;font-weight:900;font-size:24px;letter-spacing:-1.3px}
+.brand img{width:138px;height:auto;object-fit:contain}
+.brand-fallback{display:none}
+.navlinks{display:flex;align-items:center;gap:34px;font-size:13px;font-weight:700}
+.navlinks a{position:relative}.navlinks a:after{content:"";position:absolute;left:0;bottom:-7px;width:0;height:2px;background:var(--purple);transition:width .25s}
+.navlinks a:hover:after{width:100%}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.nav .btn{padding:13px 20px;font-size:13px}
+.menu-btn{display:none;border:1px solid var(--line);background:transparent;border-radius:50%;width:44px;height:44px;font-size:20px}
+.hero{min-height:760px;background:var(--mint);position:relative;overflow:hidden;padding:76px 0 70px;isolation:isolate}
+.hero:before{content:"";position:absolute;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,rgba(185,138,244,.22),transparent 68%);right:-190px;top:-290px;z-index:-1}
+.hero:after{content:"";position:absolute;inset:auto 0 0;height:150px;background:linear-gradient(transparent,rgba(255,255,255,.16));z-index:-1}
+.hero-layout{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:24px;position:relative}
+.hero-copy{max-width:680px;position:relative;z-index:3}
+.hero .eyebrow{display:inline-flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid rgba(23,26,23,.2);border-radius:99px;background:rgba(255,255,255,.28)}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#4B9B74;box-shadow:0 0 0 5px rgba(75,155,116,.12);animation:pulse 2s infinite}
+.hero h1{font-size:clamp(58px,7.3vw,108px);margin:28px 0 22px;max-width:760px}
+.hero h1 em{font-style:normal;color:var(--purple);position:relative;white-space:nowrap}
+.hero-lede{font-size:18px;line-height:1.6;max-width:510px;color:#39443F;margin:0 0 26px}
+.hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.micro{font-size:12px;color:#59635E;margin-top:15px}
+.hero-stage{height:560px;position:relative;display:grid;place-items:center;perspective:1100px}
+.stage-orbit{position:absolute;width:470px;height:470px;border:1px solid rgba(100,36,200,.2);border-radius:50%;animation:orbit 32s linear infinite}
+.stage-orbit:before,.stage-orbit:after{content:"";position:absolute;border:1px dashed rgba(100,36,200,.2);border-radius:50%;inset:35px}
+.stage-orbit:after{inset:85px;border-style:solid}
+.stage-glow{position:absolute;width:390px;height:390px;border-radius:50%;background:radial-gradient(circle,rgba(185,138,244,.34),rgba(255,216,77,.16) 48%,transparent 70%);filter:blur(5px);animation:breathe 6s ease-in-out infinite}
+.mission-window{position:relative;width:min(100%,490px);background:#fff;border:1px solid rgba(23,26,23,.12);border-radius:28px;padding:15px;box-shadow:0 35px 90px rgba(37,47,43,.18);transform:rotateY(-7deg) rotateX(3deg);animation:float 7s ease-in-out infinite;z-index:2}
+.window-bar{display:flex;justify-content:space-between;align-items:center;padding:5px 7px 13px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#68716C}
+.window-dots{display:flex;gap:4px}.window-dots i{width:6px;height:6px;border-radius:50%;background:#D8DCD9}
+.mission-art{height:270px;border-radius:18px;overflow:hidden;position:relative;background:linear-gradient(145deg,#BFE8DE,#DCEBFF 58%,#E9D9FF)}
+.mission-art .sun{position:absolute;right:40px;top:28px;width:57px;height:57px;background:var(--yellow);border-radius:50%;box-shadow:0 0 40px #FFD84D88}
+.mountain{position:absolute;bottom:-35px;width:115%;height:160px;border-radius:50% 50% 0 0;background:#8AB8A4;transform:rotate(-8deg);left:-7%}
+.mountain.m2{height:125px;bottom:-55px;background:#5B8E83;transform:rotate(8deg);left:-14%}
+.river{position:absolute;width:120%;height:64px;bottom:35px;left:-10%;background:#75B9C8;transform:rotate(-9deg);border-radius:50%;box-shadow:0 8px 0 rgba(255,255,255,.35)}
+.wood-bridge{position:absolute;bottom:85px;left:30%;width:185px;height:13px;background:#A86F4C;transform:rotate(-8deg);border-radius:9px;box-shadow:0 7px 0 #744C38}
+.wood-bridge:before,.wood-bridge:after{content:"";position:absolute;bottom:-20px;width:7px;height:26px;background:#744C38;border-radius:4px}
+.wood-bridge:before{left:20px}.wood-bridge:after{right:20px}
+.bridge-person{position:absolute;left:49%;bottom:105px;font-size:40px;transform:translateX(-50%)}.faq-layout{display:grid;grid-template-columns:.7fr 1.3fr;gap:80px}
+.faq-layout .section-title{font-size:clamp(40px,5vw,66px)}
+.faq-list details{border-top:1px solid var(--line);padding:21px 0}
+.faq-list details:last-child{border-bottom:1px solid var(--line)}
+.faq-list summary{list-style:none;display:flex;justify-content:space-between;gap:20px;cursor:pointer;font-size:15px;font-weight:800}
+.faq-list summary::-webkit-details-marker{display:none}
+.faq-list summary:after{content:"+";font-size:23px;font-weight:400;color:var(--purple);transition:transform .25s}
+.faq-list details[open] summary:after{transform:rotate(45deg)}
+.faq-list details p{font-size:13px;color:#68726C;line-height:1.65;max-width:650px;margin:13px 35px 0 0}
+.final-cta{background:var(--lilac);padding:130px 0;text-align:center;position:relative;overflow:hidden}
+.final-cta:before,.final-cta:after{content:"";position:absolute;width:360px;height:360px;border:1px solid #171a1722;border-radius:50%;top:-170px;left:-100px}
+.final-cta:after{width:500px;height:500px;left:auto;right:-200px;top:auto;bottom:-300px}
+.final-cta .section-title{font-size:clamp(50px,7vw,94px);max-width:1000px;margin:20px auto}
+.final-cta p{font-size:16px;line-height:1.6;max-width:540px;margin:0 auto 27px;color:#342B3F}
+footer{background:var(--dark);color:white;padding:55px 0 25px}
+.footer-top{display:flex;justify-content:space-between;gap:30px;padding-bottom:45px;border-bottom:1px solid #ffffff25}
+.footer-brand{font:900 28px Manrope;letter-spacing:-.06em}
+.footer-brand p{font:400 12px/1.6 "DM Sans";color:#AEB7B0;max-width:260px;margin-top:12px}
+.footer-links{display:flex;gap:65px}
+.footer-links div{display:grid;align-content:start;gap:12px}
+.footer-links strong{font-size:11px;color:var(--lilac);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.footer-links a{font-size:12px;color:#C4CBC5}
+.footer-bottom{display:flex;justify-content:space-between;padding-top:20px;font-size:10px;color:#89938C}
+.reveal{opacity:0;transform:translateY(34px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.mobile-cta{display:none}
+@keyframes pulse{50%{box-shadow:0 0 0 9px rgba(75,155,116,0)}}
+@keyframes float{0%,100%{translate:0 0}50%{translate:0 -12px}}
+@keyframes breathe{0%,100%{transform:scale(.94);opacity:.65}50%{transform:scale(1.07);opacity:1}}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@keyframes figureBob{0%,100%{translate:0 0}50%{translate:0 -8px}}
+@keyframes progress{to{width:88%}}
+@media(max-width:1000px){
+ .wrap{width:min(var(--max),calc(100% - 44px))}
+ .navlinks{gap:17px}.hero{min-height:auto}.hero-layout{grid-template-columns:1fr 1fr}.hero h1{font-size:clamp(54px,7vw,78px)}
+ .hero-stage{height:470px}.stage-orbit{width:390px;height:390px}.world-grid{grid-template-columns:1fr 1fr}.world-feature,.world-interactive{padding:32px;min-height:570px}
+ .journey-layout{gap:35px}.journey-visual{height:430px}.journey-object{right:25px}
+ .parent-layout{gap:35px}.footer-links{gap:30px}
+}
+@media(max-width:720px){
+ html{scroll-padding-top:70px}.wrap{width:calc(100% - 36px)}
+ .topbar{height:70px}.brand img{width:118px}.nav-actions{display:none}.menu-btn{display:block}
+ .navlinks{display:none;position:absolute;top:70px;left:0;right:0;padding:22px;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:20px}
+ .navlinks.open{display:flex}
+ .hero{padding:55px 0 50px}.hero-layout{grid-template-columns:1fr;gap:0}.hero h1{font-size:clamp(53px,13vw,78px);margin:22px 0 18px}.hero-lede{font-size:16px}
+ .hero-stage{height:390px;margin-top:15px}.mission-window{max-width:410px}.mission-art{height:215px}.stage-orbit{width:320px;height:320px}.stage-glow{width:300px;height:300px}.float-pill.one{right:0;top:25px}.float-pill.two{left:0;bottom:30px}
+ .scroll-cue{display:none}.ticker{padding:14px 0}.ticker span{font-size:13px;padding:0 18px}
+ .section{padding:82px 0}.world-head,.path-head{display:block}.world-head .section-intro{margin-top:22px}.world-grid{grid-template-columns:1fr;min-height:0}.world-feature{min-height:450px;border-radius:5px 75px 5px 5px;padding:30px}.world-feature h3{font-size:50px}.world-feature .scribble{font-size:100px;bottom:100px}
+ .world-interactive{min-height:530px;padding:25px;border-radius:5px 5px 5px 55px}.world-interactive h3{font-size:36px}
+ .journey-top{padding:82px 0 35px}.journey-layout{grid-template-columns:1fr;gap:30px;padding-bottom:80px}.journey-visual-wrap{position:relative;top:auto;grid-row:1}.journey-visual{height:370px;padding:25px}.journey-object{width:170px;height:170px;font-size:70px;right:25px;top:90px}.journey-visual h3{font-size:43px}
+ .ai-section{padding:90px 0}.ai-layout{grid-template-columns:1fr;gap:35px}.ai-layout .section-title{font-size:58px}.ai-contrast{transform:none;padding:27px}
+ .path-grid{grid-template-columns:1fr}.path-card{min-height:420px;padding:30px}.path-card h3{font-size:52px}
+ .parent-layout{grid-template-columns:1fr;gap:35px}.dashboard{transform:none;padding:17px}.parent-copy .section-title{font-size:51px}
+ .family-layout{display:block}.family-bubbles{margin-top:28px}.family-bubble{width:68px;height:68px;font-size:28px}
+ .pricing-grid{grid-template-columns:1fr;gap:12px}.price-card{min-height:0;padding:25px}.price-card.featured,.price-card.featured:hover{transform:none}.family-discount{display:block}.family-discount strong{display:block;margin-top:12px}
+ .school-section{padding:80px 0}.school-layout{grid-template-columns:1fr}.faq-layout{grid-template-columns:1fr;gap:30px}
+ .final-cta{padding:90px 0}.final-cta .section-title{font-size:58px}
+ .footer-top{display:block}.footer-links{margin-top:35px;gap:35px;flex-wrap:wrap}.footer-bottom{gap:12px;flex-wrap:wrap}
+ .mobile-cta{display:block;position:fixed;bottom:0;left:0;right:0;z-index:90;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#F8F8F4ee;backdrop-filter:blur(15px);border-top:1px solid var(--line)}
+ .mobile-cta .btn{width:100%;padding:14px}
+ body{padding-bottom:66px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+ .reveal{opacity:1;transform:none}
+}
+
+
+
+/* CUBITX BRAND INTEGRATION — transparent wordmark, no badge or patch */
+.brand{
+ display:inline-flex;align-items:center;padding:0!important;margin:0;
+ background:transparent!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;line-height:0;flex:0 0 auto;
+}
+.cubitx-logo{
+ display:block;width:158px!important;height:auto!important;max-height:none!important;
+ object-fit:contain!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;background:transparent!important;
+}
+.brand:hover{transform:none!important;box-shadow:none!important}
+.footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:15px}
+.footer-logo-link{
+ display:inline-flex;align-items:center;padding:0!important;background:transparent!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+}
+.footer-logo{display:block;width:160px;height:auto;object-fit:contain;background:transparent;border:0;border-radius:0}
+.closing-logo{
+ width:150px;height:auto;display:block;margin:0 auto 28px;
+ background:transparent!important;padding:0!important;border:0!important;border-radius:0!important;
+ box-shadow:none!important;
+}
+@media(max-width:720px){
+ .cubitx-logo{width:143px!important}
+ .footer-logo{width:148px}
+ .closing-logo{width:140px;margin-bottom:24px}
+}
+
+
+/* Five free adventures — a tangible first-use proposition */
+.free-missions{background:#F1F3EF;padding-top:112px;padding-bottom:112px}
+.free-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:42px}
+.free-head .section-title{font-size:clamp(43px,5.6vw,74px);line-height:.94}
+.free-head-side{display:flex;align-items:center;gap:16px;max-width:310px}
+.free-head-side p{font-size:13px;line-height:1.6;color:#66716A;margin:0}
+.free-stamp{width:72px;height:72px;flex:0 0 72px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);font:800 27px Manrope;letter-spacing:-.07em;transform:rotate(-10deg)}
+.free-mission-grid{display:grid;grid-template-columns:1.15fr 1fr 1fr;grid-template-rows:repeat(2,minmax(220px,auto));gap:13px}
+.free-mission-card{position:relative;text-align:left;border:0;border-radius:19px;padding:25px;min-height:220px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;overflow:hidden;color:var(--ink);transition:transform .35s var(--ease),box-shadow .35s,filter .3s}
+.free-mission-card:hover{transform:translateY(-5px);box-shadow:0 18px 42px rgba(20,28,22,.12)}
+.free-mission-card[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:-2px}
+.fm-feature{grid-row:span 2;min-height:453px;background:#DDF2ED}
+.fm-balance{background:#E9D9FF}.fm-pattern{background:#FFE9B3}.fm-cause{background:#DCEBFF}.fm-question{background:#F5DCD5}
+.fm-number{font-size:9px;font-weight:900;letter-spacing:.15em;opacity:.68}
+.fm-icon{font-size:43px;line-height:1;margin:28px 0 22px;transition:transform .4s var(--ease)}
+.free-mission-card:hover .fm-icon{transform:rotate(-10deg) scale(1.12)}
+.free-mission-card strong{font:800 clamp(22px,2.3vw,30px)/1 Manrope;letter-spacing:-.055em;max-width:290px}
+.fm-feature strong{font-size:clamp(34px,4vw,49px);max-width:350px}
+.fm-tease{font-size:12px;line-height:1.6;max-width:310px;color:#48534D;margin-top:11px}
+.fm-open{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;margin-top:auto;padding-top:20px}
+.fm-feature .fm-icon{font-size:80px;margin:45px 0 35px}
+.free-preview{margin-top:16px;background:var(--dark);color:white;border-radius:19px;padding:25px 30px;display:flex;justify-content:space-between;align-items:center;gap:30px}
+.preview-eyebrow{font-size:9px;letter-spacing:.16em;font-weight:900;color:var(--brand-blue)}
+.free-preview h3{font:800 25px Manrope;letter-spacing:-.05em;margin:8px 0}
+.free-preview p{font-size:12px;line-height:1.6;color:#C1C9D0;max-width:580px;margin:0}
+.free-preview-meta{display:flex;flex-direction:column;align-items:flex-end;gap:14px;flex-shrink:0}
+.free-preview-meta>span{font-size:9px;letter-spacing:.1em;color:#B6C1CF;text-align:right}
+.free-note{font-size:10px;color:#7B857E;line-height:1.6;margin:14px 0 0}
+
+/* Parent experience — demonstrate the actual value, not a generic analytics mock */
+.parent-section{background:#E9EEE9}
+.parent-head{max-width:850px;margin-bottom:48px}
+.parent-head .section-title{font-size:clamp(43px,5.5vw,72px);line-height:.96}
+.parent-head .section-intro{max-width:650px;margin-top:22px}
+.parent-experience{display:grid;grid-template-columns:.78fr 1.22fr;gap:48px;align-items:center}
+.parent-left{display:grid;gap:0}
+.parent-promise{display:grid;grid-template-columns:42px 1fr;gap:14px;padding:22px 0;border-top:1px solid rgba(17,23,43,.16)}
+.promise-index{font:800 13px Manrope;color:var(--purple);padding-top:3px}
+.parent-promise strong{font:800 19px Manrope;letter-spacing:-.04em}
+.parent-promise p{font-size:12px;line-height:1.65;color:#647068;max-width:330px;margin:7px 0 0}
+.parent-trust{font-size:11px;font-weight:800;color:#4B6254;line-height:1.5;margin:15px 0 0}
+.parent-product{background:#fff;border-radius:23px;padding:23px;box-shadow:0 28px 70px rgba(20,35,26,.13);border:1px solid rgba(17,23,43,.08);position:relative}
+.parent-product:before{content:"";position:absolute;inset:9px;border:1px solid #EDF0EB;border-radius:17px;pointer-events:none}
+.parent-product-top{display:flex;justify-content:space-between;align-items:center;padding:3px 4px 17px;border-bottom:1px solid #E8ECE7;position:relative}
+.pp-brand{display:flex;align-items:center;gap:10px}
+.pp-mark{width:34px;height:34px;border-radius:10px;background:var(--dark);color:white;display:grid;place-items:center;font:800 17px Manrope}
+.pp-brand b{display:block;font:800 14px Manrope;letter-spacing:-.03em}
+.pp-brand small{display:block;font-size:8px;color:#7C877F;letter-spacing:.12em;margin-top:3px}
+.pp-status{font-size:8px;font-weight:900;letter-spacing:.1em;color:#648C70}
+.parent-product-tabs{display:flex;gap:7px;margin:18px 0 15px;position:relative}
+.parent-product-tab{background:#F5F7F4;border:1px solid #E6EAE5;border-radius:99px;padding:9px 14px;font-size:10px;font-weight:800;color:#5F6B63}
+.parent-product-tab.active{background:var(--dark);border-color:var(--dark);color:white}
+.parent-product-content{background:#F6F8F5;border-radius:15px;padding:22px;position:relative;min-height:295px}
+.pp-content-kicker{font-size:8px;font-weight:900;letter-spacing:.15em;color:var(--purple)}
+.parent-product-content h3{font:800 27px Manrope;letter-spacing:-.06em;margin:9px 0 7px}
+.parent-product-content>p{font-size:11px;line-height:1.6;color:#6C776F;max-width:520px;margin:0}
+.pp-evidence-list{display:grid;gap:8px;margin-top:20px}
+.pp-evidence-list>div{display:flex;align-items:flex-start;gap:11px;background:white;border:1px solid #E8ECE7;border-radius:11px;padding:12px}
+.pp-bullet{width:7px;height:7px;border-radius:50%;background:#8FB69A;margin-top:4px;flex:0 0 7px}
+.pp-evidence-list b{display:block;font-size:10px}
+.pp-evidence-list small{display:block;font-size:9px;color:#849087;margin-top:3px}
+.pp-footer{display:flex;justify-content:space-between;gap:10px;font-size:8px;color:#8B958D;letter-spacing:.04em;margin-top:15px}
+@media(max-width:900px){
+ .free-mission-grid{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+ .fm-feature{grid-row:auto;grid-column:span 2;min-height:320px}
+ .parent-experience{grid-template-columns:1fr;gap:28px}
+}
+@media(max-width:720px){
+ .free-missions{padding-top:78px;padding-bottom:78px}
+ .free-head{display:block}.free-head-side{margin-top:22px}
+ .free-mission-grid{grid-template-columns:1fr 1fr;gap:9px}
+ .free-mission-card{padding:17px;min-height:210px;border-radius:15px}
+ .fm-feature{grid-column:span 2;min-height:275px}
+ .fm-feature .fm-icon{font-size:58px;margin:27px 0 22px}
+ .free-mission-card strong{font-size:21px}.fm-feature strong{font-size:35px}
+ .fm-tease{font-size:11px}
+ .free-preview{display:block;padding:22px}
+ .free-preview-meta{align-items:flex-start;margin-top:18px}
+ .free-preview-meta>span{text-align:left}
+ .parent-head{margin-bottom:30px}
+ .parent-product{padding:15px;border-radius:17px}
+ .parent-product-content{padding:17px}
+ .parent-product-content h3{font-size:24px}
+ .parent-product-tabs{gap:5px}
+ .parent-product-tab{padding:8px 10px;font-size:9px}
+ .pp-footer{flex-wrap:wrap}
+}
+@media(max-width:390px){
+ .free-mission-grid{grid-template-columns:1fr}
+ .fm-feature{grid-column:auto}
+}
+
+
+/* Parent value proposition: concrete contents and partnership */
+.parent-head .section-title{max-width:900px}
+.parent-head .section-intro{font-size:16px;line-height:1.75;color:#536158}
+.parent-promise{padding:18px 0}
+.parent-promise strong{font-size:18px}
+.parent-promise p{font-size:12px;line-height:1.7}
+.parent-trust{padding:13px 15px;background:#D9E8DC;border-radius:10px;color:#385744}
+.parent-product-content{min-height:318px}
+.parent-product-tab{transition:background .2s,color .2s,border-color .2s}
+@media(max-width:720px){
+ .parent-head .section-title{font-size:clamp(39px,10.5vw,54px)}
+ .parent-promise{grid-template-columns:34px 1fr}
+ .parent-product-content{min-height:340px}
+}
+
+
+/* V6 ART DIRECTION — more editorial whitespace, less compressed typography */:root{--max:1360px}
+.wrap{width:min(var(--max),calc(100% - 96px))}
+.display{letter-spacing:-.045em;line-height:1.01}
+.hero h1{letter-spacing:-.052em;line-height:1.015}
+.hero-lede{line-height:1.72;max-width:490px}
+.section{padding:150px 0}
+.section-title{letter-spacing:-.045em;line-height:1.055;font-weight:750}
+.section-intro{line-height:1.78;max-width:520px}
+.section-kicker{margin-bottom:24px;letter-spacing:.18em}
+.world-feature h3,.world-interactive h3,.journey-visual h3,.path-card h3,
+.family-layout h2,.price-card h3,.final-cta .section-title{
+ letter-spacing:-.045em;line-height:1.04
+}
+.journey-step h3{letter-spacing:-.025em;line-height:1.12}
+.ai-contrast .big-line{letter-spacing:-.035em;line-height:1.08}
+.path-card{padding:48px;min-height:540px}
+.path-card p,.parent-promise p,.faq-list details p{line-height:1.78}
+.free-missions{padding-top:140px;padding-bottom:140px}
+.free-head{margin-bottom:54px}
+.free-mission-grid{gap:17px}
+.free-mission-card{padding:30px}
+.free-mission-card strong{letter-spacing:-.035em;line-height:1.12}
+.parent-section{padding:150px 0;background:#E8F0EB}
+.parent-head{max-width:850px;margin-bottom:55px}
+.parent-head .section-title{max-width:900px;letter-spacing:-.045em;line-height:1.06}
+.parent-head .section-intro{font-size:17px;line-height:1.78;max-width:640px}
+.family-section{padding:105px 0}
+.pricing-section{padding-top:145px;padding-bottom:145px}
+.faq-section{padding-top:140px;padding-bottom:140px}
+.final-cta{padding:145px 0}
+.navlinks{gap:38px}
+@media(max-width:900px){
+ .wrap{width:calc(100% - 56px)}
+ .section{padding:112px 0}
+ .parent-section{padding:112px 0}
+ .free-missions{padding:105px 0}
+ .path-card{padding:36px;min-height:490px}
+}
+@media(max-width:720px){
+ .wrap{width:calc(100% - 36px)}
+ .section{padding:86px 0}
+ .section-title{letter-spacing:-.035em;line-height:1.08}
+ .hero h1{letter-spacing:-.04em;line-height:1.04}
+ .free-missions{padding:86px 0}
+ .free-mission-card{padding:19px}
+ .parent-section{padding:88px 0}
+ .parent-head{margin-bottom:34px}
+ .parent-head .section-title{letter-spacing:-.035em;line-height:1.08}
+ .family-section,.pricing-section,.faq-section{padding:86px 0}
+ .final-cta{padding:95px 0}
+}
+
+
+/* Footer fixes — isolate readable copy and guarantee clickable navigation */
+.footer-brand p{
+  letter-spacing:normal;
+  word-spacing:normal;
+  font-family:"DM Sans",Arial,sans-serif;
+  font-size:13px;
+  line-height:1.75;
+  max-width:320px;
+}
+.footer-top{position:relative;isolation:isolate}
+.footer-links{position:relative;z-index:5}
+.footer-links a{
+  position:relative;
+  z-index:6;
+  display:inline-block;
+  width:max-content;
+  max-width:100%;
+  padding:2px 0;
+  line-height:1.55;
+  letter-spacing:normal;
+  pointer-events:auto;
+  cursor:pointer;
+}
+.footer-links a:focus-visible,.footer-logo-link:focus-visible{
+  outline:2px solid var(--lilac);
+  outline-offset:5px;
+  border-radius:3px;
+}
+.footer-links a:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
+@media(max-width:720px){
+  .footer-brand p{font-size:13px;line-height:1.7}
+  .footer-links{position:relative;z-index:5}
+  .footer-links a{padding:4px 0}
+}
+
+/* Parent insight panels — Semrush-inspired spacious product showcases */
+.parent-insight-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+.parent-insight-card{position:relative;min-width:0;min-height:590px;padding:32px 29px 24px;border-radius:7px;display:flex;flex-direction:column;overflow:hidden}
+.insight-mint{background:#D9EFEB}.insight-lilac{background:#E9DFFF}.insight-blue{background:#DCEBFA}
+.insight-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.insight-kicker{display:block;font-size:10px;font-weight:900;letter-spacing:.15em;opacity:.68;margin-bottom:19px}
+.insight-card-head h3{font:750 clamp(23px,2.05vw,31px)/1.12 Manrope,sans-serif;letter-spacing:-.035em;margin:0;max-width:340px}
+.insight-expand{flex:0 0 48px;width:48px;height:48px;border:1px solid rgba(17,23,43,.72);border-radius:50%;background:transparent;color:var(--ink);font-size:27px;font-weight:300;line-height:1;transition:transform .25s,background .25s,color .25s}
+.insight-expand:hover,.insight-expand[aria-expanded="true"]{background:var(--dark);color:white;transform:rotate(45deg)}
+.insight-copy{font-size:13px;line-height:1.65;color:#515966;max-width:360px;margin:18px 0 24px}
+.insight-visual{margin-top:auto;background:#fff;border:1px solid rgba(255,255,255,.9);border-radius:17px;padding:19px 17px 15px;box-shadow:0 14px 34px rgba(30,35,50,.07);min-height:265px;display:flex;flex-direction:column;justify-content:space-between}
+.graph-topline,.timeline-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.graph-topline b,.timeline-head b{font-size:12px}
+.graph-topline span,.timeline-head span{font-size:8px;letter-spacing:.12em;color:#8B8793;font-weight:800}
+.evidence-graph{width:100%;height:auto;overflow:visible;margin:12px 0 0}
+.graph-grid path{stroke:#E8E8EC;stroke-width:1;fill:none}
+.graph-labels{font:10px "DM Sans",sans-serif;fill:#777482}
+.graph-dots circle{fill:#7042C8;stroke:#fff;stroke-width:2.5}
+.graph-dots circle:nth-child(3n){fill:#23BFA4}
+.graph-dots circle:nth-child(4n){fill:#F1B83B}
+.graph-axis{display:flex;justify-content:space-between;gap:8px;font-size:8px;color:#8B8793;margin-top:7px}
+.graph-axis span:last-child{color:#7042C8;font-weight:800}
+.skills-visual{padding:14px 12px}
+.skill-wheel{height:218px;position:relative;display:grid;place-items:center}
+.skill-wheel svg{position:absolute;width:100%;height:100%;inset:0;fill:none;stroke:#DCD5E9;stroke-width:1.2}
+.wheel-core{position:absolute;z-index:2;width:93px;height:93px;border-radius:50%;display:grid;place-items:center;background:#17152B;color:white;text-align:center;font:800 11px/1.3 Manrope;letter-spacing:.04em}
+.wheel-node{position:absolute;z-index:3;display:grid;place-items:center;min-height:29px;padding:6px 10px;border:1px solid #E8E2F0;border-radius:99px;background:#fff;color:#3B3548;font-size:9px;font-weight:800;box-shadow:0 3px 9px rgba(30,20,45,.04)}
+.wn1{top:2px;left:50%;transform:translateX(-50%)}.wn2{top:29px;right:2px}.wn3{top:91px;right:0}.wn4{bottom:27px;right:9px}.wn5{bottom:1px;left:50%;transform:translateX(-50%)}.wn6{bottom:28px;left:4px}.wn7{top:91px;left:0}.wn8{top:29px;left:2px}
+.skill-wheel-note{text-align:center;font-size:9px;color:#898394;margin-top:5px}
+.evidence-timeline{position:relative;padding:13px 0 0 6px;margin-top:12px}
+.evidence-timeline:before{content:"";position:absolute;top:18px;bottom:15px;left:12px;width:1px;background:#D7DFEA}
+.timeline-event{position:relative;padding:0 0 17px 27px;display:flex;flex-direction:column;gap:4px}
+.timeline-event:last-child{padding-bottom:0}
+.timeline-dot{position:absolute;left:0;top:3px;width:13px;height:13px;border-radius:50%;background:#7042C8;border:3px solid #E8DFFF;box-shadow:0 0 0 1px #7042C8}
+.timeline-event:nth-child(2) .timeline-dot{background:#23BFA4;border-color:#D6F4EC;box-shadow:0 0 0 1px #23BFA4}
+.timeline-event:nth-child(3) .timeline-dot{background:#E5B43B;border-color:#FFF0C9;box-shadow:0 0 0 1px #E5B43B}
+.timeline-step{font-size:8px;letter-spacing:.12em;color:#8B8793;font-weight:900}
+.timeline-event b{font-size:11px;line-height:1.35}
+.timeline-event small{font-size:9px;color:#777482}
+.timeline-foot{border-top:1px solid #ECEBF0;padding-top:12px;margin-top:12px;font-size:8px;font-weight:900;letter-spacing:.12em;color:#8B8793}
+.insight-more{max-height:0;overflow:hidden;opacity:0;margin:0;padding:0 2px;color:#444151;font-size:11px;line-height:1.65;transition:max-height .35s ease,opacity .25s,margin .25s,padding .25s}
+.parent-insight-card.is-open .insight-more{max-height:150px;opacity:1;margin-top:17px;padding-top:13px;border-top:1px solid rgba(23,21,43,.15)}
+.parent-trustline{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:22px;padding:23px 27px;border-radius:7px;background:#17152B;color:#fff}
+.parent-trustline>div{display:flex;align-items:center;gap:15px}
+.trust-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:50%;background:#DDF2ED;color:#17152B;font-size:20px;flex:0 0 39px}
+.parent-trustline p{margin:0;color:#D9D6E1;font-size:12px;line-height:1.6}
+.parent-trustline p strong{color:white}
+.parent-trustline .btn{flex:0 0 auto}
+.parent-demo-note{margin:13px 0 0;color:#777E79;font-size:9px;line-height:1.5}
+@media(max-width:1050px){
+ .parent-insight-grid{grid-template-columns:1fr 1fr}
+ .parent-insight-card:last-child{grid-column:span 2;min-height:510px}
+}
+@media(max-width:720px){
+ .parent-insight-grid{grid-template-columns:1fr;gap:12px}
+ .parent-insight-card,.parent-insight-card:last-child{grid-column:auto;min-height:0;padding:25px 21px}
+ .insight-card-head h3{font-size:26px}
+ .insight-visual{min-height:250px;margin-top:8px}
+ .parent-trustline{display:block;padding:21px}
+ .parent-trustline .btn{margin-top:17px}
+}
+@media(prefers-reduced-motion:reduce){.insight-expand,.insight-more{transition:none}}
+
+
+/* Selected Semrush-inspired product demonstration */
+.demo{background:var(--dark);color:#fff;overflow:hidden;position:relative}
+.demo:before{content:"";position:absolute;width:600px;height:600px;left:-300px;top:-250px;border-radius:50%;background:radial-gradient(circle,#7045c655,transparent 70%);pointer-events:none}
+.demo-layout{display:grid;grid-template-columns:.72fr 1.28fr;gap:45px;align-items:center;position:relative}
+.demo-copy .eyebrow{color:#c6a8ff}
+.demo-copy h2{font:800 clamp(40px,5vw,62px)/.98 Manrope,sans-serif;letter-spacing:-.065em;margin:17px 0}
+.demo-copy>p{color:#b9bfd0;line-height:1.8;font-size:15px}
+.demo-step{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-bottom:1px solid #ffffff20;color:#dce0ec;font-size:13px;line-height:1.5}
+.demo-step>span{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:50%;background:#ffffff16;color:#d9c5ff;font-weight:800}
+.play-card{position:relative;background:#f7f7f2;color:var(--ink);border-radius:26px;padding:25px;box-shadow:0 30px 80px #0005}
+.play-top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
+.play-top small{font-size:10px;letter-spacing:.13em;font-weight:900;color:#7a7187}
+.scenario{padding:23px;border-radius:18px;background:linear-gradient(135deg,#dff3ed,#e8ddff);margin-bottom:18px}
+.scenario .scene-emoji{font-size:35px}
+.scenario h3{font:800 22px Manrope,sans-serif;margin:10px 0 7px;letter-spacing:-.04em}
+.scenario p{font-size:13px;line-height:1.6;color:#515b57;margin:0}
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice{border:1px solid #d9d9d1;background:#fff;border-radius:13px;padding:14px;text-align:left;font-size:12px;font-weight:800;min-height:66px;transition:transform .2s,border-color .2s,background .2s;color:var(--ink)}
+.choice:hover{border-color:var(--purple);transform:translateY(-2px)}
+.choice:focus-visible{outline:3px solid var(--purple);outline-offset:3px}
+.choice.selected{background:#eee4ff;border-color:var(--purple);box-shadow:inset 0 0 0 1px var(--purple)}
+.feedback{display:none;margin-top:14px;padding:14px 16px;background:#e2f3e9;border-radius:13px;font-size:12px;line-height:1.6;color:#264d39}
+.feedback.show{display:block;animation:reveal .35s var(--ease)}
+.reset-demo{border:0;background:none;color:#7545c7;font-weight:800;font-size:11px;margin-top:12px;padding:5px 0}
+.demo-disclaimer{font-size:10px;color:#747c83;margin-top:15px;line-height:1.55}
+.demo .section-kicker{color:var(--lilac)}
+/* Semrush-style research story, using the supplied research references */
+.research{background:#10162b;color:#fff;overflow:hidden;position:relative}
+.research:after{content:"";position:absolute;width:600px;height:600px;right:-300px;bottom:-300px;background:radial-gradient(circle,#7545c755,transparent 70%);pointer-events:none}
+.research .section-head p{color:#bac0d0}
+.research .eyebrow{color:#c8aaff}
+.research .section-head h2{max-width:900px}
+.research-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;position:relative;z-index:1}
+.study{border:1px solid #ffffff22;background:#ffffff09;border-radius:20px;padding:24px;transition:transform .3s var(--ease),background .3s;min-width:0}
+.study:hover{background:#ffffff12;transform:translateY(-5px)}
+.study .source{font-size:9px;letter-spacing:.14em;color:#c8aaff;font-weight:900}
+.study h3{font:800 20px/1.2 Manrope,sans-serif;letter-spacing:-.04em;margin:13px 0}
+.study-stat{font:800 38px/1 Manrope,sans-serif;letter-spacing:-.07em;color:#ffdc57;margin:14px 0 5px}
+.study small{font-size:10px;color:#aeb6c8;line-height:1.6;display:block}
+.study p{font-size:12px;line-height:1.7;color:#c0c5d3}
+.study a{display:inline-block;margin-top:15px;color:#d7c2ff;font-size:11px;font-weight:800;text-decoration:underline;text-underline-offset:4px}
+.research-note{margin-top:20px;border-left:3px solid var(--yellow);padding:14px 18px;background:#ffffff0b;border-radius:0 12px 12px 0;font-size:11px;line-height:1.7;color:#c3c9d8;position:relative;z-index:1}
+.research-bottom{margin-top:35px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;position:relative;z-index:1}
+.research-bottom h3{font:800 clamp(25px,3vw,38px)/1.08 Manrope,sans-serif;letter-spacing:-.05em;margin:0}
+.research-bottom p{font-size:13px;line-height:1.7;color:#b9bfd0;margin:0}
+.parent-insight-grid-two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.parent-insight-grid-two .parent-insight-card{min-height:570px}
+.pricing-start-link{margin-top:18px}
+@media(max-width:1050px){
+ .research-grid{grid-template-columns:1fr 1fr}
+ .study:last-child{grid-column:span 2}
+}
+@media(max-width:900px){
+ .demo-layout{grid-template-columns:1fr;gap:28px}
+ .demo-copy h2{max-width:700px}
+ .parent-insight-grid-two{grid-template-columns:1fr 1fr}
+ .parent-insight-grid-two .parent-insight-card{min-height:520px}
+}
+@media(max-width:720px){
+ .demo-layout{grid-template-columns:1fr;gap:25px}
+ .play-card{padding:17px;border-radius:19px}
+ .scenario{padding:17px}
+ .choices{grid-template-columns:1fr}
+ .choice{min-height:52px}
+ .research-grid{grid-template-columns:1fr}
+ .study:last-child{grid-column:auto}
+ .research-bottom{grid-template-columns:1fr;gap:12px}
+ .parent-insight-grid-two{grid-template-columns:1fr}
+ .parent-insight-grid-two .parent-insight-card{min-height:0}
+}
+@media(prefers-reduced-motion:reduce){
+ .demo *, .research *{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+@media(max-width:900px){
+ .parent-insight-grid-two .parent-insight-card:last-child{grid-column:auto}
+}
+
+
+/* Final refinement: parent explanation, school section, information-only pricing */
+.parent-explainer{
+  display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:center;
+  margin:0 0 34px;padding:25px 28px;background:#fff;border:1px solid rgba(17,23,43,.08);
+  border-radius:18px;box-shadow:0 12px 34px rgba(20,35,26,.05)
+}
+.parent-explainer-lead strong{font:800 19px/1.2 Manrope,sans-serif;letter-spacing:-.035em}
+.parent-explainer-lead p{font-size:12px;line-height:1.7;color:#66716A;max-width:420px;margin:9px 0 0}
+.parent-explainer-points{display:grid;gap:0}
+.parent-explainer-point{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,23,43,.09);font-size:12px;font-weight:700}
+.parent-explainer-point:last-child{border-bottom:0}
+.parent-explainer-index{font:800 11px Manrope;color:var(--purple);min-width:24px}
+.pricing-info-note{
+  margin:0 auto 18px;text-align:center;font-size:10px;font-weight:800;
+  letter-spacing:.055em;color:#67577D;background:#EEE7FA;border:1px solid #DED1F3;
+  border-radius:99px;padding:10px 16px;width:fit-content;max-width:100%
+}
+.school-section{background:var(--mint);padding:92px 0}
+.school-layout{display:grid;grid-template-columns:1fr auto;gap:35px;align-items:end}
+.school-layout .section-title{max-width:800px}
+.school-layout p{font-size:15px;line-height:1.65;color:#4E5A54;max-width:650px;margin:22px 0 0}
+.school-contact{flex:0 0 auto}
+@media(max-width:900px){
+  .parent-explainer{grid-template-columns:1fr;gap:15px}
+}
+@media(max-width:720px){
+  .parent-explainer{padding:20px 18px;margin-bottom:22px}
+  .school-section{padding:72px 0}
+  .school-layout{grid-template-columns:1fr;gap:22px;align-items:start}
+  .school-contact{width:fit-content}
+  .pricing-info-note{border-radius:12px;line-height:1.5}
+}
+
+
+/* Tablet navigation: prevent six-link navigation from colliding with the logo or CTA. */
+@media (max-width:1120px){
+  .navlinks{
+    display:none;position:absolute;left:0;right:0;top:78px;z-index:110;
+    padding:20px 28px 24px;background:var(--paper);
+    border-bottom:1px solid var(--line);box-shadow:0 18px 28px rgba(17,23,43,.08);
+    flex-direction:column;align-items:flex-start;gap:19px
+  }
+  .navlinks.open{display:flex}
+  .navright{display:none}
+  .menu{display:grid;place-items:center}
+}
+@media (max-width:720px){
+  .navlinks{top:68px;left:0;right:0;padding:18px 22px 22px}
+}
+</style>
+<body>
+<header class="topbar">
+<div class="wrap nav">
+<a aria-label="CubitX home" class="brand" href="#top"><img alt="CubitX" class="cubitx-logo" src="data:image/png;base64,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" style="background:transparent;object-fit:contain"/></a>
+<nav class="navlinks" id="navlinks"><a href="#free-missions">Free Adventures</a><a href="#how">How It Works</a><a href="#parents">For Parents</a><a href="#why-cubitx-exists">Why CubitX Exists</a><a href="#schools">For Schools</a><a href="#pricing">Pricing</a></nav>
+<div class="nav-actions"><a class="btn btn-outline" href="#how">See how it works</a><a class="btn btn-dark" href="#free-missions">Try free <span class="arrow">↗</span></a></div>
+<button aria-controls="navlinks" aria-expanded="false" aria-label="Open navigation menu" class="menu-btn" id="menuBtn" type="button">☰</button>
+</div>
+</header>
+<main id="top">
+<section class="hero">
+<div class="wrap hero-layout">
+<div class="hero-copy">
+<div class="eyebrow"><i class="live-dot"></i> Interactive adventures · Classes 5–7</div>
+<h1 class="display">AI can give your child an instant answer. <em>But do you know what makes your child think?</em></h1>
+<p class="hero-lede">At CubitX, children explore, solve little mysteries, try their ideas and discover answers on their own. Give your child the joy of figuring things out.</p>
+<div class="hero-actions"><a class="btn btn-dark" href="#free-missions">Try 5 Free Adventures <span class="arrow">↗</span></a><a class="btn btn-outline" href="#how">See how it works <span class="arrow">↓</span></a></div>
+<p class="micro">No registration. No payment. Five adventures to begin.</p>
+</div>
+<div aria-label="Decorative illustration of a child exploring a river crossing mission" class="hero-stage">
+<div class="stage-orbit"></div><div class="stage-glow"></div>
+<div class="mission-window">
+<div class="window-bar"><span>CUBITX / MISSION 001</span><span class="window-dots"><i></i><i></i><i></i></span></div>
+<div class="mission-art"><div class="sun"></div><div class="mountain"></div><div class="mountain m2"></div><div class="river"></div><div class="wood-bridge"></div><div class="kid-figure">🧒🏽</div><span class="mission-label">THE RIVER CROSSING</span></div>
+<div class="mission-bottom"><strong>How would you get everyone across?</strong><span>01 / EXPLORE</span></div><div class="mini-progress"><i></i></div>
+</div>
+<div class="float-pill one">A new challenge awaits <b>✦</b></div><div class="float-pill two">Your idea matters. <b>↗</b></div>
+</div>
+</div>
+<div class="scroll-cue">Scroll to explore</div>
+</section>
+<div aria-label="Explore, question, experiment, solve, create, discover" class="ticker">
+<div class="ticker-track"><span>QUESTION <i>✳</i></span><span>EXPLORE <i>✳</i></span><span>EXPERIMENT <i>✳</i></span><span>DISCOVER <i>✳</i></span><span>CREATE <i>✳</i></span><span>DECIDE <i>✳</i></span><span>QUESTION <i>✳</i></span><span>EXPLORE <i>✳</i></span><span>EXPERIMENT <i>✳</i></span><span>DISCOVER <i>✳</i></span><span>CREATE <i>✳</i></span><span>DECIDE <i>✳</i></span></div>
+</div>
+<section class="section free-missions" id="free-missions">
+<div class="wrap">
+<div class="free-head reveal">
+<div><div class="section-kicker">Your first CubitX experience</div>
+<h2 class="section-title">Five free adventures.<br/>A world to explore.</h2>
+</div>
+<div class="free-head-side"><span class="free-stamp">₹0</span><p>No registration. No payment.<br/>Just five chances to think differently.</p></div>
+</div>
+<div class="free-mission-grid">
+<button aria-pressed="true" class="free-mission-card fm-feature active reveal" data-free="secret">
+<span class="fm-number">01 / THE HIDDEN RULE</span><span class="fm-icon">⚙</span>
+<strong>Secret Machine</strong><span class="fm-tease">Can you uncover the rule behind what goes in—and what comes out?</span>
+<span class="fm-open">Preview adventure ↗</span>
+</button>
+<button aria-pressed="false" class="free-mission-card fm-balance reveal" data-free="balance">
+<span class="fm-number">02 / FIND THE BALANCE</span><span class="fm-icon">⚖</span>
+<strong>Balance Detective</strong><span class="fm-tease">Look beyond what seems obvious. What information would help?</span>
+<span class="fm-open">Preview adventure ↗</span>
+</button>
+<button aria-pressed="false" class="free-mission-card fm-pattern reveal" data-free="pattern">
+<span class="fm-number">03 / SPOT THE CONNECTION</span><span class="fm-icon">⌁</span>
+<strong>Pattern Detective</strong><span class="fm-tease">Spot a pattern. Then test whether your rule really holds.</span>
+<span class="fm-open">Preview adventure ↗</span>
+</button>
+<button aria-pressed="false" class="free-mission-card fm-cause reveal" data-free="cause">
+<span class="fm-number">04 / WHAT CAUSED WHAT?</span><span class="fm-icon">↗</span>
+<strong>Cause Detective</strong><span class="fm-tease">When two things happen together, is one really the cause?</span>
+<span class="fm-open">Preview adventure ↗</span>
+</button>
+<button aria-pressed="false" class="free-mission-card fm-question reveal" data-free="question">
+<span class="fm-number">05 / ONE QUESTION</span><span class="fm-icon">?</span>
+<strong>Big Question</strong><span class="fm-tease">If you could ask just one question before deciding, what would it be?</span>
+<span class="fm-open">Preview adventure ↗</span>
+</button>
+</div>
+<div aria-live="polite" class="free-preview reveal">
+<div><span class="preview-eyebrow">SELECTED ADVENTURE</span><h3 id="freePreviewTitle">Secret Machine</h3><p id="freePreviewText">A hidden rule is waiting to be discovered. Look for what changes, what stays the same and what you still need to know.</p></div>
+<div class="free-preview-meta"><span id="freePreviewSkill">THINKING FOCUS · PATTERN AND INFERENCE</span><a class="btn btn-purple" href="#how">Try a sample challenge <span class="arrow">↗</span></a></div>
+</div>
+<p class="free-note">Mission names are drawn from the CubitX adventure set. Preview descriptions are illustrative; the live experience should match the actual published missions.</p>
+</div>
+</section><section class="section demo" id="how">
+<div class="wrap">
+<div class="demo-layout">
+<div class="demo-copy reveal">
+<div class="eyebrow">DON'T JUST READ ABOUT IT</div>
+<h2 class="display">Let your child experience the joy of figuring it out.</h2>
+<p>Here is a tiny taste of a CubitX-style challenge. There may be more than one sensible approach. The interesting part is the reason behind the choice.</p>
+<div class="demo-step"><span>1</span><div><b>Explore the situation</b><br/>Notice what is happening and what matters.</div></div>
+<div class="demo-step"><span>2</span><div><b>Make a choice</b><br/>Try an idea and see what follows.</div></div>
+<div class="demo-step"><span>3</span><div><b>Think about the outcome</b><br/>Consider what the result tells you.</div></div>
+</div>
+<div class="play-card reveal">
+<div class="play-top"><small>CUBITX · A MINI THINKING CHALLENGE</small><small>TRY IT</small></div>
+<div class="scenario">
+<div class="scene-emoji">🌱</div>
+<h3>The School Garden Mystery</h3>
+<p>Two plants are placed in different corners of the school. One grows taller than the other. What would you want to find out before deciding why?</p>
+</div>
+<div class="choices" id="demoChoices">
+<button class="choice" type="button" data-choice="light">How much sunlight does each plant receive?</button>
+<button class="choice" type="button" data-choice="height">Which plant looks taller?</button>
+<button class="choice" type="button" data-choice="water">Are both plants getting the same amount of water?</button>
+<button class="choice" type="button" data-choice="guess">Which plant is probably healthier?</button>
+</div>
+<div aria-live="polite" class="feedback" id="demoFeedback"></div>
+<button class="reset-demo" id="resetDemo" type="button">Try another approach ↻</button>
+<p class="demo-disclaimer">This is an illustrative sample challenge, not a scored assessment or a live child progress report.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section class="section parent-section" id="parents">
+<div class="wrap">
+<div class="parent-head reveal">
+<div class="section-kicker">FOR PARENTS</div>
+<h2 class="section-title">See more than the answer. See the thinking behind it.</h2>
+<p class="section-intro">You are not a spectator in your child’s journey. CubitX brings you closer to the thinking behind each adventure—so you can notice their approach, understand the evidence available and encourage the next step.</p>
+</div>
+<div class="parent-explainer reveal">
+<div class="parent-explainer-lead">
+<strong>What can you discover in Parent Space?</strong>
+<p>It is a window into your child’s learning journey—not a marksheet or a judgement of their ability.</p>
+</div>
+<div class="parent-explainer-points">
+<div class="parent-explainer-point"><span class="parent-explainer-index">01</span><span>Activities explored and choices made</span></div>
+<div class="parent-explainer-point"><span class="parent-explainer-index">02</span><span>Thinking behaviours observed in action</span></div>
+<div class="parent-explainer-point"><span class="parent-explainer-index">03</span><span>Ideas for what to encourage next</span></div>
+</div>
+</div>
+<div class="parent-insight-grid parent-insight-grid-two">
+<article class="parent-insight-card insight-mint reveal">
+<div class="insight-card-head">
+<div><span class="insight-kicker">01 / THINKING EVIDENCE</span><h3>Notice the thinking behind each choice.</h3></div>
+<button aria-expanded="false" aria-label="Expand thinking evidence explanation" class="insight-expand" type="button">+</button>
+</div>
+<p class="insight-copy">Explore the moments where your child asked, tested, explained or reconsidered an idea.</p>
+<div class="insight-visual">
+<div class="graph-topline"><b>Evidence from activities</b><span>ILLUSTRATIVE VIEW</span></div>
+<svg class="evidence-graph" viewBox="0 0 360 170" role="img" aria-label="Illustrative evidence graph showing observations across activities">
+<g class="graph-grid">
+<path d="M25 20H340M25 60H340M25 100H340M25 140H340"/>
+<path d="M25 20V140M105 20V140M185 20V140M265 20V140M340 20V140"/>
+</g>
+<g class="graph-labels"><text x="5" y="23">4</text><text x="5" y="63">3</text><text x="5" y="103">2</text><text x="5" y="143">1</text></g>
+<g class="graph-dots">
+<circle cx="50" cy="100" r="6"/><circle cx="85" cy="80" r="6"/><circle cx="120" cy="60" r="6"/><circle cx="155" cy="80" r="6"/><circle cx="190" cy="40" r="6"/><circle cx="225" cy="60" r="6"/><circle cx="260" cy="40" r="6"/><circle cx="300" cy="20" r="6"/>
+</g>
+</svg>
+<div class="graph-axis"><span>ACTIVITY 01</span><span>ACTIVITY 04</span><span>ACTIVITY 08</span></div>
+</div>
+<p class="insight-more">A real Parent Space should connect each observation to the activity and response that support it. The illustration above is a design example, not a live child record or a validated score.</p>
+</article>
+<article class="parent-insight-card insight-blue reveal">
+<div class="insight-card-head">
+<div><span class="insight-kicker">02 / DEVELOPMENT OVER TIME</span><h3>See how their approach unfolds.</h3></div>
+<button aria-expanded="false" aria-label="Expand development over time explanation" class="insight-expand" type="button">+</button>
+</div>
+<p class="insight-copy">Look back at activities and notice how your child approached different challenges over time.</p>
+<div class="insight-visual">
+<div class="timeline-head"><b>A learning journey</b><span>ILLUSTRATIVE VIEW</span></div>
+<div class="evidence-timeline">
+<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">ACTIVITY 01</span><b>Noticed a pattern</b><small>Looked for what changed between examples</small></div>
+<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">ACTIVITY 04</span><b>Asked for more information</b><small>Identified something still unknown</small></div>
+<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">ACTIVITY 08</span><b>Revisited an earlier idea</b><small>Considered new evidence before deciding</small></div>
+</div>
+<div class="timeline-foot">OBSERVATIONS, NOT MARKS OR RANKS</div>
+</div>
+<p class="insight-more">A real timeline should show only evidence actually captured from completed activities. When there is not enough evidence, it should say “Not observed yet”—never imply a weakness.</p>
+</article>
+</div>
+<div class="parent-trustline reveal">
+<div><span class="trust-icon">✳</span><p><strong>Children are not reduced to a score.</strong><br/>Observations are connected to activities and evidence—not IQ, fixed labels or rankings.</p></div>
+</div>
+<p class="parent-demo-note">The Parent Space panels are illustrative previews. Actual reports must be generated only from recorded child activity and validated observation rules.</p>
+</div>
+</section>
+
+<section class="section research" id="why-cubitx-exists">
+<div class="wrap">
+<div class="section-head reveal">
+<div class="eyebrow">WHY CUBITX EXISTS</div>
+<h2 class="section-title">Knowing an answer is not the same as knowing how to think.</h2>
+<p>Children need opportunities to question, investigate, test ideas and reason through unfamiliar situations—not only recall information.</p>
+</div>
+<div class="research-grid">
+<article class="study reveal"><span class="source">LEARNING SCIENCE</span><h3>Active learning creates opportunities to think.</h3><p>When learners engage with ideas, explain their reasoning and test their understanding, they do more than passively receive information.</p></article>
+<article class="study reveal"><span class="source">METACOGNITION</span><h3>Thinking about thinking matters.</h3><p>Planning, monitoring and evaluating one’s approach can help learners become more aware of how they learn and where they need to adjust.</p></article>
+<article class="study reveal"><span class="source">CRITICAL THINKING</span><h3>Good judgement needs practice.</h3><p>Evaluating evidence, considering alternatives and recognising uncertainty are habits that develop through meaningful opportunities to practise.</p></article>
+</div>
+<div class="research-note reveal">These are broad learning-science principles, not claims that one specific study proves CubitX improves outcomes. Product effectiveness must be evaluated through properly designed research.</div>
+<div class="research-bottom reveal">
+<h3>Less passive consumption.<br/>More active discovery.</h3>
+<p>CubitX turns these principles into child-friendly adventures where children can explore, make choices, test ideas and reflect on what they discover.</p>
+</div>
+</div>
+</section>
+
+<section class="section path-section">
+<div class="wrap">
+<div class="path-head reveal">
+<div><div class="section-kicker">A JOURNEY THAT GROWS</div><h2 class="section-title">Room to grow, one challenge at a time.</h2></div>
+<p class="section-intro">Different age groups need different kinds of challenges. CubitX is designed to grow with the learner.</p>
+</div>
+<div class="path-grid">
+<article class="path-card foundation reveal">
+<div><span class="grade">CLASSES 5–7</span><h3>Foundation Explorers</h3><p>Build confidence through observation, curiosity, simple investigations and everyday problem-solving.</p></div>
+<div class="path-bottom"><div class="path-tags"><span>Observe</span><span>Question</span><span>Explore</span></div><span class="path-symbol">✳</span></div>
+</article>
+<article class="path-card advanced reveal">
+<div><span class="grade">CLASSES 8–10</span><h3>Advanced Explorers</h3><p>Take on more layered challenges involving evidence, trade-offs, uncertainty and decisions.</p></div>
+<div class="path-bottom"><div class="path-tags"><span>Investigate</span><span>Evaluate</span><span>Decide</span></div><span class="path-symbol">⌁</span></div>
+</article>
+</div>
+</div>
+</section>
+
+<section class="family-section">
+<div class="wrap family-layout reveal">
+<div><div class="eyebrow">A FAMILY JOURNEY</div><h2>Every child deserves the space to think in their own way.</h2><p>One parent account can manage up to three child profiles. Each child gets their own learning journey and separate paid access.</p></div>
+<div class="family-bubbles"><span class="family-bubble">🧒🏽</span><span class="family-bubble">👧🏽</span><span class="family-bubble">🧑🏽</span></div>
+</div>
+</section>
+
+<section class="section pricing-section" id="pricing">
+<div class="wrap">
+<div class="pricing-head reveal">
+<div class="section-kicker">SIMPLE, TRANSPARENT ACCESS</div>
+<h2 class="section-title">Choose the pace that works for your family.</h2>
+<p class="section-intro">Start with five free adventures. When you are ready, choose a plan. All renewals are manual—there are no automatic charges.</p>
+</div>
+<div class="pricing-info-note">PLAN INFORMATION ONLY · Paid-plan selection and payment are not enabled yet.</div>
+<div class="pricing-grid">
+<article class="price-card reveal">
+<span class="label">A first step</span><h3>₹49 <small>/ 7 days</small></h3>
+<p>A short introduction to the CubitX adventure experience.</p>
+<ul><li>7 days of access</li><li>One-time pass</li><li>No automatic renewal</li></ul>
+</article>
+<article class="price-card featured reveal">
+<span class="label">For regular explorers</span><h3>₹149 <small>/ 30 days</small></h3>
+<p>More time to explore, practise and discover.</p>
+<ul><li>30 days from activation</li><li>Manual renewal</li><li>No automatic charges</li></ul>
+</article>
+<article class="price-card reveal">
+<span class="label">The longer journey</span><h3>₹999 <small>/ 12 months</small></h3>
+<p>A year of opportunities to build thinking habits.</p>
+<ul><li>12 months from activation</li><li>Manual renewal</li><li>No automatic charges</li></ul>
+</article>
+</div>
+<div class="family-discount reveal"><div><strong>Growing together?</strong><p>Families with two or three paid child profiles receive a 20% family discount.</p></div><strong>Save 20%</strong></div>
+<p class="pricing-foot">Prices are per child, before applicable family or approved school discounts. The ₹49 pass may be credited in full towards the same child's annual plan upgrade during the pass's seven-day validity, subject to the published terms. Payment links and checkout will be added when payment integration is ready.</p>
+</div>
+</section>
+
+<section class="school-section" id="schools">
+<div class="wrap school-layout reveal">
+<div>
+<div class="section-kicker">FOR SCHOOLS</div>
+<h2 class="section-title" id="schools-title">Make room for thinking in your classroom.</h2>
+<p>Give students opportunities to question, investigate, experiment and solve unfamiliar problems through interactive adventures.</p>
+</div>
+<a class="btn btn-dark school-contact" href="mailto:hello@cubitx.in?subject=CubitX%20for%20Schools">Partner with CubitX <span aria-hidden="true" class="arrow">↗</span></a>
+</div>
+</section>
