@@ -1,4 +1,3 @@
-// src/core/auth/AuthContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -86,6 +85,22 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   const [loading, setLoading] = useState(true);
   const [dev, setDev] = useState<boolean>(() => isDevMode());
 
+  const setSupabaseId = useApp((s) => s.setSupabaseId);
+
+  /* ─── Derived State ──────────────────────────────── */
+  const effectiveSession = dev ? MOCK_SESSION : session;
+  const effectiveUser = dev ? MOCK_SESSION.user : (session?.user ?? null);
+  const effectiveParent = dev ? MOCK_PARENT_PROFILE : parent;
+  const effectiveChildren = dev ? MOCK_CHILD_LIST : kids;
+  const hasConsent = dev ? true : !!parent?.consent_given;
+
+  /* ─── Sync Global Store ──────────────────────────── */
+  useEffect(() => {
+    if (effectiveUser?.id) {
+      setSupabaseId(effectiveUser.id);
+    }
+  }, [effectiveUser?.id, setSupabaseId]);
+
   /* ─── Session listener ───────────────────────────── */
   useEffect(() => {
     if (dev) {
@@ -93,15 +108,15 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (!session) setLoading(false);
+    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      setSession(currentSession);
+      if (!currentSession) setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        if (!session) {
+      (_event, currentSession) => {
+        setSession(currentSession);
+        if (!currentSession) {
           setParent(null);
           setKids([]);
           setLoading(false);
@@ -214,15 +229,6 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     if (!error) await refreshChildren();
     return { error: error?.message ?? null };
   };
-
-  /* ─── Dev mode: synthesize everything ────────────── */
-  const effectiveSession = dev ? MOCK_SESSION : session;
-  const effectiveParent = dev ? MOCK_PARENT_PROFILE : parent;
-  const effectiveChildren = dev ? MOCK_CHILD_LIST : kids;
-  const effectiveUser = dev ? MOCK_SESSION.user : (session?.user ?? null);
-  const hasConsent = dev
-    ? true
-    : !!parent?.consent_given;
 
   return (
     <AuthContext.Provider
