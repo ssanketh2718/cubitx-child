@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useChild } from '../auth/ChildContext';
 import { useApp } from '../store';
@@ -122,7 +123,7 @@ export default function ParentView() {
     };
   }, [days, sessions, responses, curriculumTier]);
 
-  const saveFamilyNote = (event: React.FormEvent<HTMLFormElement>) => {
+  const saveFamilyNote = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const text = noteText.trim();
     if (!text || !activeChild) return;
