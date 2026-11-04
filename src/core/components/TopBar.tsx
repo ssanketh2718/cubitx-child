@@ -1,112 +1,66 @@
-import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChild } from '../auth/ChildContext';
 
 export default function TopBar() {
   const navigate = useNavigate();
-  const { children: kids, signOut, isDev } = useAuth();
+  const { session, signOut } = useAuth();
   const { activeChild } = useChild();
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
-
-  const displayAvatar = activeChild?.avatar ?? '👤';
-  const displayName = activeChild?.name ?? 'Menu';
-
-  const handleSignOut = async () => {
-    setOpen(false);
-    await signOut();
-    navigate('/');
-  };
+  const firstName = activeChild?.name?.trim().split(/\s+/)[0] || 'Explorer';
+  const initialLetter = firstName.charAt(0).toUpperCase();
 
   return (
-    <div className="border-b border-white/[0.06] sticky top-0 z-40 bg-[#05091a]/95 backdrop-blur">
-      <div className="max-w-2xl mx-auto flex items-center justify-between px-5 py-3.5">
+    <header className="sticky top-0 z-40 w-full bg-[#FAF9F5]/90 backdrop-blur-md border-b border-[#E7E5E0] px-4 py-3">
+      <div className="max-w-3xl mx-auto flex items-center justify-between">
+        {/* Brand Link — Single Clean Logo with no duplicate text */}
         <button
           onClick={() => navigate('/home')}
-          className="flex items-center gap-2"
-          aria-label="CubitX home"
+          className="flex items-center gap-3 cursor-pointer group text-left"
         >
-          <img src="/cubitx-logo.jpg" alt="CubitX" className="h-6 w-auto" />
+          <img
+            src="/cubitx-logo.jpg"
+            alt="CubitX"
+            className="h-8 w-auto rounded-lg shadow-sm border border-[#E7E5E0]"
+          />
+          <span className="hidden sm:inline-block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 border-l border-slate-300 pl-3">
+            Thinking Adventures
+          </span>
         </button>
 
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] pl-1 pr-3 py-1 hover:bg-white/[0.06] transition"
-            aria-label="Menu"
-          >
-            <span className="w-8 h-8 rounded-full bg-white/[0.06] flex items-center justify-center text-[18px]">
-              {displayAvatar}
-            </span>
-            <span className="text-[12.5px] font-semibold text-white/80 max-w-[90px] truncate">
-              {displayName}
-            </span>
-            <span className="text-[10px] text-white/40">▾</span>
-          </button>
+        {/* User Identity & Account Actions */}
+        <div className="flex items-center gap-3">
+          {session && (
+            <button
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 bg-white border border-[#E7E5E0] hover:border-purple-300 px-3 py-1.5 rounded-xl shadow-sm transition cursor-pointer"
+            >
+              <div className="w-6 h-6 rounded-lg bg-[#111827] text-white flex items-center justify-center text-xs font-black">
+                {initialLetter}
+              </div>
+              <span className="text-xs font-extrabold text-[#111827]">
+                {firstName}
+              </span>
+            </button>
+          )}
 
-          {open && (
-            <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/[0.08] bg-[#0a1228] shadow-[0_20px_60px_rgba(0,0,0,0.5)] overflow-hidden">
-              {activeChild && (
-                <div className="px-4 py-3 border-b border-white/[0.06]">
-                  <div className="text-[10px] uppercase tracking-[0.14em] text-white/40 font-bold">
-                    Playing as
-                  </div>
-                  <div className="mt-1 text-[14px] font-semibold text-white flex items-center gap-2">
-                    <span>{activeChild.avatar}</span>
-                    <span>{activeChild.name}</span>
-                  </div>
-                  <div className="text-[11.5px] text-white/50 mt-0.5">
-                    Class {activeChild.class_level}
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={() => { setOpen(false); navigate('/parent'); }}
-                className="w-full text-left px-4 py-3 text-[13.5px] text-white/85 hover:bg-white/[0.04] transition border-b border-white/[0.06]"
-              >
-                📈 Habits
-              </button>
-
-              {kids.length > 1 && (
-                <button
-                  onClick={() => { setOpen(false); navigate('/switch'); }}
-                  className="w-full text-left px-4 py-3 text-[13.5px] text-white/85 hover:bg-white/[0.04] transition border-b border-white/[0.06]"
-                >
-                  🔄 Switch child
-                </button>
-              )}
-
-              {kids.length < 3 && (
-                <button
-                  onClick={() => { setOpen(false); navigate('/add-child'); }}
-                  className="w-full text-left px-4 py-3 text-[13.5px] text-white/85 hover:bg-white/[0.04] transition border-b border-white/[0.06]"
-                >
-                  ➕ Add another child
-                </button>
-              )}
-
-              <button
-                onClick={handleSignOut}
-                className="w-full text-left px-4 py-3 text-[13.5px] text-red-300 hover:bg-red-500/[0.08] transition"
-              >
-                {isDev ? '🧪 Exit dev mode' : '🚪 Sign out'}
-              </button>
-            </div>
+          {session ? (
+            <button
+              onClick={() => signOut()}
+              className="text-xs font-bold text-slate-500 hover:text-[#111827] transition px-2 py-1 cursor-pointer"
+            >
+              Sign Out
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/signin')}
+              className="text-xs font-bold bg-[#111827] text-white px-3.5 py-1.5 rounded-xl hover:bg-[#6D28D9] transition shadow-sm cursor-pointer"
+            >
+              Log In
+            </button>
           )}
         </div>
       </div>
-    </div>
+    </header>
   );
 }

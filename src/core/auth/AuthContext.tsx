@@ -30,8 +30,16 @@ interface AuthContextType {
   loading: boolean;
   isDev: boolean;
   hasConsent: boolean;
+  
+  // Legacy / existing methods
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string) => Promise<{ error: string | null }>;
+  
+  // New strict OTP/OAuth methods for SignIn.tsx
+  signInWithOtp: (params: { email: string }) => Promise<{ error: string | null }>;
+  verifyOtp: (params: { email: string; token: string; type: 'email' }) => Promise<{ error: string | null }>;
+  signInWithOAuth: (params: { provider: 'google' }) => Promise<{ error: string | null }>;
+  
   signOut: () => Promise<void>;
   addChild: (
     name: string,
@@ -152,6 +160,8 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
   }, [session?.user?.id, dev]);
 
   /* ─── Auth methods ──────────────────────────────── */
+  
+  // Legacy / Existing mappings
   const signInWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -167,16 +177,40 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
     return { error: error?.message ?? null };
   };
 
+  // New strict mappings for SignIn.tsx
+  const signInWithOtp = async ({ email }: { email: string }) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: `${window.location.origin}/onboard` },
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const verifyOtp = async ({ email, token, type }: { email: string; token: string; type: 'email' }) => {
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const signInWithOAuth = async ({ provider }: { provider: 'google' }) => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/onboard` },
+    });
+    return { error: error?.message ?? null };
+  };
+
   const signOut = async () => {
-    // Clear child-specific cached state before leaving the account. Remove only
-    // CubitX keys; do not clear unrelated origin storage.
     useApp.getState().reset();
     useApp.persist.clearStorage();
     try {
       window.localStorage.removeItem('cubitx-active-child-id');
       window.localStorage.removeItem('cubitx-dev-day');
     } catch {
-      // The auth sign-out must still proceed if browser storage is unavailable.
+      // Proceed if browser storage is unavailable
     }
 
     if (dev) {
@@ -240,8 +274,14 @@ export function AuthProvider({ children: reactChildren }: { children: ReactNode 
         loading: dev ? false : loading,
         isDev: dev,
         hasConsent,
+        
         signInWithGoogle,
         signInWithEmail,
+        
+        signInWithOtp,
+        verifyOtp,
+        signInWithOAuth,
+        
         signOut,
         addChild,
         refreshChildren,

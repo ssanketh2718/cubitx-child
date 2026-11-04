@@ -1,779 +1,1990 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1" name="viewport"/>
-<meta content="#080D20" name="theme-color"/>
-<link href="/cubitx-logo.png" rel="icon" type="image/png"/>
-<meta content="CubitX helps children in Classes 5–10 practise critical thinking through interactive adventures. Try five free adventures." name="description"/>
-<title>CubitX — Develop the Mind Behind the Marks</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root{
- --mint:#DDF2ED;--mint2:#BFE8DE;--lilac:#B98AF4;--lilac2:#E9D9FF;
- --ink:#11172B;--paper:#F8F8F4;--white:#fff;--yellow:#FFD84D;
- --coral:#FF826E;--blue:#A9C9F5;--brand-blue:#91A8FF;--muted:#626B67;--line:rgba(23,26,23,.13);
- --purple:#7042C8;--dark:#080D20;--max:1360px;--ease:cubic-bezier(.2,.75,.25,1);
-}
-*{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:84px}
-body{margin:0;background:var(--paper);color:var(--ink);font-family:"DM Sans",Arial,sans-serif;overflow-x:hidden}
-a{color:inherit;text-decoration:none}button{font:inherit;cursor:pointer}
-img{max-width:100%;display:block}
-.wrap{width:min(var(--max),calc(100% - 96px));margin-inline:auto}
-.eyebrow{font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
-.display{font-family:Manrope,"DM Sans",sans-serif;font-weight:800;letter-spacing:-.045em;line-height:1.01}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:12px;border:1px solid var(--ink);border-radius:100px;padding:16px 23px;font-weight:800;font-size:14px;transition:transform .3s var(--ease),background .3s,color .3s;white-space:nowrap}
-.btn:hover{transform:translateY(-3px)}
-.btn-dark{background:var(--dark);color:white}.btn-dark:hover{background:var(--purple);border-color:var(--purple)}
-.btn-purple{background:var(--lilac);border-color:var(--lilac);color:var(--ink)}.btn-purple:hover{background:var(--yellow);border-color:var(--yellow)}
-.btn-outline{background:transparent}.btn-outline:hover{background:var(--dark);color:white}
-.arrow{font-size:18px;line-height:0}
-.topbar{height:82px;position:sticky;top:0;z-index:100;background:rgba(248,248,244,.9);backdrop-filter:blur(18px);border-bottom:1px solid rgba(23,26,23,.08)}
-.nav{height:100%;display:flex;align-items:center;justify-content:space-between;gap:28px}
-.brand{display:inline-flex;align-items:center;padding:0!important;margin:0;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;line-height:0;flex:0 0 auto}
-.brand img{display:block;width:158px;height:auto;max-height:none;object-fit:contain;border:0;border-radius:0;box-shadow:none;background:transparent}
-.navlinks{display:flex;align-items:center;gap:38px;font-size:13px;font-weight:700}
-.navlinks a{position:relative}.navlinks a:after{content:"";position:absolute;left:0;bottom:-7px;width:0;height:2px;background:var(--purple);transition:width .25s}
-.navlinks a:hover:after{width:100%}
-.nav-actions{display:flex;align-items:center;gap:10px}
-.nav .btn{padding:13px 20px;font-size:13px}
-.menu-btn{display:none;border:1px solid var(--line);background:transparent;border-radius:50%;width:44px;height:44px;font-size:20px}
-.hero{min-height:760px;background:var(--mint);position:relative;overflow:hidden;padding:76px 0 70px;isolation:isolate}
-.hero:before{content:"";position:absolute;width:760px;height:760px;border-radius:50%;background:radial-gradient(circle,rgba(185,138,244,.22),transparent 68%);right:-190px;top:-290px;z-index:-1}
-.hero:after{content:"";position:absolute;inset:auto 0 0;height:150px;background:linear-gradient(transparent,rgba(255,255,255,.16));z-index:-1}
-.hero-layout{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:24px;position:relative}
-.hero-copy{max-width:680px;position:relative;z-index:3}
-.hero .eyebrow{display:inline-flex;align-items:center;gap:10px;padding:9px 13px;border:1px solid rgba(23,26,23,.2);border-radius:99px;background:rgba(255,255,255,.28)}
-.live-dot{width:7px;height:7px;border-radius:50%;background:#4B9B74;box-shadow:0 0 0 5px rgba(75,155,116,.12);animation:pulse 2s infinite}
-.hero h1{font-size:clamp(58px,7.3vw,108px);margin:28px 0 22px;max-width:760px;letter-spacing:-.052em;line-height:1.015}
-.hero h1 em{font-style:normal;color:var(--purple);position:relative;white-space:normal}
-.hero-lede{font-size:18px;line-height:1.72;max-width:490px;color:#39443F;margin:0 0 26px}
-.hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.micro{font-size:12px;color:#59635E;margin-top:15px}
-.hero-stage{height:560px;position:relative;display:grid;place-items:center;perspective:1100px}
-.stage-orbit{position:absolute;width:470px;height:470px;border:1px solid rgba(100,36,200,.2);border-radius:50%;animation:orbit 32s linear infinite}
-.stage-orbit:before,.stage-orbit:after{content:"";position:absolute;border:1px dashed rgba(100,36,200,.2);border-radius:50%;inset:35px}
-.stage-orbit:after{inset:85px;border-style:solid}
-.stage-glow{position:absolute;width:390px;height:390px;border-radius:50%;background:radial-gradient(circle,rgba(185,138,244,.34),rgba(255,216,77,.16) 48%,transparent 70%);filter:blur(5px);animation:breathe 6s ease-in-out infinite}
-.mission-window{position:relative;width:min(100%,490px);background:#fff;border:1px solid rgba(23,26,23,.12);border-radius:28px;padding:15px;box-shadow:0 35px 90px rgba(37,47,43,.18);transform:rotateY(-7deg) rotateX(3deg);animation:float 7s ease-in-out infinite;z-index:2}
-.window-bar{display:flex;justify-content:space-between;align-items:center;padding:5px 7px 13px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#68716C}
-.window-dots{display:flex;gap:4px}.window-dots i{width:6px;height:6px;border-radius:50%;background:#D8DCD9}
-.mission-art{height:270px;border-radius:18px;overflow:hidden;position:relative;background:linear-gradient(145deg,#BFE8DE,#DCEBFF 58%,#E9D9FF)}
-.mission-art .sun{position:absolute;right:40px;top:28px;width:57px;height:57px;background:var(--yellow);border-radius:50%;box-shadow:0 0 40px #FFD84D88}
-.mountain{position:absolute;bottom:-35px;width:115%;height:160px;border-radius:50% 50% 0 0;background:#8AB8A4;transform:rotate(-8deg);left:-7%}
-.mountain.m2{height:125px;bottom:-55px;background:#5B8E83;transform:rotate(8deg)}
-.river{position:absolute;bottom:0;left:0;right:0;height:75px;background:#7DB9D5;clip-path:polygon(0 28%,100% 0,100% 100%,0 100%)}
-.wood-bridge{position:absolute;left:20%;right:20%;bottom:65px;height:13px;background:#A86F4C;transform:rotate(-8deg);border-radius:9px;box-shadow:0 7px 0 #744C38}
-.wood-bridge:before,.wood-bridge:after{content:"";position:absolute;bottom:-20px;width:7px;height:26px;background:#744C38;border-radius:4px}
-.wood-bridge:before{left:20px}.wood-bridge:after{right:20px}
-.bridge-person{position:absolute;left:49%;bottom:105px;font-size:40px;transform:translateX(-50%)}
-.kid-figure{position:absolute;left:49%;bottom:102px;font-size:42px;transform:translateX(-50%)}
-.mission-label{position:absolute;left:16px;top:16px;padding:7px 10px;border-radius:99px;background:#ffffffd9;font-size:9px;font-weight:900;letter-spacing:.1em}
-.mission-bottom{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 5px 12px}
-.mission-bottom strong{font:800 15px Manrope;letter-spacing:-.03em}
-.mission-bottom span{font-size:8px;font-weight:900;letter-spacing:.1em;color:#79847C}
-.mini-progress{height:4px;background:#EDF0EC;border-radius:10px;overflow:hidden}
-.mini-progress i{display:block;width:36%;height:100%;background:var(--purple);border-radius:10px;animation:progress 5s ease-in-out infinite alternate}
-.float-pill{position:absolute;z-index:4;padding:13px 16px;border-radius:99px;background:#fff;box-shadow:0 12px 30px #1c263322;font-size:11px;font-weight:800}
-.float-pill b{color:var(--purple);margin-left:7px}
-.float-pill.one{right:-5px;top:75px}.float-pill.two{left:-12px;bottom:75px}
-.scroll-cue{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#64746C}
-.ticker{overflow:hidden;background:var(--dark);color:#fff;padding:18px 0}
-.ticker-track{display:flex;width:max-content;animation:marquee 34s linear infinite}
-.ticker span{font:800 13px Manrope;letter-spacing:.16em;padding:0 32px;white-space:nowrap}
-.ticker i{font-style:normal;color:var(--lilac);padding-left:26px}
-.section{padding:150px 0}
-.section-title{font:750 clamp(43px,5.6vw,74px)/1.055 Manrope,sans-serif;letter-spacing:-.045em;margin:18px 0}
-.section-kicker{font-size:10px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;color:var(--purple);margin-bottom:24px}
-.section-intro{font-size:16px;line-height:1.78;max-width:520px;color:#626D66}
-.reveal{opacity:1;transform:none;transition:opacity .5s var(--ease),transform .5s var(--ease)}
-.reveal.visible{opacity:1;transform:none}
-.mobile-cta{display:none}
-@keyframes pulse{50%{box-shadow:0 0 0 9px rgba(75,155,116,0)}}
-@keyframes float{0%,100%{translate:0 0}50%{translate:0 -12px}}
-@keyframes breathe{0%,100%{transform:scale(.94);opacity:.65}50%{transform:scale(1.07);opacity:1}}
-@keyframes orbit{to{transform:rotate(360deg)}}
-@keyframes marquee{to{transform:translateX(-50%)}}
-@keyframes progress{to{width:88%}}
-@media(max-width:1000px){
- .wrap{width:min(var(--max),calc(100% - 56px))}
- .navlinks{gap:17px}.hero{min-height:auto}.hero-layout{grid-template-columns:1fr 1fr}.hero h1{font-size:clamp(54px,7vw,78px)}
- .hero-stage{height:470px}.stage-orbit{width:390px;height:390px}
-}
-@media(max-width:720px){
- html{scroll-padding-top:70px}.wrap{width:calc(100% - 36px)}
- .topbar{height:70px}.brand img{width:143px}.nav-actions{display:none}.menu-btn{display:block}
- .navlinks{display:none;position:absolute;top:70px;left:0;right:0;padding:22px;background:var(--paper);border-bottom:1px solid var(--line);flex-direction:column;align-items:flex-start;gap:20px}
- .navlinks.open{display:flex}
- .hero{padding:55px 0 50px}.hero-layout{grid-template-columns:1fr;gap:0}.hero h1{font-size:clamp(53px,13vw,78px);margin:22px 0 18px}.hero-lede{font-size:16px}
- .hero-stage{height:390px;margin-top:15px}.mission-window{max-width:410px}.mission-art{height:215px}.stage-orbit{width:320px;height:320px}.stage-glow{width:300px;height:300px}.float-pill.one{right:0;top:25px}.float-pill.two{left:0;bottom:30px}
- .scroll-cue{display:none}.ticker{padding:14px 0}.ticker span{font-size:13px;padding:0 18px}
- .section{padding:86px 0}.section-title{letter-spacing:-.035em;line-height:1.08}
- .mobile-cta{display:block;position:fixed;bottom:0;left:0;right:0;z-index:90;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#F8F8F4ee;backdrop-filter:blur(15px);border-top:1px solid var(--line)}
- .mobile-cta .btn{width:100%;padding:14px}
- body{padding-bottom:66px}
-}
-@media(prefers-reduced-motion:reduce){
- *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
- .reveal{opacity:1;transform:none}
-}/* Five introductory adventures */
-.free-missions{background:#F1F3EF;padding:112px 0}
-.free-head{display:flex;justify-content:space-between;align-items:end;gap:30px;margin-bottom:42px}
-.free-head .section-title{font-size:clamp(43px,5.6vw,74px);line-height:.94}
-.free-head-side{display:flex;align-items:center;gap:16px;max-width:310px}
-.free-head-side p{font-size:13px;line-height:1.6;color:#66716A;margin:0}
-.free-stamp{width:72px;height:72px;flex:0 0 72px;border-radius:50%;display:grid;place-items:center;background:var(--yellow);font:800 27px Manrope;letter-spacing:-.07em;transform:rotate(-10deg)}
-.free-mission-grid{display:grid;grid-template-columns:1.15fr 1fr 1fr;grid-template-rows:repeat(2,minmax(220px,auto));gap:13px}
-.free-mission-card{position:relative;text-align:left;border:0;border-radius:19px;padding:25px;min-height:220px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;overflow:hidden;color:var(--ink);transition:transform .35s var(--ease),box-shadow .35s,filter .3s}
-.free-mission-card:hover{transform:translateY(-5px);box-shadow:0 18px 42px rgba(20,28,22,.12)}
-.free-mission-card[aria-pressed="true"]{outline:2px solid var(--ink);outline-offset:-2px}
-.fm-feature{grid-row:span 2;min-height:453px;background:#DDF2ED}
-.fm-balance{background:#E9D9FF}.fm-pattern{background:#FFE9B3}.fm-cause{background:#DCEBFF}.fm-question{background:#F5DCD5}
-.fm-number{font-size:9px;font-weight:900;letter-spacing:.15em;opacity:.68}
-.fm-icon{font-size:43px;line-height:1;margin:28px 0 22px;transition:transform .4s var(--ease)}
-.free-mission-card:hover .fm-icon{transform:rotate(-10deg) scale(1.12)}
-.free-mission-card strong{font:800 clamp(22px,2.3vw,30px)/1.12 Manrope;letter-spacing:-.035em;max-width:290px}
-.fm-feature strong{font-size:clamp(34px,4vw,49px);max-width:350px}
-.fm-tease{font-size:12px;line-height:1.6;max-width:310px;color:#48534D;margin-top:11px}
-.fm-open{font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;margin-top:auto;padding-top:20px}
-.fm-feature .fm-icon{font-size:80px;margin:45px 0 35px}
-.free-preview{margin-top:16px;background:var(--dark);color:white;border-radius:19px;padding:25px 30px;display:flex;justify-content:space-between;align-items:center;gap:30px}
-.preview-eyebrow{font-size:9px;letter-spacing:.16em;font-weight:900;color:var(--brand-blue)}
-.free-preview h3{font:800 25px Manrope;letter-spacing:-.05em;margin:8px 0}
-.free-preview p{font-size:12px;line-height:1.6;color:#C1C9D0;max-width:580px;margin:0}
-.free-preview-meta{display:flex;flex-direction:column;align-items:flex-end;gap:14px;flex-shrink:0}
-.free-preview-meta>span{font-size:9px;letter-spacing:.1em;color:#B6C1CF;text-align:right}
-.free-note{font-size:10px;color:#7B857E;line-height:1.6;margin:14px 0 0}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#F8F8F4" />
+  <meta name="description" content="CubitX turns curiosity into interactive thinking adventures for children in Classes 5–10. Explore, test ideas and discover." />
+  <title>CubitX — Develop the Mind Behind the Marks</title>
+  <link rel="icon" type="image/png" href="/cubitx-logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
-/* Self-contained sample challenge */
-.demo{background:var(--dark);color:#fff;overflow:hidden;position:relative}
-.demo:before{content:"";position:absolute;width:600px;height:600px;left:-300px;top:-250px;border-radius:50%;background:radial-gradient(circle,#7045c655,transparent 70%);pointer-events:none}
-.demo-layout{display:grid;grid-template-columns:.72fr 1.28fr;gap:45px;align-items:center;position:relative}
-.demo-copy .eyebrow{color:#c6a8ff}
-.demo-copy h2{font:800 clamp(40px,5vw,62px)/.98 Manrope,sans-serif;letter-spacing:-.055em;margin:17px 0}
-.demo-copy>p{color:#b9bfd0;line-height:1.8;font-size:15px}
-.demo-step{display:flex;gap:13px;align-items:flex-start;padding:15px 0;border-bottom:1px solid #ffffff20;color:#dce0ec;font-size:13px;line-height:1.5}
-.demo-step>span{display:grid;place-items:center;flex:0 0 27px;height:27px;border-radius:50%;background:#ffffff16;color:#d9c5ff;font-weight:800}
-.play-card{position:relative;background:#f7f7f2;color:var(--ink);border-radius:26px;padding:25px;box-shadow:0 30px 80px #0005}
-.play-top{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:20px}
-.play-top small{font-size:10px;letter-spacing:.13em;font-weight:900;color:#7a7187}
-.scenario{padding:23px;border-radius:18px;background:linear-gradient(135deg,#dff3ed,#e8ddff);margin-bottom:18px}
-.scenario .scene-emoji{font-size:35px}
-.scenario h3{font:800 22px Manrope,sans-serif;margin:10px 0 7px;letter-spacing:-.04em}
-.scenario p{font-size:13px;line-height:1.6;color:#515b57;margin:0}
-.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.choice{border:1px solid #d9d9d1;background:#fff;border-radius:13px;padding:14px;text-align:left;font-size:12px;font-weight:800;min-height:66px;transition:transform .2s,border-color .2s,background .2s;color:var(--ink)}
-.choice:hover{border-color:var(--purple);transform:translateY(-2px)}
-.choice:focus-visible{outline:3px solid var(--purple);outline-offset:3px}
-.choice.selected{background:#eee4ff;border-color:var(--purple);box-shadow:inset 0 0 0 1px var(--purple)}
-.feedback{display:none;margin-top:14px;padding:14px 16px;background:#e2f3e9;border-radius:13px;font-size:12px;line-height:1.6;color:#264d39}
-.feedback.show{display:block}
-.reset-demo{border:0;background:none;color:#7545c7;font-weight:800;font-size:11px;margin-top:12px;padding:5px 0}
-.demo-disclaimer{font-size:10px;color:#747c83;margin-top:15px;line-height:1.55}
-.demo .section-kicker{color:var(--lilac)}
+  <style>
+    :root {
+      --mint:#DDF2ED;
+      --mint-deep:#BFE8DE;
+      --lilac:#B98AF4;
+      --lilac-light:#E9D9FF;
+      --ink:#11172B;
+      --paper:#F8F8F4;
+      --white:#FFFFFF;
+      --yellow:#FFD84D;
+      --coral:#FF826E;
+      --blue:#DCEBFA;
+      --purple:#7042C8;
+      --dark:#080D20;
+      --muted:#626B67;
+      --line:rgba(23,26,23,.13);
+      --max:1240px;
+      --ease:cubic-bezier(.2,.75,.25,1);
+    }
 
-/* Parent Space: evidence, context and uncertainty */
-.parent-section{background:#E8F0EB;padding:150px 0}
-.parent-head{max-width:850px;margin-bottom:48px}
-.parent-head .section-title{font-size:clamp(43px,5.5vw,72px);line-height:1.06;max-width:900px}
-.parent-head .section-intro{font-size:17px;line-height:1.78;max-width:640px;margin-top:22px;color:#536158}
-.parent-ai-line{font-size:clamp(20px,2.5vw,30px);line-height:1.25;letter-spacing:-.035em;color:#4d5960;margin:20px 0 0;max-width:720px}
-.parent-ai-line strong{color:var(--purple)}
-.parent-explainer{display:grid;grid-template-columns:.9fr 1.1fr;gap:34px;align-items:center;margin:0 0 34px;padding:25px 28px;background:#fff;border:1px solid rgba(17,23,43,.08);border-radius:18px;box-shadow:0 12px 34px rgba(20,35,26,.05)}
-.parent-explainer-lead strong{font:800 19px/1.2 Manrope,sans-serif;letter-spacing:-.035em}
-.parent-explainer-lead p{font-size:12px;line-height:1.7;color:#66716A;max-width:420px;margin:9px 0 0}
-.parent-explainer-points{display:grid}
-.parent-explainer-point{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(17,23,43,.09);font-size:12px;font-weight:700}
-.parent-explainer-point:last-child{border-bottom:0}
-.parent-explainer-index{font:800 11px Manrope;color:var(--purple);min-width:24px}
-.parent-insight-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch}
-.parent-insight-card{position:relative;min-width:0;min-height:570px;padding:32px 29px 24px;border-radius:7px;display:flex;flex-direction:column;overflow:hidden}
-.insight-mint{background:#D9EFEB}.insight-blue{background:#DCEBFA}
-.insight-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
-.insight-kicker{display:block;font-size:10px;font-weight:900;letter-spacing:.15em;opacity:.68;margin-bottom:19px}
-.insight-card-head h3{font:750 clamp(23px,2.05vw,31px)/1.12 Manrope,sans-serif;letter-spacing:-.035em;margin:0;max-width:340px}
-.insight-expand{flex:0 0 48px;width:48px;height:48px;border:1px solid rgba(17,23,43,.72);border-radius:50%;background:transparent;color:var(--ink);font-size:27px;font-weight:300;line-height:1;transition:transform .25s,background .25s,color .25s}
-.insight-expand:hover,.insight-expand[aria-expanded="true"]{background:var(--dark);color:white;transform:rotate(45deg)}
-.insight-copy{font-size:13px;line-height:1.65;color:#515966;max-width:360px;margin:18px 0 24px}
-.insight-visual{margin-top:auto;background:#fff;border:1px solid rgba(255,255,255,.9);border-radius:17px;padding:19px 17px 15px;box-shadow:0 14px 34px rgba(30,35,50,.07);min-height:265px;display:flex;flex-direction:column;justify-content:space-between}
-.graph-topline,.timeline-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.graph-topline b,.timeline-head b{font-size:12px}
-.graph-topline span,.timeline-head span{font-size:8px;letter-spacing:.12em;color:#8B8793;font-weight:800}
-.evidence-graph{width:100%;height:auto;overflow:visible;margin:12px 0 0}
-.graph-grid path{stroke:#E8E8EC;stroke-width:1;fill:none}
-.graph-labels{font:10px "DM Sans",sans-serif;fill:#777482}
-.graph-dots circle{fill:#7042C8;stroke:#fff;stroke-width:2.5}
-.graph-dots circle:nth-child(3n){fill:#23BFA4}
-.graph-dots circle:nth-child(4n){fill:#F1B83B}
-.graph-axis{display:flex;justify-content:space-between;gap:8px;font-size:8px;color:#8B8793;margin-top:7px}
-.graph-axis span:last-child{color:#7042C8;font-weight:800}
-.evidence-timeline{position:relative;padding:13px 0 0 6px;margin-top:12px}
-.evidence-timeline:before{content:"";position:absolute;top:18px;bottom:15px;left:12px;width:1px;background:#D7DFEA}
-.timeline-event{position:relative;padding:0 0 17px 27px;display:flex;flex-direction:column;gap:4px}
-.timeline-event:last-child{padding-bottom:0}
-.timeline-dot{position:absolute;left:0;top:3px;width:13px;height:13px;border-radius:50%;background:#7042C8;border:3px solid #E8DFFF;box-shadow:0 0 0 1px #7042C8}
-.timeline-event:nth-child(2) .timeline-dot{background:#23BFA4;border-color:#D6F4EC;box-shadow:0 0 0 1px #23BFA4}
-.timeline-event:nth-child(3) .timeline-dot{background:#E5B43B;border-color:#FFF0C9;box-shadow:0 0 0 1px #E5B43B}
-.timeline-step{font-size:8px;letter-spacing:.12em;color:#8B8793;font-weight:900}
-.timeline-event b{font-size:11px;line-height:1.35}
-.timeline-event small{font-size:9px;color:#777482}
-.timeline-foot{border-top:1px solid #ECEBF0;padding-top:12px;margin-top:12px;font-size:8px;font-weight:900;letter-spacing:.12em;color:#8B8793}
-.insight-more{max-height:0;overflow:hidden;opacity:0;margin:0;padding:0 2px;color:#444151;font-size:11px;line-height:1.65;transition:max-height .35s ease,opacity .25s,margin .25s,padding .25s}
-.parent-insight-card.is-open .insight-more{max-height:170px;opacity:1;margin-top:17px;padding-top:13px;border-top:1px solid rgba(23,21,43,.15)}
-.parent-context-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}
-.parent-context-card{background:#fff;border:1px solid rgba(17,23,43,.09);border-radius:15px;padding:23px}
-.parent-context-card h3{font:800 22px/1.15 Manrope,sans-serif;letter-spacing:-.04em;margin:10px 0}
-.parent-context-card p{font-size:12px;line-height:1.75;color:#626d66;margin:0}
-.parent-context-card small{display:block;color:#7a847d;font-size:10px;margin-top:12px}
-.parent-prompt{background:#F0E9FA}
-.parent-trustline{display:flex;align-items:center;gap:24px;margin-top:22px;padding:23px 27px;border-radius:7px;background:#17152B;color:#fff}
-.trust-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:50%;background:#DDF2ED;color:#17152B;font-size:20px;flex:0 0 39px}
-.parent-trustline p{margin:0;color:#D9D6E1;font-size:12px;line-height:1.6}
-.parent-trustline p strong{color:white}
-.parent-demo-note{margin:13px 0 0;color:#777E79;font-size:9px;line-height:1.5}.parent-context-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:22px}
-.parent-context-card{background:#fff;border:1px solid rgba(17,23,43,.09);border-radius:15px;padding:23px}
-.parent-context-card h3{font:800 22px/1.15 Manrope,sans-serif;letter-spacing:-.04em;margin:10px 0}
-.parent-context-card p{font-size:12px;line-height:1.75;color:#626d66;margin:0}
-.parent-context-card small{display:block;color:#7a847d;font-size:10px;margin-top:12px}
-.parent-prompt{background:#F0E9FA}
-.parent-trustline{display:flex;align-items:center;gap:24px;margin-top:22px;padding:23px 27px;border-radius:7px;background:#17152B;color:#fff}
-.trust-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:50%;background:#DDF2ED;color:#17152B;font-size:20px;flex:0 0 39px}
-.parent-trustline p{margin:0;color:#D9D6E1;font-size:12px;line-height:1.6}
-.parent-trustline p strong{color:white}
-.parent-demo-note{margin:13px 0 0;color:#777E79;font-size:9px;line-height:1.5}
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; scroll-padding-top:85px; }
+    body {
+      margin:0;
+      background:var(--paper);
+      color:var(--ink);
+      font-family:"DM Sans",Arial,sans-serif;
+      overflow-x:hidden;
+    }
+    body,button,a { -webkit-tap-highlight-color:transparent; }
+    a { color:inherit; text-decoration:none; }
+    button { font:inherit; cursor:pointer; }
+    img { max-width:100%; display:block; }
+    .wrap { width:min(var(--max),calc(100% - 64px)); margin:auto; }
+    .display {
+      font-family:Manrope,"DM Sans",sans-serif;
+      font-weight:800;
+      letter-spacing:-.055em;
+      line-height:1.02;
+    }
+    .eyebrow {
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.17em;
+      text-transform:uppercase;
+    }
+    .section { padding:112px 0; }
+    .section-kicker {
+      color:var(--purple);
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.17em;
+      text-transform:uppercase;
+      margin-bottom:18px;
+    }
+    .section-title {
+      font:800 clamp(40px,5.5vw,72px)/1.04 Manrope,sans-serif;
+      letter-spacing:-.05em;
+      margin:12px 0 18px;
+    }
+    .section-intro {
+      color:#626D66;
+      font-size:15px;
+      line-height:1.8;
+      max-width:650px;
+    }
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      border:1px solid var(--ink);
+      border-radius:100px;
+      padding:15px 22px;
+      font-size:13px;
+      font-weight:800;
+      transition:transform .25s var(--ease),background .25s,color .25s;
+    }
+    .btn:hover { transform:translateY(-3px); }
+    .btn-dark { background:var(--dark); color:white; }
+    .btn-dark:hover { background:var(--purple); border-color:var(--purple); }
+    .btn-purple { background:var(--lilac); border-color:var(--lilac); }
+    .btn-purple:hover { background:var(--yellow); border-color:var(--yellow); }
+    .btn-outline { background:transparent; }
+    .btn-outline:hover { background:var(--dark); color:white; }
+    .arrow { font-size:17px; }
 
-/* Why practise matters: explanatory principles, not outcome claims */
-.research{background:#10162b;color:#fff;overflow:hidden;position:relative}
-.research:after{content:"";position:absolute;width:600px;height:600px;right:-300px;bottom:-300px;background:radial-gradient(circle,#7545c755,transparent 70%);pointer-events:none}
-.research .section-head p{color:#bac0d0}
-.research .eyebrow{color:#c8aaff}
-.research .section-head h2{max-width:900px}
-.research-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;position:relative;z-index:1}
-.study{border:1px solid #ffffff22;background:#ffffff09;border-radius:20px;padding:24px;transition:transform .3s var(--ease),background .3s;min-width:0}
-.study:hover{background:#ffffff12;transform:translateY(-5px)}
-.study .source{font-size:9px;letter-spacing:.14em;color:#c8aaff;font-weight:900}
-.study h3{font:800 20px/1.2 Manrope,sans-serif;letter-spacing:-.04em;margin:13px 0}
-.study p{font-size:12px;line-height:1.7;color:#c0c5d3}
-.research-note{margin-top:20px;border-left:3px solid var(--yellow);padding:14px 18px;background:#ffffff0b;border-radius:0 12px 12px 0;font-size:11px;line-height:1.7;color:#c3c9d8;position:relative;z-index:1}
-.research-bottom{margin-top:35px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;position:relative;z-index:1}
-.research-bottom h3{font:800 clamp(25px,3vw,38px)/1.08 Manrope,sans-serif;letter-spacing:-.05em;margin:0}
-.research-bottom p{font-size:13px;line-height:1.7;color:#b9bfd0;margin:0}
+    /* Navigation */
+    .topbar {
+      height:78px;
+      position:sticky;
+      top:0;
+      z-index:100;
+      background:rgba(248,248,244,.94);
+      backdrop-filter:blur(16px);
+      border-bottom:1px solid var(--line);
+    }
+    .nav {
+      height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:25px;
+    }
+    .brand img { width:150px; height:auto; }
+    .navlinks {
+      display:flex;
+      align-items:center;
+      gap:26px;
+      font-size:12px;
+      font-weight:700;
+    }
+    .navlinks a:hover { color:var(--purple); }
+    .nav-actions { display:flex; gap:9px; }
+    .nav-actions .btn { padding:12px 17px; font-size:11px; }
+    .menu-btn {
+      display:none;
+      width:42px;
+      height:42px;
+      border:1px solid var(--line);
+      border-radius:50%;
+      background:transparent;
+      font-size:20px;
+    }
 
-/* Age pathways and family structure */
-.path-head{display:flex;justify-content:space-between;align-items:end;gap:35px;margin-bottom:42px}
-.path-head .section-title{max-width:680px}
-.path-head .section-intro{max-width:390px}
-.path-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.path-card{padding:48px;min-height:500px;display:flex;flex-direction:column;justify-content:space-between;border-radius:8px}
-.path-card.foundation{background:#DDF2ED}.path-card.advanced{background:#E9D9FF}
-.grade{font-size:10px;font-weight:900;letter-spacing:.15em}
-.path-card h3{font:800 clamp(38px,4vw,58px)/1.04 Manrope,sans-serif;letter-spacing:-.045em;margin:22px 0}
-.path-card p{font-size:14px;line-height:1.75;color:#56635B;max-width:400px}
-.path-bottom{display:flex;justify-content:space-between;align-items:end;gap:15px}
-.path-tags{display:flex;gap:8px;flex-wrap:wrap}
-.path-tags span{border:1px solid #20282035;border-radius:99px;padding:8px 12px;font-size:10px;font-weight:800}
-.path-symbol{font-size:66px;line-height:1}
-.family-section{padding:105px 0;background:#F0E9FA}
-.family-layout{display:grid;grid-template-columns:1fr auto;align-items:center;gap:40px}
-.family-layout h2{font:800 clamp(38px,5vw,65px)/1.04 Manrope,sans-serif;letter-spacing:-.045em;max-width:760px;margin:18px 0}
-.family-layout p{font-size:14px;line-height:1.7;color:#5D5668;max-width:650px}
-.family-bubbles{display:flex;align-items:center;padding:20px}
-.family-bubble{width:88px;height:88px;border-radius:50%;display:grid;place-items:center;background:#fff;font-size:38px;border:5px solid #F0E9FA;margin-left:-15px;box-shadow:0 10px 25px #2b1d3a15}
-.family-bubble:first-child{margin-left:0}
+    /* Hero */
+    .hero {
+      background:var(--mint);
+      min-height:690px;
+      padding:75px 0 65px;
+      overflow:hidden;
+      position:relative;
+      isolation:isolate;
+    }
+    .hero:before {
+      content:"";
+      position:absolute;
+      width:650px;
+      height:650px;
+      right:-180px;
+      top:-250px;
+      border-radius:50%;
+      background:radial-gradient(circle,rgba(185,138,244,.28),transparent 68%);
+      z-index:-1;
+    }
+    .hero-layout {
+      display:grid;
+      grid-template-columns:1.02fr .98fr;
+      gap:30px;
+      align-items:center;
+    }
+    .hero-copy { max-width:650px; }
+    .hero-tag {
+      display:inline-flex;
+      align-items:center;
+      gap:9px;
+      border:1px solid #14203333;
+      border-radius:100px;
+      padding:9px 13px;
+      background:#ffffff55;
+      font-size:10px;
+      font-weight:900;
+      letter-spacing:.1em;
+      text-transform:uppercase;
+    }
+    .hero-dot {
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#4B9B74;
+    }
+    .hero h1 {
+      font-size:clamp(56px,7vw,91px);
+      margin:25px 0 22px;
+    }
+    .hero h1 em { color:var(--purple); font-style:normal; }
+    .hero-lede {
+      color:#39443F;
+      font-size:17px;
+      line-height:1.75;
+      max-width:510px;
+      margin-bottom:26px;
+    }
+    .hero-actions { display:flex; flex-wrap:wrap; gap:11px; }
+    .micro {
+      color:#59635E;
+      font-size:11px;
+      margin-top:15px;
+    }
+    .hero-stage {
+      min-height:480px;
+      position:relative;
+      display:grid;
+      place-items:center;
+    }
+    .orbit {
+      position:absolute;
+      width:min(90%,450px);
+      aspect-ratio:1;
+      border:1px solid #7042C833;
+      border-radius:50%;
+      animation:orbit 36s linear infinite;
+    }
+    .orbit:before,.orbit:after {
+      content:"";
+      position:absolute;
+      inset:35px;
+      border:1px dashed #7042C833;
+      border-radius:50%;
+    }
+    .orbit:after { inset:85px; border-style:solid; }
+    .stage-glow {
+      position:absolute;
+      width:340px;
+      aspect-ratio:1;
+      border-radius:50%;
+      background:radial-gradient(circle,#B98AF455,#FFD84D22 50%,transparent 72%);
+      animation:breathe 6s ease-in-out infinite;
+    }
+    .mission-window {
+      position:relative;
+      z-index:2;
+      width:min(100%,450px);
+      background:white;
+      padding:14px;
+      border-radius:25px;
+      border:1px solid #14203315;
+      box-shadow:0 30px 75px #26352c26;
+      animation:float 7s ease-in-out infinite;
+    }
+    .window-bar {
+      display:flex;
+      justify-content:space-between;
+      padding:4px 6px 13px;
+      color:#68716C;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.12em;
+    }
+    .window-dots { display:flex; gap:4px; }
+    .window-dots i {
+      width:6px;
+      height:6px;
+      border-radius:50%;
+      background:#D8DCD9;
+    }
+    .mission-art {
+      height:250px;
+      border-radius:17px;
+      overflow:hidden;
+      position:relative;
+      background:linear-gradient(145deg,#BFE8DE,#DCEBFF 58%,#E9D9FF);
+    }
+    .sun {
+      position:absolute;
+      right:35px;
+      top:25px;
+      width:55px;
+      height:55px;
+      background:var(--yellow);
+      border-radius:50%;
+    }
+    .mountain {
+      position:absolute;
+      bottom:-35px;
+      left:-7%;
+      width:115%;
+      height:150px;
+      border-radius:50% 50% 0 0;
+      background:#8AB8A4;
+      transform:rotate(-8deg);
+    }
+    .mountain.two {
+      height:120px;
+      bottom:-55px;
+      background:#5B8E83;
+      transform:rotate(8deg);
+    }
+    .river {
+      position:absolute;
+      bottom:0;
+      left:0;
+      right:0;
+      height:65px;
+      background:#7DB9D5;
+      clip-path:polygon(0 28%,100% 0,100% 100%,0 100%);
+    }
+    .bridge {
+      position:absolute;
+      left:20%;
+      right:20%;
+      bottom:62px;
+      height:12px;
+      background:#A86F4C;
+      border-radius:8px;
+      transform:rotate(-8deg);
+      box-shadow:0 7px 0 #744C38;
+    }
+    .child-figure {
+      position:absolute;
+      left:49%;
+      bottom:100px;
+      transform:translateX(-50%);
+      font-size:39px;
+    }
+    .mission-label {
+      position:absolute;
+      top:14px;
+      left:14px;
+      padding:7px 10px;
+      border-radius:100px;
+      background:#ffffffdf;
+      font-size:8px;
+      font-weight:900;
+      letter-spacing:.1em;
+    }
+    .mission-bottom {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      padding:16px 4px 10px;
+    }
+    .mission-bottom strong { font:800 14px Manrope; }
+    .mission-bottom span {
+      color:#79847C;
+      font-size:8px;
+      font-weight:900;
+    }
+    .float-pill {
+      position:absolute;
+      z-index:3;
+      padding:12px 15px;
+      border-radius:100px;
+      background:white;
+      box-shadow:0 12px 30px #1c263322;
+      font-size:10px;
+      font-weight:800;
+    }
+    .float-pill.one { top:60px; right:-5px; }
+    .float-pill.two { bottom:55px; left:-5px; }
+    .float-pill b { color:var(--purple); }
 
-/* Pricing is informational only until checkout is implemented */
-.pricing-section{padding-top:145px;padding-bottom:145px}
-.pricing-head{text-align:center;max-width:800px;margin:0 auto 45px}
-.pricing-head .section-intro{margin:18px auto 0}
-.pricing-info-note{margin:0 auto 18px;text-align:center;font-size:10px;font-weight:800;letter-spacing:.055em;color:#67577D;background:#EEE7FA;border:1px solid #DED1F3;border-radius:99px;padding:10px 16px;width:fit-content;max-width:100%}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
-.price-card{border:1px solid var(--line);border-radius:18px;padding:30px;min-height:360px;background:#fff}
-.price-card.featured{background:#E9D9FF;border-color:#E9D9FF;transform:translateY(-10px)}
-.price-card .label{font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:#6F6282}
-.price-card h3{font:800 clamp(34px,4vw,48px)/1 Manrope,sans-serif;letter-spacing:-.06em;margin:25px 0 14px}
-.price-card h3 small{font:700 13px "DM Sans";letter-spacing:0;color:#73706f}
-.price-card p{font-size:13px;line-height:1.65;color:#606A63;min-height:45px}
-.price-card ul{padding-left:18px;margin:22px 0 0}
-.price-card li{font-size:11px;line-height:1.9;color:#525D55}
-.family-discount{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-top:18px;padding:22px 25px;background:#DDF2ED;border-radius:14px}
-.family-discount strong{font:800 18px Manrope}
-.family-discount p{font-size:12px;line-height:1.6;color:#59665D;margin:5px 0 0}
-.pricing-foot{font-size:10px;line-height:1.7;color:#727B74;max-width:900px;margin:18px auto 0}
+    /* Moving word strip */
+    .ticker {
+      background:var(--dark);
+      color:white;
+      overflow:hidden;
+      padding:17px 0;
+    }
+    .ticker-track {
+      display:flex;
+      width:max-content;
+      animation:marquee 36s linear infinite;
+    }
+    .ticker span {
+      white-space:nowrap;
+      padding:0 27px;
+      font:800 12px Manrope;
+      letter-spacing:.15em;
+    }
+    .ticker i { color:var(--lilac); font-style:normal; padding-left:20px; }
 
-/* School contact and FAQ */
-.school-section{background:var(--mint);padding:92px 0}
-.school-layout{display:grid;grid-template-columns:1fr auto;gap:35px;align-items:end}
-.school-layout .section-title{max-width:800px}
-.school-layout p{font-size:15px;line-height:1.65;color:#4E5A54;max-width:650px;margin:22px 0 0}
-.school-contact{flex:0 0 auto}
-.faq-section{background:var(--paper);padding:140px 0}
-.faq-layout{display:grid;grid-template-columns:.7fr 1.3fr;gap:80px}
-.faq-layout .section-title{font-size:clamp(40px,5vw,66px)}
-.faq-section .section-intro{font-size:14px;line-height:1.7;color:#657067}
-.faq-list details{border-top:1px solid var(--line);padding:21px 0}
-.faq-list details:last-child{border-bottom:1px solid var(--line)}
-.faq-list summary{list-style:none;display:flex;justify-content:space-between;gap:20px;cursor:pointer;font-size:15px;font-weight:800}
-.faq-list summary::-webkit-details-marker{display:none}
-.faq-list summary:after{content:"+";font-size:23px;font-weight:400;color:var(--purple);transition:transform .25s}
-.faq-list details[open] summary:after{transform:rotate(45deg)}
-.faq-list details p{font-size:13px;color:#68726C;line-height:1.78;max-width:650px;margin:13px 35px 0 0}
+    /* Five free adventures */
+    .free-missions { background:#F1F3EF; }
+    .free-head {
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:25px;
+      margin-bottom:38px;
+    }
+    .free-head .section-title { margin-bottom:0; }
+    .free-stamp {
+      width:68px;
+      height:68px;
+      flex:0 0 68px;
+      border-radius:50%;
+      display:grid;
+      place-items:center;
+      background:var(--yellow);
+      font:800 25px Manrope;
+      transform:rotate(-9deg);
+    }
+    .free-head-side {
+      display:flex;
+      align-items:center;
+      gap:14px;
+      max-width:310px;
+    }
+    .free-head-side p {
+      color:#66716A;
+      font-size:12px;
+      line-height:1.6;
+    }
+    .mission-grid {
+      display:grid;
+      grid-template-columns:1.15fr 1fr 1fr;
+      gap:12px;
+    }
+    .mission-card {
+      min-height:215px;
+      border:0;
+      border-radius:18px;
+      padding:23px;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      text-align:left;
+      color:var(--ink);
+      transition:transform .25s,box-shadow .25s;
+    }
+    .mission-card:hover {
+      transform:translateY(-5px);
+      box-shadow:0 16px 35px #14203318;
+    }
+    .mission-card[aria-pressed="true"] {
+      outline:2px solid var(--ink);
+      outline-offset:-2px;
+    }
+    .mission-card.feature {
+      grid-row:span 2;
+      min-height:442px;
+      background:#DDF2ED;
+    }
+    .mission-card.balance { background:#E9D9FF; }
+    .mission-card.pattern { background:#FFE9B3; }
+    .mission-card.cause { background:#DCEBFA; }
+    .mission-card.question { background:#F5DCD5; }
+    .mission-number {
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.14em;
+      opacity:.7;
+    }
+    .mission-icon { font-size:43px; margin:28px 0 20px; }
+    .mission-card.feature .mission-icon { font-size:75px; margin:45px 0 35px; }
+    .mission-card strong {
+      font:800 25px/1.12 Manrope;
+      letter-spacing:-.035em;
+    }
+    .mission-card.feature strong { font-size:43px; }
+    .mission-tease {
+      color:#48534D;
+      font-size:11px;
+      line-height:1.6;
+      margin-top:10px;
+    }
+    .mission-open {
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.1em;
+      margin-top:auto;
+      padding-top:20px;
+    }
+    .mission-preview {
+      background:var(--dark);
+      color:white;
+      border-radius:18px;
+      padding:24px;
+      margin-top:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:25px;
+    }
+    .preview-label {
+      color:#BBA0F3;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.15em;
+    }
+    .mission-preview h3 {
+      font:800 24px Manrope;
+      margin:8px 0;
+    }
+    .mission-preview p {
+      color:#C1C9D0;
+      font-size:12px;
+      line-height:1.6;
+      max-width:560px;
+    }
+    .preview-meta {
+      text-align:right;
+      flex:0 0 auto;
+    }
+    .preview-meta span {
+      display:block;
+      font-size:9px;
+      color:#B6C1CF;
+      margin-bottom:13px;
+    }
+    .preview-note {
+      color:#7B857E;
+      font-size:10px;
+      line-height:1.6;
+      margin-top:13px;
+    }
 
-/* Closing CTA and footer */
-.final-cta{background:var(--lilac);padding:145px 0;text-align:center;position:relative;overflow:hidden}
-.final-cta:before,.final-cta:after{content:"";position:absolute;width:360px;height:360px;border:1px solid #171a1722;border-radius:50%;top:-170px;left:-100px}
-.final-cta:after{width:500px;height:500px;left:auto;right:-200px;top:auto;bottom:-300px}
-.final-cta .wrap{position:relative;z-index:1}
-.final-cta .section-title{font-size:clamp(50px,7vw,94px);max-width:1000px;margin:20px auto}
-.final-cta p{font-size:16px;line-height:1.6;max-width:540px;margin:0 auto 27px;color:#342B3F}
-.closing-logo{width:150px;height:auto;display:block;margin:0 auto 28px;background:transparent;border:0}
-footer{background:var(--dark);color:white;padding:55px 0 25px}
-.footer-top{display:flex;justify-content:space-between;gap:30px;padding-bottom:45px;border-bottom:1px solid #ffffff25}
-.footer-brand{display:flex;flex-direction:column;align-items:flex-start;gap:15px;font:900 28px Manrope;letter-spacing:-.06em}
-.footer-brand p{font:400 13px/1.75 "DM Sans";color:#AEB7B0;max-width:320px;margin-top:0;letter-spacing:normal}
-.footer-logo-link{display:inline-flex;align-items:center;padding:0;background:transparent;border:0}
-.footer-logo{display:block;width:160px;height:auto;object-fit:contain;background:transparent;border:0}
-.footer-links{display:flex;gap:65px;position:relative;z-index:5}
-.footer-links div{display:grid;align-content:start;gap:12px}
-.footer-links strong{font-size:11px;color:var(--lilac);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
-.footer-links a{font-size:12px;color:#C4CBC5;display:inline-block;width:max-content;max-width:100%;padding:2px 0;line-height:1.55}
-.footer-links a:hover{color:#fff;text-decoration:underline;text-underline-offset:4px}
-.footer-bottom{display:flex;justify-content:space-between;gap:12px;padding-top:20px;font-size:10px;color:#89938C}
-.mobile-cta{display:none}
-.parent-ai-line{font-size:clamp(20px,2.5vw,30px);line-height:1.25;letter-spacing:-.035em;color:#4d5960;margin:20px 0 0;max-width:720px}
-.parent-ai-line strong{color:var(--purple)}
-.menu-btn:focus-visible,.insight-expand:focus-visible,.choice:focus-visible,.free-mission-card:focus-visible,.reset-demo:focus-visible{outline:3px solid var(--purple);outline-offset:3px}
+    /* Interactive sample */
+    .demo {
+      background:var(--dark);
+      color:white;
+      position:relative;
+      overflow:hidden;
+    }
+    .demo:before {
+      content:"";
+      position:absolute;
+      width:500px;
+      height:500px;
+      left:-250px;
+      top:-200px;
+      border-radius:50%;
+      background:radial-gradient(circle,#7045C655,transparent 70%);
+    }
+    .demo-layout {
+      position:relative;
+      display:grid;
+      grid-template-columns:.8fr 1.2fr;
+      gap:45px;
+      align-items:center;
+    }
+    .demo-copy .eyebrow { color:#C6A8FF; }
+    .demo-copy h2 {
+      font:800 clamp(38px,4.8vw,61px)/1 Manrope;
+      letter-spacing:-.055em;
+      margin:17px 0;
+    }
+    .demo-copy>p {
+      color:#B9BFD0;
+      font-size:14px;
+      line-height:1.8;
+    }
+    .demo-step {
+      display:flex;
+      gap:13px;
+      padding:14px 0;
+      border-bottom:1px solid #ffffff20;
+      color:#DCE0EC;
+      font-size:12px;
+      line-height:1.6;
+    }
+    .step-number {
+      width:27px;
+      height:27px;
+      flex:0 0 27px;
+      border-radius:50%;
+      background:#ffffff16;
+      display:grid;
+      place-items:center;
+      color:#D9C5FF;
+      font-weight:900;
+    }
+    .play-card {
+      background:#F7F7F2;
+      color:var(--ink);
+      border-radius:24px;
+      padding:23px;
+      box-shadow:0 25px 70px #0005;
+    }
+    .play-top {
+      display:flex;
+      justify-content:space-between;
+      margin-bottom:18px;
+      color:#7A7187;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.12em;
+    }
+    .scenario {
+      background:linear-gradient(135deg,#DFF3ED,#E8DDFF);
+      border-radius:16px;
+      padding:21px;
+      margin-bottom:15px;
+    }
+    .scenario-icon { font-size:33px; }
+    .scenario h3 {
+      font:800 21px Manrope;
+      margin:8px 0;
+    }
+    .scenario p {
+      color:#515B57;
+      font-size:12px;
+      line-height:1.7;
+      margin:0;
+    }
+    .choices {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+    }
+    .choice {
+      background:white;
+      border:1px solid #D9D9D1;
+      border-radius:12px;
+      padding:13px;
+      min-height:65px;
+      text-align:left;
+      font-size:11px;
+      font-weight:800;
+      color:var(--ink);
+    }
+    .choice:hover,.choice.selected {
+      border-color:var(--purple);
+      background:#EEE4FF;
+    }
+    .choice:focus-visible,.btn:focus-visible {
+      outline:3px solid var(--purple);
+      outline-offset:3px;
+    }
+    .feedback {
+      display:none;
+      margin-top:13px;
+      padding:13px;
+      background:#E2F3E9;
+      border-radius:12px;
+      color:#264D39;
+      font-size:11px;
+      line-height:1.7;
+    }
+    .feedback.show { display:block; }
+    .reset-demo {
+      border:0;
+      background:transparent;
+      color:#7545C7;
+      font-weight:800;
+      font-size:11px;
+      padding:10px 0 0;
+    }
+    .demo-disclaimer {
+      color:#747C83;
+      font-size:9px;
+      line-height:1.6;
+      margin-top:13px;
+    }
 
-@media(max-width:1120px){
- .navlinks{display:none;position:absolute;left:0;right:0;top:78px;z-index:110;padding:20px 28px 24px;background:var(--paper);border-bottom:1px solid var(--line);box-shadow:0 18px 28px rgba(17,23,43,.08);flex-direction:column;align-items:flex-start;gap:19px}
- .navlinks.open{display:flex}
- .nav-actions{display:none}
- .menu-btn{display:grid;place-items:center}
-}
-@media(max-width:1000px){
- .hero-layout{grid-template-columns:1fr 1fr}
- .hero h1{font-size:clamp(54px,7vw,78px)}
- .hero-stage{height:470px}
- .stage-orbit{width:390px;height:390px}
- .free-mission-grid{grid-template-columns:1fr 1fr;grid-template-rows:auto}
- .fm-feature{grid-row:auto;grid-column:span 2;min-height:320px}
- .parent-explainer{grid-template-columns:1fr;gap:15px}
- .parent-insight-card{min-height:520px}
- .research-grid{grid-template-columns:1fr 1fr}
- .study:last-child{grid-column:span 2}
- .demo-layout{grid-template-columns:1fr;gap:28px}
- .path-card{padding:36px;min-height:490px}
-}
-@media(max-width:900px){
- .wrap{width:calc(100% - 56px)}
- .parent-insight-grid{grid-template-columns:1fr 1fr}
- .parent-context-grid{grid-template-columns:1fr}
- .school-layout{grid-template-columns:1fr;gap:22px;align-items:start}
- .school-contact{width:fit-content}
-}
-@media(max-width:720px){
- html{scroll-padding-top:70px}
- .wrap{width:calc(100% - 36px)}
- .topbar{height:70px}
- .brand img{width:143px}
- .navlinks{top:70px;left:0;right:0;padding:18px 22px 22px}
- .hero{padding:55px 0 50px}
- .hero-layout{grid-template-columns:1fr;gap:0}
- .hero h1{font-size:clamp(53px,13vw,78px);margin:22px 0 18px;letter-spacing:-.04em;line-height:1.04}
- .hero-lede{font-size:16px}
- .hero-stage{height:390px;margin-top:15px}
- .mission-window{max-width:410px}
- .mission-art{height:215px}
- .stage-orbit{width:320px;height:320px}
- .stage-glow{width:300px;height:300px}
- .float-pill.one{right:0;top:25px}
- .float-pill.two{left:0;bottom:30px}
- .scroll-cue{display:none}
- .ticker{padding:14px 0}
- .ticker span{font-size:13px;padding:0 18px}
- .section{padding:86px 0}
- .section-title{letter-spacing:-.035em;line-height:1.08}
- .free-missions{padding:86px 0}
- .free-head{display:block}
- .free-head-side{margin-top:22px}
- .free-mission-grid{grid-template-columns:1fr 1fr;gap:9px}
- .free-mission-card{padding:19px;min-height:210px;border-radius:15px}
- .fm-feature{grid-column:span 2;min-height:275px}
- .fm-feature .fm-icon{font-size:58px;margin:27px 0 22px}
- .free-mission-card strong{font-size:21px}
- .fm-feature strong{font-size:35px}
- .fm-tease{font-size:11px}
- .free-preview{display:block;padding:22px}
- .free-preview-meta{align-items:flex-start;margin-top:18px}
- .free-preview-meta>span{text-align:left}
- .demo-layout{grid-template-columns:1fr;gap:25px}
- .demo-copy h2{font-size:clamp(40px,11vw,58px)}
- .play-card{padding:17px;border-radius:19px}
- .scenario{padding:17px}
- .choices{grid-template-columns:1fr}
- .choice{min-height:52px}
- .parent-section{padding:88px 0}
- .parent-head{margin-bottom:34px}
- .parent-head .section-title{font-size:clamp(39px,10.5vw,54px);letter-spacing:-.035em;line-height:1.08}
- .parent-head .section-intro{font-size:15px}
- .parent-explainer{padding:20px 18px;margin-bottom:22px}
- .parent-insight-grid{grid-template-columns:1fr;gap:12px}
- .parent-insight-card{min-height:0;padding:25px 21px}
- .insight-card-head h3{font-size:26px}
- .insight-visual{min-height:250px;margin-top:8px}
- .parent-context-grid{grid-template-columns:1fr}
- .parent-context-card{padding:20px}
- .parent-trustline{padding:21px}
- .parent-ai-line{font-size:22px}
- .path-head{display:block}
- .path-head .section-intro{margin-top:20px}
- .path-grid{grid-template-columns:1fr}
- .path-card{padding:30px;min-height:420px}
- .path-card h3{font-size:52px}
- .family-section,.pricing-section,.faq-section{padding:86px 0}
- .family-layout{display:block}
- .family-bubbles{margin-top:28px}
- .family-bubble{width:68px;height:68px;font-size:28px}
- .pricing-grid{grid-template-columns:1fr;gap:12px}
- .price-card{min-height:0;padding:25px}
- .price-card.featured{transform:none}
- .family-discount{display:block}
- .family-discount>strong{display:block;margin-top:12px}
- .pricing-info-note{border-radius:12px;line-height:1.5}
- .school-section{padding:72px 0}
- .faq-layout{grid-template-columns:1fr;gap:30px}
- .final-cta{padding:95px 0}
- .final-cta .section-title{font-size:58px}
- .closing-logo{width:140px;margin-bottom:24px}
- .footer-top{display:block}
- .footer-links{margin-top:35px;gap:35px;flex-wrap:wrap}
- .footer-links a{padding:4px 0}
- .footer-bottom{gap:12px;flex-wrap:wrap}
- .mobile-cta{display:block;position:fixed;bottom:0;left:0;right:0;z-index:90;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:#F8F8F4ee;backdrop-filter:blur(15px);border-top:1px solid var(--line)}
- .mobile-cta .btn{width:100%;padding:14px}
- body{padding-bottom:66px}
-}
-@media(max-width:390px){
- .free-mission-grid{grid-template-columns:1fr}
- .fm-feature{grid-column:auto}
-}
-@media(prefers-reduced-motion:reduce){
- *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
- .reveal{opacity:1;transform:none}
- .insight-expand,.insight-more{transition:none}
-}
-</style>
+    /* Parent space */
+    .parent-section { background:#E8F0EB; }
+    .parent-head { max-width:850px; margin-bottom:38px; }
+    .parent-head .section-title { max-width:850px; }
+    .parent-head .section-intro {
+      font-size:16px;
+      color:#536158;
+      max-width:670px;
+    }
+    .parent-promise {
+      font:700 clamp(20px,2.5vw,29px)/1.3 Manrope;
+      color:#4D5960;
+      margin-top:22px;
+      letter-spacing:-.03em;
+    }
+    .parent-promise strong { color:var(--purple); }
+    .parent-intro-card {
+      background:white;
+      border:1px solid #11172B12;
+      border-radius:17px;
+      padding:24px;
+      display:grid;
+      grid-template-columns:.9fr 1.1fr;
+      gap:25px;
+      margin-bottom:18px;
+    }
+    .parent-intro-card h3 {
+      font:800 19px Manrope;
+      margin:0 0 9px;
+    }
+    .parent-intro-card p {
+      color:#66716A;
+      font-size:12px;
+      line-height:1.7;
+      margin:0;
+    }
+    .parent-points {
+      display:grid;
+      gap:10px;
+    }
+    .parent-point {
+      display:flex;
+      gap:12px;
+      align-items:center;
+      font-size:12px;
+      font-weight:700;
+    }
+    .parent-point span {
+      color:var(--purple);
+      font:900 11px Manrope;
+    }
+    .parent-feature-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .parent-feature {
+      min-height:300px;
+      padding:25px;
+      border-radius:17px;
+      display:flex;
+      flex-direction:column;
+    }
+    .parent-feature.mint { background:#D9EFEB; }
+    .parent-feature.blue { background:#DCEBFA; }
+    .feature-index {
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.15em;
+      opacity:.7;
+    }
+    .parent-feature h3 {
+      font:800 25px/1.15 Manrope;
+      letter-spacing:-.04em;
+      margin:17px 0 10px;
+    }
+    .parent-feature p {
+      color:#515966;
+      font-size:12px;
+      line-height:1.7;
+      margin:0;
+    }
+    .feature-demo {
+      background:white;
+      border-radius:13px;
+      padding:16px;
+      margin-top:auto;
+      margin-top:20px;
+      font-size:11px;
+    }
+    .feature-demo strong { display:block; margin-bottom:7px; }
+    .feature-demo small {
+      display:block;
+      color:#687589;
+      line-height:1.6;
+    }
+    .parent-feature-link {
+      margin-top:15px;
+      font-size:10px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.08em;
+    }
+    .parent-trust {
+      background:var(--dark);
+      color:white;
+      border-radius:17px;
+      padding:25px;
+      margin-top:15px;
+    }
+    .parent-trust h3 {
+      font:800 22px Manrope;
+      margin:0 0 9px;
+    }
+    .parent-trust p {
+      color:#C4CED9;
+      font-size:12px;
+      line-height:1.75;
+      max-width:850px;
+      margin:0;
+    }
+    .parent-preview-note {
+      color:#657067;
+      font-size:10px;
+      line-height:1.6;
+      margin-top:13px;
+    }
+
+    /* Why CubitX */
+    .research { background:var(--dark); color:white; }
+    .research .section-kicker { color:#C8AAFF; }
+    .research .section-intro { color:#C0C5D3; }
+    .research-grid {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:13px;
+      margin-top:35px;
+    }
+    .study {
+      background:#ffffff09;
+      border:1px solid #ffffff22;
+      border-radius:16px;
+      padding:23px;
+    }
+    .study span {
+      color:#C8AAFF;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.14em;
+    }
+    .study h3 {
+      font:800 20px Manrope;
+      margin:13px 0;
+    }
+    .study p {
+      color:#C0C5D3;
+      font-size:12px;
+      line-height:1.75;
+    }
+    .research-note {
+      border-left:3px solid var(--yellow);
+      background:#ffffff0b;
+      padding:14px 17px;
+      margin-top:18px;
+      color:#C3C9D8;
+      font-size:10px;
+      line-height:1.7;
+    }
+
+    /* Age pathways */
+    .path-head {
+      display:flex;
+      justify-content:space-between;
+      align-items:end;
+      gap:25px;
+      margin-bottom:35px;
+    }
+    .path-grid {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+    .path-card {
+      padding:37px;
+      min-height:340px;
+      border-radius:17px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .path-card.foundation { background:#DDF2ED; }
+    .path-card.advanced { background:#E9D9FF; }
+    .grade {
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.15em;
+    }
+    .path-card h3 {
+      font:800 clamp(32px,4vw,48px)/1.05 Manrope;
+      letter-spacing:-.045em;
+      margin:20px 0;
+    }
+    .path-card p {
+      color:#56635B;
+      font-size:13px;
+      line-height:1.75;
+      max-width:410px;
+    }
+    .path-tags { display:flex; flex-wrap:wrap; gap:7px; }
+    .path-tags span {
+      border:1px solid #20282035;
+      border-radius:100px;
+      padding:7px 11px;
+      font-size:9px;
+      font-weight:800;
+    }
+
+    /* Family */
+    .family-section { background:#F0E9FA; padding:85px 0; }
+    .family-layout {
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:center;
+      gap:30px;
+    }
+    .family-layout h2 {
+      font:800 clamp(35px,4.5vw,58px)/1.05 Manrope;
+      letter-spacing:-.045em;
+      margin:15px 0;
+      max-width:750px;
+    }
+    .family-layout p {
+      color:#5D5668;
+      font-size:13px;
+      line-height:1.7;
+      max-width:650px;
+    }
+    .family-bubbles { display:flex; padding:15px; }
+    .family-bubble {
+      width:70px;
+      height:70px;
+      border-radius:50%;
+      background:white;
+      display:grid;
+      place-items:center;
+      font-size:30px;
+      border:4px solid #F0E9FA;
+      margin-left:-13px;
+    }
+    .family-bubble:first-child { margin-left:0; }
+
+    /* Pricing */
+    .pricing-head { text-align:center; max-width:780px; margin:0 auto 35px; }
+    .pricing-head .section-intro { margin:15px auto; }
+    .pricing-info {
+      text-align:center;
+      width:fit-content;
+      max-width:100%;
+      margin:0 auto 18px;
+      border-radius:100px;
+      padding:10px 15px;
+      background:#EEE7FA;
+      border:1px solid #DED1F3;
+      color:#67577D;
+      font-size:9px;
+      font-weight:900;
+      letter-spacing:.05em;
+    }
+    .pricing-grid {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:13px;
+    }
+    .price-card {
+      background:white;
+      border:1px solid var(--line);
+      border-radius:17px;
+      padding:27px;
+    }
+    .price-card.featured {
+      background:#E9D9FF;
+      border-color:#E9D9FF;
+    }
+    .price-label {
+      color:#6F6282;
+      font-size:9px;
+      font-weight:900;
+      text-transform:uppercase;
+      letter-spacing:.1em;
+    }
+    .price-card h3 {
+      font:800 clamp(34px,4vw,47px) Manrope;
+      letter-spacing:-.06em;
+      margin:22px 0 10px;
+    }
+    .price-card h3 small {
+      color:#73706F;
+      font:700 12px "DM Sans";
+      letter-spacing:0;
+    }
+    .price-card p {
+      color:#606A63;
+      font-size:12px;
+      line-height:1.7;
+      min-height:42px;
+    }
+    .price-card ul {
+      padding-left:17px;
+      margin:18px 0 0;
+    }
+    .price-card li {
+      color:#525D55;
+      font-size:11px;
+      line-height:2;
+    }
+    .family-discount {
+      background:#DDF2ED;
+      border-radius:14px;
+      padding:20px 23px;
+      margin-top:15px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:15px;
+    }
+    .family-discount strong { font:800 16px Manrope; }
+    .family-discount p {
+      color:#59665D;
+      font-size:11px;
+      line-height:1.6;
+      margin:5px 0 0;
+    }
+    .pricing-foot {
+      color:#727B74;
+      font-size:10px;
+      line-height:1.7;
+      max-width:900px;
+      margin:16px auto 0;
+    }
+
+    /* Schools */
+    .school-section {
+      background:var(--mint);
+      padding:85px 0;
+    }
+    .school-layout {
+      display:grid;
+      grid-template-columns:1fr auto;
+      align-items:end;
+      gap:25px;
+    }
+    .school-layout h2 { max-width:760px; }
+    .school-layout p {
+      color:#4E5A54;
+      font-size:13px;
+      line-height:1.7;
+      max-width:650px;
+    }
+
+    /* FAQ */
+    .faq-layout {
+      display:grid;
+      grid-template-columns:.7fr 1.3fr;
+      gap:65px;
+    }
+    .faq-list details {
+      border-top:1px solid var(--line);
+      padding:19px 0;
+    }
+    .faq-list details:last-child { border-bottom:1px solid var(--line); }
+    .faq-list summary {
+      display:flex;
+      justify-content:space-between;
+      gap:15px;
+      list-style:none;
+      cursor:pointer;
+      font-size:13px;
+      font-weight:800;
+    }
+    .faq-list summary::-webkit-details-marker { display:none; }
+    .faq-list summary:after {
+      content:"+";
+      color:var(--purple);
+      font-size:21px;
+      font-weight:400;
+    }
+    .faq-list details[open] summary:after { content:"−"; }
+    .faq-list details p {
+      color:#68726C;
+      font-size:12px;
+      line-height:1.8;
+      margin:12px 30px 0 0;
+    }
+
+    /* Final CTA and footer */
+    .final-cta {
+      background:var(--lilac);
+      padding:105px 0;
+      text-align:center;
+    }
+    .final-cta img {
+      width:140px;
+      margin:0 auto 25px;
+    }
+    .final-cta h2 {
+      font:800 clamp(43px,6.5vw,78px)/1.04 Manrope;
+      letter-spacing:-.05em;
+      max-width:900px;
+      margin:20px auto;
+    }
+    .final-cta p {
+      color:#342B3F;
+      font-size:14px;
+      line-height:1.7;
+      max-width:520px;
+      margin:0 auto 25px;
+    }
+    footer {
+      background:var(--dark);
+      color:white;
+      padding:50px 0 23px;
+    }
+    .footer-top {
+      display:flex;
+      justify-content:space-between;
+      gap:35px;
+      padding-bottom:35px;
+      border-bottom:1px solid #ffffff25;
+    }
+    .footer-brand img { width:145px; }
+    .footer-brand p {
+      color:#AEB7B0;
+      font-size:12px;
+      line-height:1.7;
+      max-width:300px;
+    }
+    .footer-links {
+      display:flex;
+      flex-wrap:wrap;
+      gap:45px;
+    }
+    .footer-links div { display:grid; gap:10px; align-content:start; }
+    .footer-links strong {
+      color:var(--lilac);
+      font-size:9px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+    }
+    .footer-links a {
+      color:#C4CBC5;
+      font-size:11px;
+    }
+    .footer-links a:hover { color:white; text-decoration:underline; }
+    .footer-bottom {
+      display:flex;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:10px;
+      padding-top:18px;
+      color:#89938C;
+      font-size:9px;
+    }
+    .mobile-cta { display:none; }
+
+    @keyframes float {
+      0%,100% { transform:translateY(0) rotateY(-5deg); }
+      50% { transform:translateY(-10px) rotateY(-5deg); }
+    }
+    @keyframes orbit { to { transform:rotate(360deg); } }
+    @keyframes breathe {
+      0%,100% { transform:scale(.94); opacity:.65; }
+      50% { transform:scale(1.07); opacity:1; }
+    }
+    @keyframes marquee { to { transform:translateX(-50%); } }
+
+    @media(max-width:1050px) {
+      .navlinks { gap:14px; }
+      .nav-actions .btn { padding:10px 13px; }
+      .hero-layout { grid-template-columns:1fr 1fr; }
+      .hero h1 { font-size:clamp(52px,6.5vw,75px); }
+    }
+    @media(max-width:850px) {
+      .wrap { width:calc(100% - 42px); }
+      .navlinks {
+        display:none;
+        position:absolute;
+        top:78px;
+        left:0;
+        right:0;
+        padding:22px;
+        background:var(--paper);
+        border-bottom:1px solid var(--line);
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .navlinks.open { display:flex; }
+      .nav-actions { display:none; }
+      .menu-btn { display:block; }
+      .hero-layout { grid-template-columns:1fr; }
+      .hero-stage { min-height:410px; }
+      .hero-copy { max-width:720px; }
+      .demo-layout { grid-template-columns:1fr; }
+      .parent-intro-card { grid-template-columns:1fr; }
+      .path-head { display:block; }
+      .family-layout { grid-template-columns:1fr; }
+      .faq-layout { grid-template-columns:1fr; gap:25px; }
+    }
+    @media(max-width:650px) {
+      .wrap { width:calc(100% - 34px); }
+      .topbar { height:68px; }
+      .brand img { width:135px; }
+      .navlinks { top:68px; }
+      .hero { padding:48px 0 38px; }
+      .hero h1 { font-size:clamp(48px,12vw,69px); }
+      .hero-lede { font-size:15px; }
+      .hero-stage { min-height:340px; }
+      .mission-art { height:205px; }
+      .stage-glow { width:280px; }
+      .float-pill.one { top:15px; right:0; }
+      .float-pill.two { bottom:20px; left:0; }
+      .section { padding:78px 0; }
+      .free-head { display:block; }
+      .free-head-side { margin-top:20px; }
+      .mission-grid { grid-template-columns:1fr 1fr; gap:9px; }
+      .mission-card { min-height:205px; padding:17px; }
+      .mission-card.feature { grid-column:span 2; grid-row:auto; min-height:270px; }
+      .mission-card.feature .mission-icon { font-size:58px; margin:25px 0; }
+      .mission-card.feature strong { font-size:35px; }
+      .mission-card strong { font-size:20px; }
+      .mission-tease { font-size:10px; }
+      .mission-preview { display:block; padding:20px; }
+      .preview-meta { text-align:left; margin-top:17px; }
+      .choices { grid-template-columns:1fr; }
+      .choice { min-height:53px; }
+      .parent-feature-grid { grid-template-columns:1fr; }
+      .parent-feature { min-height:245px; }
+      .research-grid { grid-template-columns:1fr; }
+      .path-grid { grid-template-columns:1fr; }
+      .path-card { min-height:290px; padding:27px; }
+      .pricing-grid { grid-template-columns:1fr; }
+      .price-card.featured { transform:none; }
+      .family-discount { display:block; }
+      .family-discount>strong { display:block; margin-top:12px; }
+      .school-layout { grid-template-columns:1fr; }
+      .footer-top { display:block; }
+      .footer-links { margin-top:28px; gap:25px; }
+      .footer-bottom { padding-bottom:5px; }
+      .mobile-cta {
+        display:block;
+        position:fixed;
+        bottom:0;
+        left:0;
+        right:0;
+        z-index:90;
+        padding:9px 14px calc(9px + env(safe-area-inset-bottom));
+        background:#F8F8F4EE;
+        backdrop-filter:blur(14px);
+        border-top:1px solid var(--line);
+      }
+      .mobile-cta .btn { width:100%; padding:13px; }
+      body { padding-bottom:65px; }
+    }
+    @media(max-width:390px) {
+      .mission-grid { grid-template-columns:1fr; }
+      .mission-card.feature { grid-column:auto; }
+    }
+    @media(prefers-reduced-motion:reduce) {
+      *,*::before,*::after {
+        scroll-behavior:auto!important;
+        animation-duration:.01ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.01ms!important;
+      }
+    }
+  </style>
 </head>
+
 <body>
+
 <header class="topbar">
-<div class="wrap nav">
-<a aria-label="CubitX home" class="brand" href="#top"><img alt="CubitX" src="/cubitx-logo.png"/></a>
-<nav class="navlinks" id="navlinks">
-<a href="#free-missions">Free Adventures</a>
-<a href="#how">How It Works</a>
-<a href="#parents">For Parents</a>
-<a href="#why-cubitx-exists">Why CubitX Exists</a>
-<a href="#schools">For Schools</a>
-<a href="#pricing">Pricing</a>
-</nav>
-<div class="nav-actions">
-<a class="btn btn-outline" href="#how">See how it works</a>
-<a class="btn btn-dark" href="#free-missions">Try free <span class="arrow" aria-hidden="true">↗</span></a>
-</div>
-<button aria-controls="navlinks" aria-expanded="false" aria-label="Open navigation menu" class="menu-btn" id="menuBtn" type="button">☰</button>
-</div>
+  <div class="wrap nav">
+    <a class="brand" href="#top" aria-label="CubitX home">
+      <img src="/cubitx-logo.png" alt="CubitX" />
+    </a>
+
+    <nav class="navlinks" id="navlinks" aria-label="Main navigation">
+      <a href="#free-missions">Adventures</a>
+      <a href="#how">Try a challenge</a>
+      <a href="#parents">For parents</a>
+      <a href="#pathways">Classes 5–10</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faqs">FAQs</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="btn btn-outline" href="#parents">For parents</a>
+      <a class="btn btn-dark" href="#free-missions">Try free <span class="arrow">↗</span></a>
+    </div>
+
+    <button
+      class="menu-btn"
+      id="menuBtn"
+      type="button"
+      aria-label="Open navigation menu"
+      aria-expanded="false"
+      aria-controls="navlinks"
+    >☰</button>
+  </div>
 </header>
+
 <main id="top">
-<section class="hero">
-<div class="wrap hero-layout">
-<div class="hero-copy">
-<div class="eyebrow"><i class="live-dot"></i> Interactive adventures · Classes 5–7</div>
-<h1 class="display">A world of little mysteries. <em>A chance to think big.</em></h1>
-<p class="hero-lede">Explore little mysteries, try your ideas and discover answers on your own. Every adventure makes room for curiosity, imagination and independent thinking.</p>
-<div class="hero-actions">
-<a class="btn btn-dark" href="#free-missions">Try 5 Free Adventures <span class="arrow" aria-hidden="true">↗</span></a>
-<a class="btn btn-outline" href="#how">See how it works <span class="arrow" aria-hidden="true">↓</span></a>
-</div>
-<p class="micro">No registration. No payment. Five adventures to begin.</p>
-</div>
-<div aria-label="Decorative illustration of a child exploring a river crossing mission" class="hero-stage">
-<div class="stage-orbit"></div><div class="stage-glow"></div>
-<div class="mission-window">
-<div class="window-bar"><span>CUBITX / MISSION 001</span><span class="window-dots"><i></i><i></i><i></i></span></div>
-<div class="mission-art">
-<div class="sun"></div><div class="mountain"></div><div class="mountain m2"></div><div class="river"></div><div class="wood-bridge"></div><div class="kid-figure">🧒🏽</div>
-<span class="mission-label">THE RIVER CROSSING</span>
-</div>
-<div class="mission-bottom"><strong>How would you get everyone across?</strong><span>01 / EXPLORE</span></div><div class="mini-progress"><i></i></div>
-</div>
-<div class="float-pill one">A new challenge awaits <b>✦</b></div><div class="float-pill two">Your idea matters. <b>↗</b></div>
-</div>
-</div>
-<div class="scroll-cue">Scroll to explore</div>
-</section>
-<div aria-label="Explore, question, experiment, solve, create, discover" class="ticker">
-<div class="ticker-track">
-<span>QUESTION <i>✳</i></span><span>EXPLORE <i>✳</i></span><span>EXPERIMENT <i>✳</i></span><span>DISCOVER <i>✳</i></span><span>CREATE <i>✳</i></span><span>DECIDE <i>✳</i></span>
-<span>QUESTION <i>✳</i></span><span>EXPLORE <i>✳</i></span><span>EXPERIMENT <i>✳</i></span><span>DISCOVER <i>✳</i></span><span>CREATE <i>✳</i></span><span>DECIDE <i>✳</i></span>
-</div>
-</div>
-<section class="section free-missions" id="free-missions">
-<div class="wrap">
-<div class="free-head reveal">
-<div><div class="section-kicker">Your first CubitX experience</div><h2 class="section-title">Five free adventures.<br/>A world to explore.</h2></div>
-<div class="free-head-side"><span class="free-stamp">₹0</span><p>No registration. No payment.<br/>Just five chances to think differently.</p></div>
-</div>
-<div class="free-mission-grid">
-<button aria-pressed="true" class="free-mission-card fm-feature active reveal" data-free="secret" type="button">
-<span class="fm-number">01 / THE HIDDEN RULE</span><span class="fm-icon">⚙</span><strong>Secret Machine</strong><span class="fm-tease">Can you uncover the rule behind what goes in—and what comes out?</span><span class="fm-open">Preview adventure ↗</span>
-</button>
-<button aria-pressed="false" class="free-mission-card fm-balance reveal" data-free="balance" type="button">
-<span class="fm-number">02 / FIND THE BALANCE</span><span class="fm-icon">⚖</span><strong>Balance Detective</strong><span class="fm-tease">Look beyond what seems obvious. What information would help?</span><span class="fm-open">Preview adventure ↗</span>
-</button>
-<button aria-pressed="false" class="free-mission-card fm-pattern reveal" data-free="pattern" type="button">
-<span class="fm-number">03 / SPOT THE CONNECTION</span><span class="fm-icon">⌁</span><strong>Pattern Detective</strong><span class="fm-tease">Spot a pattern. Then test whether your rule really holds.</span><span class="fm-open">Preview adventure ↗</span>
-</button>
-<button aria-pressed="false" class="free-mission-card fm-cause reveal" data-free="cause" type="button">
-<span class="fm-number">04 / WHAT CAUSED WHAT?</span><span class="fm-icon">↗</span><strong>Cause Detective</strong><span class="fm-tease">When two things happen together, is one really the cause?</span><span class="fm-open">Preview adventure ↗</span>
-</button>
-<button aria-pressed="false" class="free-mission-card fm-question reveal" data-free="question" type="button">
-<span class="fm-number">05 / ONE QUESTION</span><span class="fm-icon">?</span><strong>Big Question</strong><span class="fm-tease">If you could ask just one question before deciding, what would it be?</span><span class="fm-open">Preview adventure ↗</span>
-</button>
-</div>
-<div aria-live="polite" class="free-preview reveal">
-<div><span class="preview-eyebrow">SELECTED ADVENTURE PREVIEW</span><h3 id="freePreviewTitle">Secret Machine</h3><p id="freePreviewText">A hidden rule is waiting to be discovered. Look for what changes, what stays the same and what you still need to know.</p></div>
-<div class="free-preview-meta"><span id="freePreviewSkill">THINKING FOCUS · PATTERN AND INFERENCE</span><a class="btn btn-purple" href="#how">Try a sample challenge <span class="arrow" aria-hidden="true">↗</span></a></div>
-</div>
-<p class="free-note">These cards preview the five introductory adventure themes. They do not launch a mission from this landing page. The live experience must match the actual published mission content.</p>
-</div>
-</section>
-<section class="section demo" id="how">
-<div class="wrap">
-<div class="demo-layout">
-<div class="demo-copy reveal">
-<div class="eyebrow">DON'T JUST READ ABOUT IT</div>
-<h2 class="display">Let your child experience the joy of figuring it out.</h2>
-<p>Here is a small sample challenge. There may be more than one sensible question to ask. The interesting part is the reason behind the choice.</p>
-<div class="demo-step"><span>1</span><div><b>Predict</b><br/>Make an initial guess and say what makes you think so.</div></div>
-<div class="demo-step"><span>2</span><div><b>Investigate</b><br/>Look for information that could support or challenge the idea.</div></div>
-<div class="demo-step"><span>3</span><div><b>Revise</b><br/>Reconsider the idea when new information changes the picture.</div></div>
-<div class="demo-step"><span>4</span><div><b>Explain</b><br/>Share the reasons and evidence behind the conclusion.</div></div>
-</div>
-<div class="play-card reveal">
-<div class="play-top"><small>CUBITX · A MINI THINKING CHALLENGE</small><small>TRY IT</small></div>
-<div class="scenario">
-<div class="scene-emoji">🌱</div><h3>The School Garden Mystery</h3>
-<p>Two plants are placed in different corners of the school. One grows taller than the other. What would you want to find out before deciding why?</p>
-</div>
-<div class="choices" id="demoChoices">
-<button class="choice" type="button" data-choice="light">How much sunlight does each plant receive?</button>
-<button class="choice" type="button" data-choice="height">Which plant looks taller?</button>
-<button class="choice" type="button" data-choice="water">Are both plants getting the same amount of water?</button>
-<button class="choice" type="button" data-choice="guess">Which plant is probably healthier?</button>
-</div>
-<div aria-live="polite" class="feedback" id="demoFeedback"></div>
-<button class="reset-demo" id="resetDemo" type="button">Try another approach ↻</button>
-<p class="demo-disclaimer">This is an illustrative sample challenge, not a scored assessment or a live child progress report.</p>
-</div>
-</div>
-</div>
-</section>
-<section class="section parent-section" id="parents">
-<div class="wrap">
-<div class="parent-head reveal">
-<div class="section-kicker">FOR PARENTS</div>
-<h2 class="section-title">See more than the answer. See the thinking behind it.</h2>
-<p class="section-intro">You are not a spectator in your child’s journey. CubitX aims to bring you closer to the thinking behind each adventure—so you can notice the approach, understand the evidence available and encourage the next step.</p>
-<p class="parent-ai-line">Answers are everywhere. <strong>The joy is in figuring things out.</strong></p>
-</div>
-<div class="parent-explainer reveal">
-<div class="parent-explainer-lead"><strong>What can you discover in Parent Space?</strong><p>It is a window into a child’s learning journey—not a marksheet or a judgement of ability.</p></div>
-<div class="parent-explainer-points">
-<div class="parent-explainer-point"><span class="parent-explainer-index">01</span><span>Activities explored and choices made</span></div>
-<div class="parent-explainer-point"><span class="parent-explainer-index">02</span><span>Thinking behaviours observed in action</span></div>
-<div class="parent-explainer-point"><span class="parent-explainer-index">03</span><span>What remains unknown and what to encourage next</span></div>
-</div>
-</div>
-<div class="parent-insight-grid">
-<article class="parent-insight-card insight-mint reveal">
-<div class="insight-card-head"><div><span class="insight-kicker">01 / THINKING EVIDENCE</span><h3>Notice the thinking behind each choice.</h3></div><button aria-expanded="false" aria-label="Expand thinking evidence explanation" class="insight-expand" type="button">+</button></div>
-<p class="insight-copy">A useful parent view should connect an observation to the activity and response that support it.</p>
-<div class="insight-visual">
-<div class="graph-topline"><b>Evidence connection</b><span>SCHEMATIC VIEW</span></div>
-<svg class="evidence-graph" viewBox="0 0 360 170" role="img" aria-label="Schematic illustration of evidence markers across an activity">
-<g class="graph-grid"><path d="M25 20H340M25 60H340M25 100H340M25 140H340"/><path d="M25 20V140M105 20V140M185 20V140M265 20V140M340 20V140"/></g>
-<g class="graph-dots"><circle cx="50" cy="80" r="6"/><circle cx="85" cy="80" r="6"/><circle cx="120" cy="80" r="6"/><circle cx="155" cy="80" r="6"/><circle cx="190" cy="80" r="6"/><circle cx="225" cy="80" r="6"/><circle cx="260" cy="80" r="6"/><circle cx="300" cy="80" r="6"/></g>
-</svg>
-<div class="graph-axis"><span>RESPONSE</span><span>OBSERVATION</span><span>CONTEXT</span></div>
-</div>
-<p class="insight-more">A real Parent Space should connect each observation to the activity and response that support it. The schematic above is not a child record, performance graph or validated score.</p>
-</article>
-<article class="parent-insight-card insight-blue reveal">
-<div class="insight-card-head"><div><span class="insight-kicker">02 / EVIDENCE AND CONTEXT</span><h3>Understand what the evidence can—and cannot—say.</h3></div><button aria-expanded="false" aria-label="Expand evidence and context explanation" class="insight-expand" type="button">+</button></div>
-<p class="insight-copy">A parent view should explain the source of an observation and avoid turning one moment into a fixed judgement.</p>
-<div class="insight-visual">
-<div class="timeline-head"><b>How evidence connects</b><span>SCHEMATIC VIEW</span></div>
-<div class="evidence-timeline">
-<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">ACTIVITY</span><b>A child makes a choice</b><small>The original response is retained as evidence</small></div>
-<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">OBSERVATION</span><b>A behaviour is identified</b><small>It is linked to the specific response</small></div>
-<div class="timeline-event"><span class="timeline-dot"></span><span class="timeline-step">PARENT VIEW</span><b>Context is explained</b><small>What happened, what may be suggested and what remains unknown</small></div>
-</div>
-<div class="timeline-foot">OBSERVATIONS, NOT MARKS OR RANKS</div>
-</div>
-<p class="insight-more">A real parent view should show only evidence captured from completed activities. When evidence is missing or unclear, it should say “Not observed yet”—never imply a weakness.</p>
-</article>
-</div>
-<div class="parent-context-grid reveal">
-<article class="parent-context-card"><span class="insight-kicker">WHAT REMAINS UNKNOWN</span><h3>One activity is only one moment.</h3><p>A single response cannot tell the whole story. If evidence is missing, unclear or limited, Parent Space should say “Not observed yet” rather than turn uncertainty into a low score.</p></article>
-<article class="parent-context-card parent-prompt"><span class="insight-kicker">A CONVERSATION TO TRY</span><h3>Ask about the thinking, not just the answer.</h3><p>“What made you choose that? What else would you want to find out?”</p><small>A practical prompt—not a judgement or a test.</small></article>
-</div>
-<div class="parent-trustline reveal"><span class="trust-icon">✳</span><p><strong>Children are not reduced to a score.</strong><br/>Reports should explain what happened, what it may suggest, what remains unknown and where the evidence came from—not assign IQ, fixed labels or rankings.</p></div>
-<p class="parent-demo-note">The Parent Space panels are schematic design previews, not fictional child reports or live records. Actual reports must be generated only from recorded child activity and validated observation rules.</p>
-</div>
-</section><section class="section research" id="why-cubitx-exists">
-<div class="wrap">
-<div class="section-head reveal">
-<div class="eyebrow">WHY CUBITX EXISTS</div>
-<h2 class="section-title">Knowing an answer is not the same as knowing how to think.</h2>
-<p>Children need opportunities to question, investigate, test ideas and reason through unfamiliar situations—not only recall information.</p>
-</div>
-<div class="research-grid">
-<article class="study reveal"><span class="source">ACTIVE PARTICIPATION</span><h3>Learning involves doing.</h3><p>Children need opportunities to engage with ideas, explain their reasoning and test their understanding—not only receive information.</p></article>
-<article class="study reveal"><span class="source">REFLECTION</span><h3>Notice how you are thinking.</h3><p>Planning, monitoring and reconsidering an approach can help learners become more aware of how they are working through a challenge.</p></article>
-<article class="study reveal"><span class="source">EVIDENCE AND JUDGEMENT</span><h3>Good decisions need reasons.</h3><p>Considering evidence, alternatives and uncertainty gives children opportunities to practise thoughtful judgement.</p></article>
-</div>
-<div class="research-note reveal">These are the learning principles behind the CubitX experience, not claims that CubitX has already demonstrated a measured improvement in learning outcomes. Product effectiveness must be evaluated separately.</div>
-<div class="research-bottom reveal">
-<h3>Less passive consumption.<br/>More active discovery.</h3>
-<p>CubitX aims to turn these principles into child-friendly adventures where children can explore, make choices, test ideas and reflect on what they discover.</p>
-</div>
-</div>
-</section>
 
-<section class="section path-section" id="pathways">
-<div class="wrap">
-<div class="path-head reveal">
-<div><div class="section-kicker">A JOURNEY THAT GROWS</div><h2 class="section-title">Room to grow, one challenge at a time.</h2></div>
-<p class="section-intro">Different age groups need different kinds of challenges. CubitX is designed to grow with the learner.</p>
-</div>
-<div class="path-grid">
-<article class="path-card foundation reveal">
-<div><span class="grade">CLASSES 5–7 · TIER 1</span><h3>Foundation Explorers</h3><p>Build confidence through observation, curiosity, simple investigations and everyday problem-solving.</p></div>
-<div class="path-bottom"><div class="path-tags"><span>Observe</span><span>Question</span><span>Explore</span></div><span class="path-symbol">✳</span></div>
-</article>
-<article class="path-card advanced reveal">
-<div><span class="grade">CLASSES 8–10 · TIER 2</span><h3>Advanced Explorers</h3><p>Take on more layered challenges involving evidence, trade-offs, uncertainty and decisions.</p></div>
-<div class="path-bottom"><div class="path-tags"><span>Investigate</span><span>Evaluate</span><span>Decide</span></div><span class="path-symbol">⌁</span></div>
-</article>
-</div>
-</div>
-</section>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap hero-layout">
+      <div class="hero-copy">
+        <div class="hero-tag">
+          <span class="hero-dot"></span>
+          Interactive thinking adventures · Classes 5–10
+        </div>
 
-<section class="family-section">
-<div class="wrap family-layout reveal">
-<div><div class="eyebrow">A FAMILY JOURNEY</div><h2>Every child deserves the space to think in their own way.</h2><p>One parent-owned family account can support up to three child profiles. Each child has their own learning journey and needs a separate paid entitlement for paid access.</p></div>
-<div class="family-bubbles" aria-label="Illustration of a family with three child profiles"><span class="family-bubble">🧒🏽</span><span class="family-bubble">👧🏽</span><span class="family-bubble">🧑🏽</span></div>
-</div>
-</section>
+        <h1 class="display">
+          A world of little mysteries.
+          <em>A chance to think big.</em>
+        </h1>
 
-<section class="section pricing-section" id="pricing">
-<div class="wrap">
-<div class="pricing-head reveal">
-<div class="section-kicker">SIMPLE, TRANSPARENT ACCESS</div>
-<h2 class="section-title">Choose the pace that works for your family.</h2>
-<p class="section-intro">Start with five free adventures. When you are ready, choose a plan. All renewals are manual—there are no automatic charges.</p>
-</div>
-<div class="pricing-info-note">PLAN INFORMATION ONLY · Paid-plan selection and payment are not enabled yet.</div>
-<div class="pricing-grid">
-<article class="price-card reveal">
-<span class="label">A first step</span><h3>₹49 <small>/ 7 days</small></h3>
-<p>A short introduction to the CubitX adventure experience.</p>
-<ul><li>7 days of access</li><li>One-time pass</li><li>No automatic renewal</li></ul>
-</article>
-<article class="price-card featured reveal">
-<span class="label">For regular explorers</span><h3>₹149 <small>/ 30 days</small></h3>
-<p>More time to explore, practise and discover.</p>
-<ul><li>30 days from activation</li><li>Manual renewal</li><li>No automatic charges</li></ul>
-</article>
-<article class="price-card reveal">
-<span class="label">The longer journey</span><h3>₹999 <small>/ 12 months</small></h3>
-<p>A year of opportunities to build thinking habits.</p>
-<ul><li>12 months from activation</li><li>Manual renewal</li><li>No automatic charges</li></ul>
-</article>
-</div>
-<div class="family-discount reveal">
-<div><strong>Growing together?</strong><p>Families with two or three paid child profiles receive a 20% family discount.</p></div>
-<strong>Save 20%</strong>
-</div>
-<p class="pricing-foot">Prices are per child, before applicable family or approved school discounts. The ₹49 pass may be credited in full towards the same child's annual plan upgrade during the pass's seven-day validity, subject to the published terms. Payment links and checkout will be added when payment integration is ready.</p>
-</div>
-</section>
+        <p class="hero-lede">
+          What if learning felt less like finding the right answer
+          and more like discovering something for yourself?
+          CubitX turns curiosity into adventures where children
+          question, experiment, solve and rethink.
+        </p>
 
-<section class="school-section" id="schools">
-<div class="wrap school-layout reveal">
-<div>
-<div class="section-kicker">FOR SCHOOLS</div>
-<h2 class="section-title">Make room for thinking in your classroom.</h2>
-<p>Give students opportunities to question, investigate, experiment and solve unfamiliar problems through interactive adventures.</p>
-</div>
-<a class="btn btn-dark school-contact" href="mailto:hello@cubitx.in?subject=CubitX%20for%20Schools">Partner with CubitX <span aria-hidden="true" class="arrow">↗</span></a>
-</div>
-</section>
+        <div class="hero-actions">
+          <a class="btn btn-dark" href="#free-missions">
+            Try 5 Free Adventures <span class="arrow">↗</span>
+          </a>
+          <a class="btn btn-outline" href="#how">
+            Experience a challenge <span class="arrow">↓</span>
+          </a>
+        </div>
 
-<section class="section faq-section" id="faqs">
-<div class="wrap faq-layout">
-<div class="reveal">
-<div class="section-kicker">A FEW THINGS YOU MAY WONDER</div>
-<h2 class="section-title">Before you begin.</h2>
-<p class="section-intro">A little clarity for families exploring CubitX.</p>
-</div>
-<div class="faq-list reveal">
-<details><summary>Which classes is CubitX designed for?</summary><p>CubitX is designed for Classes 5–10. The learning pathways are grouped into Classes 5–7 and Classes 8–10, with challenges suited to each stage.</p></details>
-<details><summary>Can my child try CubitX without registering?</summary><p>Yes. The introductory experience offers five free Day 1 adventures without registration. Guest activity evidence exists only during the current session; closing the session may lose that evidence.</p></details>
-<details><summary>Does CubitX give children marks or IQ scores?</summary><p>No. CubitX is designed around evidence-linked observations of activity, not IQ scores, public rankings or fixed labels. One activity is not enough to make a stable judgement about a child.</p></details>
-<details><summary>What can parents see?</summary><p>Parent Space is intended to show activities explored, responses or choices, observed thinking in action, what remains unknown and practical ideas for a parent-child conversation. Actual reports must be based only on recorded activity and validated observation rules.</p></details>
-<details><summary>How many children can one family account support?</summary><p>One parent-owned family account can support up to three child profiles. Each child needs a separate paid and active entitlement for paid access.</p></details>
-<details><summary>Are paid plans and payments available now?</summary><p>The prices shown are plan information only. Paid-plan selection and payment are not enabled yet. The five introductory adventures are free.</p></details>
-<details><summary>Does a subscription renew automatically?</summary><p>No. The current pricing decision is manual renewal, with no automatic charges.</p></details>
-<details><summary>Can schools use CubitX?</summary><p>Schools can contact CubitX to discuss a possible relationship. School access and staff permissions must be separately authorised; a school code alone does not grant access to a child's records.</p></details>
-</div>
-</div>
-</section>
+        <p class="micro">
+          No registration. No payment. Five adventures to begin.
+        </p>
+      </div>
 
-<section class="final-cta" id="start">
-<div class="wrap reveal">
-<img class="closing-logo" src="/cubitx-logo.png" alt="CubitX" width="150" height="30" loading="lazy"/>
-<div class="section-kicker">START WITH CURIOSITY</div>
-<h2 class="section-title">Give your child the joy of figuring things out.</h2>
-<p>Five free adventures. No registration. A little room to question, explore and discover.</p>
-<a class="btn btn-dark" href="#free-missions">Try 5 Free Adventures <span class="arrow" aria-hidden="true">↗</span></a>
-</div>
-</section>
+      <div class="hero-stage" aria-label="Illustration of a child exploring a river crossing challenge">
+        <div class="orbit"></div>
+        <div class="stage-glow"></div>
+
+        <div class="mission-window">
+          <div class="window-bar">
+            <span>CUBITX / MISSION 001</span>
+            <span class="window-dots"><i></i><i></i><i></i></span>
+          </div>
+
+          <div class="mission-art">
+            <div class="sun"></div>
+            <div class="mountain"></div>
+            <div class="mountain two"></div>
+            <div class="river"></div>
+            <div class="bridge"></div>
+            <div class="child-figure">🧒🏽</div>
+            <span class="mission-label">THE RIVER CROSSING</span>
+          </div>
+
+          <div class="mission-bottom">
+            <strong>How would you get everyone across?</strong>
+            <span>EXPLORE · TEST · DISCOVER</span>
+          </div>
+        </div>
+
+        <div class="float-pill one">A new challenge awaits <b>✦</b></div>
+        <div class="float-pill two">Your idea matters <b>↗</b></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ticker" aria-label="Question, explore, experiment, discover, create and decide">
+    <div class="ticker-track">
+      <span>QUESTION <i>✳</i></span>
+      <span>EXPLORE <i>✳</i></span>
+      <span>EXPERIMENT <i>✳</i></span>
+      <span>DISCOVER <i>✳</i></span>
+      <span>CREATE <i>✳</i></span>
+      <span>DECIDE <i>✳</i></span>
+      <span>QUESTION <i>✳</i></span>
+      <span>EXPLORE <i>✳</i></span>
+      <span>EXPERIMENT <i>✳</i></span>
+      <span>DISCOVER <i>✳</i></span>
+      <span>CREATE <i>✳</i></span>
+      <span>DECIDE <i>✳</i></span>
+    </div>
+  </div>
+
+  <!-- FIVE FREE ADVENTURES -->
+  <section class="section free-missions" id="free-missions">
+    <div class="wrap">
+      <div class="free-head">
+        <div>
+          <div class="section-kicker">YOUR FIRST CUBITX EXPERIENCE</div>
+          <h2 class="section-title">
+            Five free adventures.<br />A world to explore.
+          </h2>
+        </div>
+
+        <div class="free-head-side">
+          <span class="free-stamp">₹0</span>
+          <p>No registration. No payment.<br />Just five chances to think differently.</p>
+        </div>
+      </div>
+
+      <div class="mission-grid">
+        <button class="mission-card feature" type="button" data-free="secret" aria-pressed="true">
+          <span class="mission-number">01 / THE HIDDEN RULE</span>
+          <span class="mission-icon">⚙</span>
+          <strong>Secret Machine</strong>
+          <span class="mission-tease">Can you uncover the rule behind what goes in — and what comes out?</span>
+          <span class="mission-open">Explore preview ↗</span>
+        </button>
+
+        <button class="mission-card balance" type="button" data-free="balance" aria-pressed="false">
+          <span class="mission-number">02 / FIND THE BALANCE</span>
+          <span class="mission-icon">⚖</span>
+          <strong>Balance Detective</strong>
+          <span class="mission-tease">What information would help you compare two sides fairly?</span>
+          <span class="mission-open">Explore preview ↗</span>
+        </button>
+
+        <button class="mission-card pattern" type="button" data-free="pattern" aria-pressed="false">
+          <span class="mission-number">03 / SPOT THE CONNECTION</span>
+          <span class="mission-icon">⌁</span>
+          <strong>Pattern Detective</strong>
+          <span class="mission-tease">Spot a pattern. Then test whether your rule really holds.</span>
+          <span class="mission-open">Explore preview ↗</span>
+        </button>
+
+        <button class="mission-card cause" type="button" data-free="cause" aria-pressed="false">
+          <span class="mission-number">04 / WHAT CAUSED WHAT?</span>
+          <span class="mission-icon">↗</span>
+          <strong>Cause Detective</strong>
+          <span class="mission-tease">When two things happen together, is one really the cause?</span>
+          <span class="mission-open">Explore preview ↗</span>
+        </button>
+
+        <button class="mission-card question" type="button" data-free="question" aria-pressed="false">
+          <span class="mission-number">05 / ONE QUESTION</span>
+          <span class="mission-icon">?</span>
+          <strong>Big Question</strong>
+          <span class="mission-tease">If you could ask one question before deciding, what would it be?</span>
+          <span class="mission-open">Explore preview ↗</span>
+        </button>
+      </div>
+
+      <div class="mission-preview" aria-live="polite">
+        <div>
+          <span class="preview-label">SELECTED ADVENTURE PREVIEW</span>
+          <h3 id="previewTitle">Secret Machine</h3>
+          <p id="previewText">
+            A hidden rule is waiting to be discovered. Look for what changes,
+            what stays the same and what you still need to know.
+          </p>
+        </div>
+        <div class="preview-meta">
+          <span id="previewSkill">THINKING FOCUS · PATTERN AND INFERENCE</span>
+          <a class="btn btn-purple" href="#how">Try a sample challenge ↗</a>
+        </div>
+      </div>
+
+      <p class="preview-note">
+        These cards preview five introductory adventure themes. The preview
+        selector does not itself launch a full mission. The actual free
+        experience should match the published mission content.
+      </p>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE CHALLENGE -->
+  <section class="section demo" id="how">
+    <div class="wrap demo-layout">
+      <div class="demo-copy">
+        <div class="eyebrow">DON'T JUST READ ABOUT IT</div>
+        <h2>Let your child experience the joy of figuring it out.</h2>
+        <p>
+          Here is a small sample challenge. There may be more than one
+          useful question to ask. The interesting part is the reason
+          behind the choice.
+        </p>
+
+        <div class="demo-step">
+          <span class="step-number">1</span>
+          <div><b>Predict</b><br />Make an initial guess.</div>
+        </div>
+        <div class="demo-step">
+          <span class="step-number">2</span>
+          <div><b>Investigate</b><br />Look for information that could support or challenge the idea.</div>
+        </div>
+        <div class="demo-step">
+          <span class="step-number">3</span>
+          <div><b>Reconsider</b><br />Look again when new information changes the picture.</div>
+        </div>
+        <div class="demo-step">
+          <span class="step-number">4</span>
+          <div><b>Explain</b><br />Share the reasons and evidence behind the conclusion.</div>
+        </div>
+      </div>
+
+      <div class="play-card">
+        <div class="play-top">
+          <span>CUBITX · MINI THINKING CHALLENGE</span>
+          <span>TRY IT</span>
+        </div>
+
+        <div class="scenario">
+          <div class="scenario-icon">🌱</div>
+          <h3>The School Garden Mystery</h3>
+          <p>
+            Two plants are placed in different corners of the school.
+            One grows taller than the other. What would you want to find
+            out before deciding why?
+          </p>
+        </div>
+
+        <div class="choices">
+          <button class="choice" type="button" data-choice="light">
+            How much sunlight does each plant receive?
+          </button>
+          <button class="choice" type="button" data-choice="height">
+            Which plant looks taller?
+          </button>
+          <button class="choice" type="button" data-choice="water">
+            Are both plants getting the same amount of water?
+          </button>
+          <button class="choice" type="button" data-choice="guess">
+            Which plant is probably healthier?
+          </button>
+        </div>
+
+        <div class="feedback" id="demoFeedback" aria-live="polite"></div>
+        <button class="reset-demo" id="resetDemo" type="button">
+          Try another approach ↻
+        </button>
+        <p class="demo-disclaimer">
+          This is an illustrative sample challenge, not a scored assessment
+          or a live child progress report.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PARENT SPACE -->
+  <section class="section parent-section" id="parents">
+    <div class="wrap">
+      <div class="parent-head">
+        <div class="section-kicker">FOR PARENTS</div>
+        <h2 class="section-title">
+          See more than the answer. See the thinking behind it.
+        </h2>
+        <p class="section-intro">
+          You are not a spectator in your child's journey. Parent Space
+          is designed to help you understand what your child explored,
+          which behaviours were observed and what the available evidence
+          can — and cannot — tell you.
+        </p>
+        <p class="parent-promise">
+          Answers are everywhere.
+          <strong>The joy is in figuring things out.</strong>
+        </p>
+      </div>
+
+      <div class="parent-intro-card">
+        <div>
+          <h3>What should a parent be able to discover?</h3>
+          <p>
+            A window into a child's learning journey — not a marksheet,
+            intelligence test or judgement of ability.
+          </p>
+        </div>
+        <div class="parent-points">
+          <div class="parent-point"><span>01</span> Activities explored and choices made</div>
+          <div class="parent-point"><span>02</span> Thinking behaviours observed in action</div>
+          <div class="parent-point"><span>03</span> Evidence behind each observation</div>
+          <div class="parent-point"><span>04</span> What remains unknown and what to explore next</div>
+        </div>
+      </div>
+
+      <div class="parent-feature-grid">
+        <article class="parent-feature mint">
+          <span class="feature-index">01 / SHOW ME THE MOMENT</span>
+          <h3>Don't just read what happened. See the moment.</h3>
+          <p>
+            A parent should be able to open an observation and inspect
+            the recorded mission interaction — the actual input, output,
+            choice or revision behind it.
+          </p>
+          <div class="feature-demo">
+            <strong>Illustrative replay preview</strong>
+            <small>Secret Machine · Input 3 → Output 9</small>
+            <small>Recorded action → evidence → explanation</small>
+          </div>
+          <span class="parent-feature-link">Traceable moments · Read-only replay</span>
+        </article>
+
+        <article class="parent-feature blue">
+          <span class="feature-index">02 / THE NOT-BROKEN SIGNAL</span>
+          <h3>Every learning journey has its own rhythm.</h3>
+          <p>
+            No lost streaks. No missed-day penalties. No warning that a
+            child is falling behind. A pause in CubitX activity is simply
+            a pause in CubitX activity.
+          </p>
+          <div class="feature-demo">
+            <strong>Whenever curiosity returns</strong>
+            <small>Your child can continue exploring whenever they are ready.</small>
+            <small>No guilt. No artificial urgency.</small>
+          </div>
+          <span class="parent-feature-link">A calmer approach to learning</span>
+        </article>
+
+        <article class="parent-feature blue">
+          <span class="feature-index">03 / INVISIBLE RIGOR</span>
+          <h3>Simple explanations. Serious thinking underneath.</h3>
+          <p>
+            Parents should be able to understand a thinking behaviour
+            in everyday language, while educators can inspect the
+            framework definition and evidence requirements.
+          </p>
+          <div class="feature-demo">
+            <strong>Two ways to understand an observation</strong>
+            <small>What this means at home</small>
+            <small>Framework science · Master Framework V1.2</small>
+          </div>
+          <span class="parent-feature-link">Accessible and evidence-led</span>
+        </article>
+
+        <article class="parent-feature mint">
+          <span class="feature-index">04 / THINKING MILESTONE</span>
+          <h3>Keep a genuine moment of curiosity.</h3>
+          <p>
+            A family keepsake can feature an eligible verbatim question
+            or realisation from the child — without scores, grades
+            or public rankings.
+          </p>
+          <div class="feature-demo">
+            <strong>“But how do we know that is the correct rule?”</strong>
+            <small>Illustrative quotation · Not an actual child record</small>
+          </div>
+          <span class="parent-feature-link">The child's own voice comes first</span>
+        </article>
+      </div>
+
+      <div class="parent-trust">
+        <h3>What we know — and what we don't.</h3>
+        <p>
+          One activity is one moment. A repeated pattern requires varied,
+          valid observations. Missing evidence is not a weakness, and
+          completing more missions does not automatically prove improvement.
+          CubitX should explain what happened, what it may suggest, what
+          remains unknown and where the evidence came from.
+        </p>
+      </div>
+
+      <p class="parent-preview-note">
+        Parent Space features shown here describe the intended experience.
+        Replay, reporting and milestone-card availability depends on the
+        relevant product functionality and verified records being implemented.
+        The examples above are illustrative, not actual child reports.
+      </p>
+    </div>
+  </section>
+
+  <!-- WHY CUBITX -->
+  <section class="section research" id="why-cubitx-exists">
+    <div class="wrap">
+      <div class="section-kicker">WHY CUBITX EXISTS</div>
+      <h2 class="section-title">
+        Knowing an answer is not the same as knowing how to think.
+      </h2>
+      <p class="section-intro">
+        Children need opportunities to question, investigate, test ideas
+        and reason through unfamiliar situations — not only recall information.
+      </p>
+
+      <div class="research-grid">
+        <article class="study">
+          <span>ACTIVE PARTICIPATION</span>
+          <h3>Learning involves doing.</h3>
+          <p>
+            Children need opportunities to engage with ideas, explain
+            their reasoning and test their understanding — not only
+            receive information.
+          </p>
+        </article>
+        <article class="study">
+          <span>REFLECTION</span>
+          <h3>Notice how you are thinking.</h3>
+          <p>
+            Planning, monitoring and reconsidering an approach can help
+            learners become more aware of how they work through a challenge.
+          </p>
+        </article>
+        <article class="study">
+          <span>EVIDENCE AND JUDGEMENT</span>
+          <h3>Good decisions need reasons.</h3>
+          <p>
+            Considering evidence, alternatives and uncertainty gives
+            children opportunities to practise thoughtful judgement.
+          </p>
+        </article>
+      </div>
+
+      <div class="research-note">
+        These are the learning principles behind the CubitX experience.
+        They are not claims that CubitX has already demonstrated a measured
+        improvement in learning outcomes. Product effectiveness must be
+        evaluated separately.
+      </div>
+    </div>
+  </section>
+
+  <!-- AGE PATHWAYS -->
+  <section class="section" id="pathways">
+    <div class="wrap">
+      <div class="section-kicker">A JOURNEY THAT GROWS</div>
+      <div class="path-head">
+        <h2 class="section-title">Room to grow, one challenge at a time.</h2>
+        <p class="section-intro">
+          Different age groups need different kinds of challenges.
+          CubitX is designed to grow with the learner.
+        </p>
+      </div>
+
+      <div class="path-grid">
+        <article class="path-card foundation">
+          <div>
+            <span class="grade">CLASSES 5–7 · TIER 1</span>
+            <h3>Foundation Explorers</h3>
+            <p>
+              Build confidence through observation, curiosity,
+              simple investigations and everyday problem-solving.
+            </p>
+          </div>
+          <div class="path-tags">
+            <span>Observe</span><span>Question</span><span>Explore</span>
+          </div>
+        </article>
+
+        <article class="path-card advanced">
+          <div>
+            <span class="grade">CLASSES 8–10 · TIER 2</span>
+            <h3>Advanced Explorers</h3>
+            <p>
+              Take on more layered challenges involving evidence,
+              trade-offs, uncertainty and decisions.
+            </p>
+          </div>
+          <div class="path-tags">
+            <span>Investigate</span><span>Evaluate</span><span>Decide</span>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAMILY -->
+  <section class="family-section">
+    <div class="wrap family-layout">
+      <div>
+        <div class="eyebrow">A FAMILY JOURNEY</div>
+        <h2>Every child deserves the space to think in their own way.</h2>
+        <p>
+          One parent-owned family account can support up to three child
+          profiles. Each child has their own learning journey and needs
+          a separate paid entitlement for paid access.
+        </p>
+      </div>
+      <div class="family-bubbles" aria-label="Illustration of a family">
+        <span class="family-bubble">🧒🏽</span>
+        <span class="family-bubble">👧🏽</span>
+        <span class="family-bubble">🧑🏽</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="section" id="pricing">
+    <div class="wrap">
+      <div class="pricing-head">
+        <div class="section-kicker">SIMPLE, TRANSPARENT ACCESS</div>
+        <h2 class="section-title">Choose the pace that works for your family.</h2>
+        <p class="section-intro">
+          Start with five free adventures. When you are ready,
+          choose a plan. All renewals are manual — there are no
+          automatic charges.
+        </p>
+      </div>
+
+      <div class="pricing-info">
+        PLAN INFORMATION ONLY · PAID CHECKOUT IS NOT ENABLED YET
+      </div>
+
+      <div class="pricing-grid">
+        <article class="price-card">
+          <span class="price-label">A first step</span>
+          <h3>₹49 <small>/ 7 days</small></h3>
+          <p>A short introduction to the CubitX adventure experience.</p>
+          <ul>
+            <li>7 days of access</li>
+            <li>One-time pass</li>
+            <li>No automatic renewal</li>
+          </ul>
+        </article>
+
+        <article class="price-card featured">
+          <span class="price-label">For regular explorers</span>
+          <h3>₹149 <small>/ 30 days</small></h3>
+          <p>More time to explore, practise and discover.</p>
+          <ul>
+            <li>30 days from activation</li>
+            <li>Manual renewal</li>
+            <li>No automatic charges</li>
+          </ul>
+        </article>
+
+        <article class="price-card">
+          <span class="price-label">The longer journey</span>
+          <h3>₹999 <small>/ 12 months</small></h3>
+          <p>A year of opportunities to explore and practise thinking.</p>
+          <ul>
+            <li>12 months from activation</li>
+            <li>Manual renewal</li>
+            <li>No automatic charges</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="family-discount">
+        <div>
+          <strong>Growing together?</strong>
+          <p>
+            Families with two or three paid child profiles receive
+            a 20% family discount.
+          </p>
+        </div>
+        <strong>Save 20%</strong>
+      </div>
+
+      <p class="pricing-foot">
+        Prices are per child, before applicable family or approved school
+        discounts. The ₹49 pass may be credited in full towards the same
+        child's annual plan upgrade during the pass's seven-day validity,
+        subject to the published terms. Payment links and checkout will
+        be added when payment integration is ready.
+      </p>
+    </div>
+  </section>
+
+  <!-- SCHOOLS -->
+  <section class="school-section" id="schools">
+    <div class="wrap school-layout">
+      <div>
+        <div class="section-kicker">FOR SCHOOLS</div>
+        <h2 class="section-title">Make room for thinking in your classroom.</h2>
+        <p>
+          Give students opportunities to question, investigate,
+          experiment and solve unfamiliar problems through interactive
+          adventures.
+        </p>
+      </div>
+      <a class="btn btn-dark" href="mailto:hello@cubitx.in?subject=CubitX%20for%20Schools">
+        Partner with CubitX ↗
+      </a>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section" id="faqs">
+    <div class="wrap faq-layout">
+      <div>
+        <div class="section-kicker">A FEW THINGS YOU MAY WONDER</div>
+        <h2 class="section-title">Before you begin.</h2>
+        <p class="section-intro">
+          A little clarity for families exploring CubitX.
+        </p>
+      </div>
+
+      <div class="faq-list">
+        <details>
+          <summary>Which classes is CubitX designed for?</summary>
+          <p>
+            CubitX is designed for Classes 5–10. The learning pathways
+            are grouped into Classes 5–7 and Classes 8–10, with challenges
+            suited to each stage.
+          </p>
+        </details>
+
+        <details>
+          <summary>Can my child try CubitX without registering?</summary>
+          <p>
+            The introductory experience offers five free adventures
+            without registration. Guest activity evidence exists only
+            during the current session; closing the session may lose
+            that evidence.
+          </p>
+        </details>
+
+        <details>
+          <summary>Does CubitX give children marks or IQ scores?</summary>
+          <p>
+            CubitX is designed around evidence-linked observations
+            of activity, not IQ scores, public rankings or fixed labels.
+            One activity is not enough to make a stable judgement about
+            a child.
+          </p>
+        </details>
+
+        <details>
+          <summary>What can parents see?</summary>
+          <p>
+            Parent Space is intended to show activities explored,
+            responses or choices, observed thinking in action,
+            what remains unknown and practical ideas for a
+            parent-child conversation. Actual reports must be based
+            only on recorded activity and validated observation rules.
+          </p>
+        </details>
+
+        <details>
+          <summary>How many children can one family account support?</summary>
+          <p>
+            One parent-owned family account can support up to three
+            child profiles. Each child needs a separate paid and
+            active entitlement for paid access.
+          </p>
+        </details>
+
+        <details>
+          <summary>Are paid plans and payments available now?</summary>
+          <p>
+            The prices shown are plan information only. Paid-plan
+            selection and payment are not enabled yet. The five
+            introductory adventures are free.
+          </p>
+        </details>
+
+        <details>
+          <summary>Does a subscription renew automatically?</summary>
+          <p>
+            No. The current pricing decision is manual renewal,
+            with no automatic charges.
+          </p>
+        </details>
+
+        <details>
+          <summary>Can schools use CubitX?</summary>
+          <p>
+            Schools can contact CubitX to discuss a possible relationship.
+            School access and staff permissions must be separately
+            authorised.
+          </p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- CLOSING CTA -->
+  <section class="final-cta" id="start">
+    <div class="wrap">
+      <img src="/cubitx-logo.png" alt="CubitX" loading="lazy" />
+      <div class="section-kicker">START WITH CURIOSITY</div>
+      <h2>Give your child the joy of figuring things out.</h2>
+      <p>
+        Five free adventures. No registration. A little room to question,
+        explore and discover.
+      </p>
+      <a class="btn btn-dark" href="#free-missions">
+        Try 5 Free Adventures ↗
+      </a>
+    </div>
+  </section>
+
 </main>
 
 <footer>
-<div class="wrap">
-<div class="footer-top">
-<div class="footer-brand">
-<a class="footer-logo-link" href="#top" aria-label="CubitX home"><img class="footer-logo" src="/cubitx-logo.png" alt="CubitX" width="160" height="32" loading="lazy"/></a>
-<p>Interactive adventures that give children space to question, explore and think for themselves.</p>
-</div>
-<div class="footer-links">
-<div><strong>Explore</strong><a href="#free-missions">Free adventures</a><a href="#how">How it works</a><a href="#parents">For parents</a></div>
-<div><strong>Learn more</strong><a href="#why-cubitx-exists">Why CubitX</a><a href="#schools">For schools</a><a href="#pricing">Pricing</a><a href="#faqs">FAQs</a></div>
-<div><strong>Contact</strong><a href="mailto:hello@cubitx.in">hello@cubitx.in</a></div>
-</div>
-</div>
-<div class="footer-bottom"><span>© 2026 CubitX. All rights reserved.</span><span>Develop the mind behind the marks.</span></div>
-</div>
+  <div class="wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <a href="#top" aria-label="CubitX home">
+          <img src="/cubitx-logo.png" alt="CubitX" loading="lazy" />
+        </a>
+        <p>
+          Interactive adventures that give children space to question,
+          explore and think for themselves.
+        </p>
+      </div>
+
+      <div class="footer-links">
+        <div>
+          <strong>Explore</strong>
+          <a href="#free-missions">Free adventures</a>
+          <a href="#how">How it works</a>
+          <a href="#parents">For parents</a>
+        </div>
+        <div>
+          <strong>Learn more</strong>
+          <a href="#why-cubitx-exists">Why CubitX</a>
+          <a href="#schools">For schools</a>
+          <a href="#pricing">Pricing</a>
+          <a href="#faqs">FAQs</a>
+        </div>
+        <div>
+          <strong>Contact</strong>
+          <a href="mailto:hello@cubitx.in">hello@cubitx.in</a>
+          <a href="https://www.cubitx.in">www.cubitx.in</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 CubitX. All rights reserved.</span>
+      <span>Develop the mind behind the marks.</span>
+    </div>
+  </div>
 </footer>
 
-<div class="mobile-cta"><a class="btn btn-dark" href="#free-missions">Try 5 Free Adventures <span class="arrow" aria-hidden="true">↗</span></a></div>
+<div class="mobile-cta">
+  <a class="btn btn-dark" href="#free-missions">
+    Try 5 Free Adventures ↗
+  </a>
+</div>
 
 <script>
 (() => {
   'use strict';
 
+  /* Mobile navigation */
   const menuButton = document.getElementById('menuBtn');
   const navigation = document.getElementById('navlinks');
 
@@ -786,10 +1997,13 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
     };
 
     menuButton.addEventListener('click', () => {
-      const isOpen = navigation.classList.toggle('open');
-      menuButton.setAttribute('aria-expanded', String(isOpen));
-      menuButton.setAttribute('aria-label', isOpen ? 'Close navigation menu' : 'Open navigation menu');
-      menuButton.textContent = isOpen ? '×' : '☰';
+      const open = navigation.classList.toggle('open');
+      menuButton.setAttribute('aria-expanded', String(open));
+      menuButton.setAttribute(
+        'aria-label',
+        open ? 'Close navigation menu' : 'Open navigation menu'
+      );
+      menuButton.textContent = open ? '×' : '☰';
     });
 
     navigation.querySelectorAll('a').forEach((link) => {
@@ -801,12 +2015,16 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
     });
 
     document.addEventListener('click', (event) => {
-      if (!navigation.contains(event.target) && !menuButton.contains(event.target)) {
+      if (
+        !navigation.contains(event.target) &&
+        !menuButton.contains(event.target)
+      ) {
         closeMenu();
       }
     });
   }
 
+  /* Adventure preview selector */
   const missionContent = {
     secret: {
       title: 'Secret Machine',
@@ -836,9 +2054,9 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
   };
 
   const missionCards = document.querySelectorAll('[data-free]');
-  const previewTitle = document.getElementById('freePreviewTitle');
-  const previewText = document.getElementById('freePreviewText');
-  const previewSkill = document.getElementById('freePreviewSkill');
+  const previewTitle = document.getElementById('previewTitle');
+  const previewText = document.getElementById('previewText');
+  const previewSkill = document.getElementById('previewSkill');
 
   missionCards.forEach((card) => {
     card.addEventListener('click', () => {
@@ -847,7 +2065,6 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
 
       missionCards.forEach((other) => {
         const selected = other === card;
-        other.classList.toggle('active', selected);
         other.setAttribute('aria-pressed', String(selected));
       });
 
@@ -857,31 +2074,28 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
     });
   });
 
+  /* Mini challenge */
   const feedbackMessages = {
-    light: 'That is useful information to investigate. Sunlight can affect plant growth. What else would you compare before drawing a conclusion?',
-    height: 'You have noticed the outcome. The next question is what might explain the difference between the plants.',
-    water: 'That is another useful factor to check. Comparing water, sunlight and other conditions can help you avoid jumping to one explanation.',
-    guess: 'A guess can be a starting point, but it is not evidence by itself. What could you observe or measure to check it?'
+    light:
+      'That is useful information to investigate. Sunlight can affect plant growth. What else would you compare before drawing a conclusion?',
+    height:
+      'You have noticed the outcome. The next question is what might explain the difference between the plants.',
+    water:
+      'That is another useful factor to check. Comparing water, sunlight and other conditions can help you avoid jumping to one explanation.',
+    guess:
+      'A guess can be a starting point, but it is not evidence by itself. What could you observe or measure to check it?'
   };
 
-  const choiceButtons = document.querySelectorAll('[data-choice]');
+  const choices = document.querySelectorAll('[data-choice]');
   const feedback = document.getElementById('demoFeedback');
   const resetButton = document.getElementById('resetDemo');
 
-  const resetChallenge = () => {
-    choiceButtons.forEach((button) => button.classList.remove('selected'));
-    if (feedback) {
-      feedback.textContent = '';
-      feedback.classList.remove('show');
-    }
-  };
-
-  choiceButtons.forEach((button) => {
+  choices.forEach((button) => {
     button.addEventListener('click', () => {
       const message = feedbackMessages[button.dataset.choice];
       if (!message || !feedback) return;
 
-      choiceButtons.forEach((other) => {
+      choices.forEach((other) => {
         other.classList.toggle('selected', other === button);
       });
 
@@ -891,20 +2105,16 @@ footer{background:var(--dark);color:white;padding:55px 0 25px}
   });
 
   if (resetButton) {
-    resetButton.addEventListener('click', resetChallenge);
-  }
-
-  document.querySelectorAll('.insight-expand').forEach((button) => {
-    button.addEventListener('click', () => {
-      const card = button.closest('.parent-insight-card');
-      if (!card) return;
-
-      const isOpen = card.classList.toggle('is-open');
-      button.setAttribute('aria-expanded', String(isOpen));
-      button.textContent = isOpen ? '−' : '+';
+    resetButton.addEventListener('click', () => {
+      choices.forEach((button) => button.classList.remove('selected'));
+      if (feedback) {
+        feedback.textContent = '';
+        feedback.classList.remove('show');
+      }
     });
-  });
+  }
 })();
 </script>
+
 </body>
 </html>
