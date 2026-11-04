@@ -1,2077 +1,1140 @@
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useChild } from '../auth/ChildContext';
+import { useApp } from '../store';
+import { loadDayConfig } from '../../missions/curriculum';
+import { curriculumTierFrom } from '../../missions/tiers';
+import type { DayItem } from '../../missions/types';
 
-/*
- * CUBITX PARENT INSIGHTS
- * Demonstration frontend implementation.
- *
- * IMPORTANT:
- * 1. Demo records are illustrative, not real child evidence.
- * 2. Replace DEMO_DATA with verified backend data.
- * 3. Never calculate a skill score from evidence counts.
- * 4. Radar values are displayed only when approved comparable
- *    measures are supplied by the assessment service.
- * 5. All child ownership and access checks belong on the server.
- */
-
-const CUBITX_LOGO_SRC =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAI4AAAAeCAYAAAD6myZLAAAJyUlEQVR4nO2bf6xcRRXHP31tEbotj2kLY7HID1tABpRAsvzQij8DSgUh4CqNGonCEt0K0ijoQkhZfkQBhY1kARWRRFhBKhGC9WdjatXVIqIj8uNJoQWdFN9Y21to34/6x537dva+vbt39+1CQt43mdyZs3PPOXfuuTNnzpyFaUxjGtOYxusE+VJwrJBqpZDqyNdal15iRtqOQqq5wInACcBBwF7upwFgjyszXIna48BMT85uYO9coVapFDMbevEAnUJIdTBwBTAbeNIafW2/ZOVLwfJqOfsTj3SqNfpn/ZInpLoUOBTYDswDhqzR3+iWX74UXAUIYJe73l0pZn4DKQxHSLUAWAWcDxzQrRIxfNwafW+PeHWEfCk4oVrO/t41n7ZGH94vWUKqh4DTgVFgFrDGGn12H+WdDPw2Rv6sNfrbQqp51ujtaXnlS8FtwAUe6YlqOftOa/QwhLNFK0VywBBwGb0zGggH8bXCiFcf7rOsTe4aPe/WZp2EVF8UUm0UUj0qpFrRrTBr9IZcoRY3zDvypeCUDo3mEhqNZku1nH1XZDTQ4gUKqS4DrouRnwd+DjwJBB59zF1nerQ97uovXyPA3sDGtA/Ra1TL2TGvObvP4q4AlgLLgBpwVUK/Q4DjXP2gqQisFDNrhFSX4727ajn7oJDqSGv0v9vdny8FHwFu8kjjwApr9Et+v6aGI6RaRaPRvABcbo2+O/0jTMMabYFThVQHWqNfbNF1l1cfSeyVXu71QqpjgPMcaZDwgz+m1X1CqrcCd8XIn478Gh+Tlioh1fHA1z3Sr63Ri18vRpMr1PxZcfTVkNnGaKDxPUzZcJzMFcAfPNLRQqr7kvoLqebkCrUHgH098rWVYub7zfo3m3Hu9Op/tUa/txOFpwIh1SCwD0CaaTWBxzxgDjBujW7mU/iGs5e7ZyHhWETL2ICrjxEuszOB3dbobV3os7+TsztBn7hOGXffmwh3oT6inSstePlYDjwOLHLtc4RU11ijvxrvmCvU7gP8kMGaSjEzqV+EhhknXwpy1KezMSCXQrleYi2hH/WMkEp1yeMhYDPwrJt64xj36scKqXYQOrFDwHOu/k+nx2aP9oyQap2Q6iIXmmgLIZUkfHGbgJqQSqS4bbWQKgCedvc955VnXRlKExdyfsmHYuSvCKnO8gn5UnBjrF+tUsy03P01GE61nP2U17zVGv1EO+V6jEFChzVD9zuvRR6PsSa/j8faGVfmEM52c7x6Bpjr2guBU4BbgaeEVKel0GU2sIDwWeZT3zC0wqyYLvt4Za7TaV5KXlijHwM+GSPfH/swN3n1rdVy9mPt+E4Yjvsa3hG1c4XaPWkU6zFGE+qdwJ/e0wQ4A2Cnu8bLTuBlYEfsnkXAI0Kqc9vwHqPus4zQ3JCJ0cedvB1NdNnhrv+j0aFuCeef+oHOAae/AKgUM2XgFvfb2dboZ9vxnDCcXKG2hLpjtLVazj6eVrEeYmZCvRP4X2KzOJVvTH8DJPBmYAnwFq9E7UOBg4HDgItpjP380O1ekjASk5f0TL6eV1uj5wGHx/Q5zOl0GHC4NXpTC7mT4PyaRzzSQcCEs1wtZ4vAByrFzPo0/CaWg2o5u9Cjb7FGB0369xuppt828F9UO36vuOdM86zDwM1CqruA9UA01d8GnNyxlsnYBmCN/lcPeUbIARuAo137fUKqW6zRK63R2yvFzC/SMvIt3Xf4XumBklNF6nO0KfDoWIY1+r/AmdSX0pPypeDEHunTNwipBl30OL69vtA58R3BX6r8dXx+l/r1DLlCrdtB7sWs1RLW6CFgIq5VLWfPTOg6I6HeCt0u0S1hjd6WLwXvBr4W++kMa7TplN+E4VTL2ec9+lJ3ivxqo5uB7gePNFjj1d+W0CetEcd3ej2HkGr/ajn7oxh5lTV6LYQn+flSkBggjGPCcKzRGnjGo79nqsp2gb4PIL0zJj9AOdgjnv3EOhpXkjut0TcCCKmOAL4LnONOxdsivutY69ULU1CyW/gzYL/8rF4tZX62QCvnOnqmKEepVR9I3rJ3DSHVA8BRHmm9Nfr8qJEr1ErA/q55Qb4UXNSOZ9xwbvfqx7kTctJGSnuAidhErlBb2KpjSvTc33HHIgBneORWgVJ/Fk2a7fzY0wFOzpzOtZsMIdUNgB8pfpHJ0eTrAeu1b82XgtNb8W0wHGv048C3PNJ1QqqcNToeAOsX/hhVquVsDkBIlemxDN+YutlVbXPh/s9EtFyh9uMUt7aS9ahXP8vJ2dmpbnG4fKpLPdII8P54bk6lmNkIfDR2+w/cEtYUkwJk1ujPE57VRLhXSHVJx1p3B995+1y+FJzWRTypEz+p4+i0mwnupz52f64UM+sSusdnvKQZ8KeE6Z4ARwiprulUrzjypWAZEM+yzCUdI7kYziqPtG+uULvfHRpPQtOvwH1R6wnPWSIMAd/JFWqPVMvZTYTWGwUQx2nMO4Ymg5TGCIRUG4CTPNKXgO8R+hEDCfxnAHus0TuEVP8Aoi/lqPhA5UvBcdVyNkokq1mjT3BLsZ8rHWHAe7ZFwAeBK6n7A+QKtWVJ0VaXdvs84ZnTMHBIUiaekGo1YeJXhDuAG4Et1Mc1MtaJj6PZmAqp5hNudPxD1S9bo+Nb8UnIl4I78GZTYG2lmJl0Lpc4fbrt+IPA25v8vJ3wa02a9vc0aUd9ZxFmlD2cIHcx4VGAv1MZI4yoRqkPEX8/y3CccGD9wVLW6L/7/POl4PhqOfsnj/QfklNox73nGGRyjOVCa/TtJMC9wM2EhvMSsNQFEJP6b6SeCRjB0mjAewjH4A3Aamv0TbH+CKkeo/G93WONPi/eLwn5UrCO8EA3ws2VYuZiv09izrE1+jlr9LHA1YQHaz7mEb6g+V4RXmnWXuDKILBfC7lbgCzwF4880/HYN8bfl72ARqOJ7muH6L5mZYEnw+c1THgYmGg0DgPefQO0T1VdBsQ/KEE4Zv44HuBokxxoIdXDNBrN7zoxGoBqObuCMOszwhfiO62WyeoA1ugrCfNmVwK/Iky4HiP8AqLreAItXqJdU8stpzX6KWe0ecIl077RpvIi5eIPkrzbLrxJteo/2iMb8RjlHDG2wAUgSOt0X4AMAmzqG/VgxTPvdMavRz4BPBL6mMd6RYfx5ehvgMTUhUJd0zR70PAh1PoGdfjBeBcwnHf7eR8M18KJlyINH+PmeN7+M4fiBym6D9VPprx9JeuGcBwJ7sGtwUepH2MI5rKZwMjSQeFQqoDqS91zQ5FfV2jJWKXn+Xfge6LI707Pbh0z70fdSc+vjwPx97NEsLVYRyY5WbvriGkeiPhrLaHMB9ouNvMzGlMYxrT6B7/B7vfbpYnb49EAAAAAElFTkSuQmCC";
-
-/* -------------------------------------------------------------------------- */
-/* Types                                                                      */
-/* -------------------------------------------------------------------------- */
-
-type SkillId =
-  | 'A1'
-  | 'A2'
-  | 'B1'
-  | 'B2'
-  | 'B3'
-  | 'C1'
-  | 'C2'
-  | 'C3';
-
-type EvidenceStatus =
-  | 'SUPPORTED'
-  | 'CONTRADICTED'
-  | 'UNRESOLVED'
-  | 'CONDITIONALLY_SUPPORTED'
-  | 'INVALIDATED_OBSERVATION'
-  | 'PENDING_REVIEW';
-
-type ObservationSource =
-  | 'PLATFORM_OBSERVED'
-  | 'PARENT_SHARED'
-  | 'SYSTEM_INTERPRETATION';
-
-interface SkillDefinition {
-  id: SkillId;
-  name: string;
-  shortName: string;
-  description: string;
-  homeMeaning: string;
-  frameworkMeaning: string;
-  parameterCode?: string;
-  rubricConstraint: string;
-}
-
-interface ReplayEvent {
+type FamilyNote = {
   id: string;
-  label: string;
-  detail: string;
-  input?: string;
-  output?: string;
-  eventType: 'probe' | 'choice' | 'feedback' | 'revision';
-}
-
-interface Observation {
-  id: string;
-  skillId: SkillId;
-  missionId: string;
-  missionName: string;
-  date: string;
-  title: string;
-  summary: string;
-  evidenceText: string;
-  source: ObservationSource;
-  status: EvidenceStatus;
-  events: ReplayEvent[];
-  childVerbatim?: string;
-  childVerbatimType?: 'typed' | 'selected';
-  frameworkVersion: string;
-  rubricVersion?: string;
-  parameterCode?: string;
-  interpretation: string;
-  limitation: string;
-}
-
-interface Mission {
-  id: string;
-  name: string;
-  description: string;
-  date: string;
-  completed: boolean;
-  skillIds: SkillId[];
-  observationIds: string[];
-}
-
-interface TrendPoint {
-  period: string;
-  count: number;
-}
-
-interface ChildProfile {
-  id: string;
-  displayName: string;
-  classLabel: string;
-}
-
-interface ParentInsightsData {
-  child: ChildProfile;
-  isDemo: boolean;
-  observations: Observation[];
-  missions: Mission[];
-  trends: TrendPoint[];
-  comparableSkillMeasures?: Partial<Record<SkillId, number>>;
-  measureLabel?: string;
-  reportingPeriod: string;
-  lastUpdated: string;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Approved V1.2 skill definitions                                            */
-/* -------------------------------------------------------------------------- */
-
-const SKILLS: SkillDefinition[] = [
-  {
-    id: 'A1',
-    name: 'Asking good questions',
-    shortName: 'Good questions',
-    description:
-      'Asks relevant, answerable questions that help distinguish between possibilities.',
-    homeMeaning:
-      'Your child asks questions that help investigate a problem rather than simply guessing.',
-    frameworkMeaning:
-      'A relevant and answerable question is used to distinguish between plausible possibilities.',
-    rubricConstraint:
-      'A question must be relevant to the task and capable of distinguishing possibilities. Question quantity alone is not evidence of quality.',
-  },
-  {
-    id: 'A2',
-    name: 'Spotting missing information',
-    shortName: 'Missing information',
-    description:
-      'Recognises what is unknown or what information is needed before reaching a confident conclusion.',
-    homeMeaning:
-      'Your child notices when something important is not yet known.',
-    frameworkMeaning:
-      'The child identifies an unknown or information requirement relevant to the decision.',
-    rubricConstraint:
-      'The missing information must be relevant to the conclusion or decision being considered.',
-  },
-  {
-    id: 'B1',
-    name: 'Giving reasons',
-    shortName: 'Giving reasons',
-    description:
-      'Provides a relevant and specific reason rather than merely restating an answer.',
-    homeMeaning:
-      'Your child explains why an answer or decision makes sense.',
-    frameworkMeaning:
-      'A relevant, specific reason is connected to the response or conclusion.',
-    rubricConstraint:
-      'A restatement of the answer without a relevant reason does not satisfy the reasoning requirement.',
-  },
-  {
-    id: 'B2',
-    name: 'Using evidence',
-    shortName: 'Using evidence',
-    description:
-      'Uses a specific clue or information source to support or qualify a conclusion.',
-    homeMeaning:
-      'Your child uses clues or information to explain a decision.',
-    frameworkMeaning:
-      'The response connects identifiable evidence to a claim or conclusion.',
-    rubricConstraint:
-      'Evidence must be identifiable and relevant. A correct answer alone does not establish evidence use.',
-  },
-  {
-    id: 'B3',
-    name: 'Detecting weak reasoning',
-    shortName: 'Weak reasoning',
-    description:
-      'Notices weaknesses in a claim, source or inference.',
-    homeMeaning:
-      'Your child notices when an explanation has a gap or does not fully make sense.',
-    frameworkMeaning:
-      'The child identifies a weakness in the reasoning connecting evidence and conclusion.',
-    rubricConstraint:
-      'The weakness must be identifiable; merely disagreeing with a conclusion is insufficient.',
-  },
-  {
-    id: 'C1',
-    name: 'Weighing trade-offs',
-    shortName: 'Trade-offs',
-    description:
-      'Compares benefits, costs, risks or competing explanations.',
-    homeMeaning:
-      'Your child considers what may be gained and what may be lost when choosing.',
-    frameworkMeaning:
-      'The child considers competing benefits, costs, risks or explanations.',
-    rubricConstraint:
-      'Decision trade-offs and competing explanations require their respective approved rubric anchors.',
-  },
-  {
-    id: 'C2',
-    name: 'Updating on evidence',
-    shortName: 'Updating views',
-    description:
-      'Changes or maintains a view proportionately in response to evidence, with a reason.',
-    homeMeaning:
-      'Your child considers new information and explains why an earlier view should change or remain.',
-    frameworkMeaning:
-      'The response demonstrates a reasoned relationship between relevant evidence and a revised or maintained view.',
-    rubricConstraint:
-      'Changing an answer is not automatically good updating. The relationship between the evidence and the decision matters.',
-  },
-  {
-    id: 'C3',
-    name: 'Reflecting',
-    shortName: 'Reflection',
-    description:
-      'Identifies a clue or strategy that mattered and what could be tried next.',
-    homeMeaning:
-      'Your child thinks about what helped solve a problem and what they might try next time.',
-    frameworkMeaning:
-      'The child identifies a relevant strategy, clue or learning point and a possible next step.',
-    rubricConstraint:
-      'A generic statement without an identifiable strategy or learning point is insufficient.',
-  },
-];
-
-/* -------------------------------------------------------------------------- */
-/* Demonstration data                                                         */
-/* Replace with backend data before production.                              */
-/* -------------------------------------------------------------------------- */
-
-const DEMO_OBSERVATIONS: Observation[] = [
-  {
-    id: 'demo-obs-001',
-    skillId: 'B2',
-    missionId: 'demo-mission-001',
-    missionName: 'The Mystery Machine',
-    date: '2026-11-02',
-    title: 'Compared a clue before choosing a rule',
-    summary:
-      'The child examined a machine output and used the result to investigate a possible rule.',
-    evidenceText:
-      'Recorded probe: Input 3 → Output 9. A later probe was used to distinguish the candidate explanations.',
-    source: 'PLATFORM_OBSERVED',
-    status: 'SUPPORTED',
-    frameworkVersion: 'V1.2',
-    rubricVersion: 'Demo rubric',
-    parameterCode: undefined,
-    interpretation:
-      'The available activity record contains an example of connecting an observed result to a possible explanation.',
-    limitation:
-      'One activity observation does not establish a stable behaviour across different contexts.',
-    childVerbatim: 'How do we know that is the correct rule?',
-    childVerbatimType: 'typed',
-    events: [
-      {
-        id: 'demo-event-001',
-        label: 'Initial probe',
-        detail: 'The child entered an input into the machine.',
-        input: '3',
-        output: '9',
-        eventType: 'probe',
-      },
-      {
-        id: 'demo-event-002',
-        label: 'Second probe',
-        detail: 'The child tested another input to distinguish possible rules.',
-        input: '4',
-        output: '16',
-        eventType: 'probe',
-      },
-      {
-        id: 'demo-event-003',
-        label: 'Decision',
-        detail: 'The child selected a candidate explanation.',
-        eventType: 'choice',
-      },
-    ],
-  },
-  {
-    id: 'demo-obs-002',
-    skillId: 'A2',
-    missionId: 'demo-mission-002',
-    missionName: 'The Missing Clue',
-    date: '2026-11-03',
-    title: 'Identified information that was still missing',
-    summary:
-      'The child identified an unknown detail before choosing an explanation.',
-    evidenceText:
-      'The activity record contains a response identifying information needed before deciding.',
-    source: 'PLATFORM_OBSERVED',
-    status: 'SUPPORTED',
-    frameworkVersion: 'V1.2',
-    interpretation:
-      'This activity contains an example of identifying missing information.',
-    limitation:
-      'Further varied observations would be needed before describing a repeated pattern.',
-    events: [
-      {
-        id: 'demo-event-004',
-        label: 'Information check',
-        detail: 'The child identified an unknown detail.',
-        eventType: 'choice',
-      },
-    ],
-  },
-  {
-    id: 'demo-obs-003',
-    skillId: 'C2',
-    missionId: 'demo-mission-003',
-    missionName: 'The Changing Bridge',
-    date: '2026-11-04',
-    title: 'Reconsidered a decision after new information',
-    summary:
-      'The child reconsidered an earlier explanation after encountering new information.',
-    evidenceText:
-      'The activity record contains an initial decision and a later revision.',
-    source: 'PLATFORM_OBSERVED',
-    status: 'PENDING_REVIEW',
-    frameworkVersion: 'V1.2',
-    interpretation:
-      'The record may provide an opportunity to examine how the child responds to new evidence.',
-    limitation:
-      'This observation is awaiting review and is not included in approved evidence summaries.',
-    events: [
-      {
-        id: 'demo-event-005',
-        label: 'Initial decision',
-        detail: 'An initial response was recorded.',
-        eventType: 'choice',
-      },
-      {
-        id: 'demo-event-006',
-        label: 'New information',
-        detail: 'The activity presented additional information.',
-        eventType: 'feedback',
-      },
-      {
-        id: 'demo-event-007',
-        label: 'Revision',
-        detail: 'A revised response was recorded.',
-        eventType: 'revision',
-      },
-    ],
-  },
-];
-
-const DEMO_MISSIONS: Mission[] = [
-  {
-    id: 'demo-mission-001',
-    name: 'The Mystery Machine',
-    description: 'Investigate the hidden rule behind a machine.',
-    date: '2026-11-02',
-    completed: true,
-    skillIds: ['A1', 'B2', 'C2'],
-    observationIds: ['demo-obs-001'],
-  },
-  {
-    id: 'demo-mission-002',
-    name: 'The Missing Clue',
-    description: 'Find out what information is needed before deciding.',
-    date: '2026-11-03',
-    completed: true,
-    skillIds: ['A2', 'B1'],
-    observationIds: ['demo-obs-002'],
-  },
-  {
-    id: 'demo-mission-003',
-    name: 'The Changing Bridge',
-    description: 'Reconsider a plan when new information appears.',
-    date: '2026-11-04',
-    completed: true,
-    skillIds: ['C1', 'C2', 'C3'],
-    observationIds: ['demo-obs-003'],
-  },
-];
-
-const DEMO_DATA: ParentInsightsData = {
-  child: {
-    id: 'demo-child',
-    displayName: 'Demo child',
-    classLabel: 'Demonstration profile',
-  },
-  isDemo: true,
-  observations: DEMO_OBSERVATIONS,
-  missions: DEMO_MISSIONS,
-  trends: [
-    { period: 'Week 1', count: 1 },
-    { period: 'Week 2', count: 2 },
-    { period: 'Week 3', count: 2 },
-    { period: 'Week 4', count: 3 },
-  ],
-  // Intentionally absent. A radar chart must not be generated
-  // from evidence counts or illustrative percentages.
-  comparableSkillMeasures: undefined,
-  reportingPeriod: 'All demonstration activity',
-  lastUpdated: 'Demonstration timestamp',
+  text: string;
+  createdAt: string;
 };
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+const SKILLS = [
+  'Asking good questions',
+  'Spotting missing information',
+  'Giving reasons',
+  'Using evidence',
+  'Detecting weak reasoning',
+  'Weighing trade-offs',
+  'Updating on evidence',
+  'Reflecting',
+] as const;
 
-function formatDate(date: string) {
-  const parsed = new Date(`${date}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return date;
+const CONTEXTS = [
+  'Questioning',
+  'Investigating',
+  'Explaining',
+  'Reconsidering',
+] as const;
 
-  return parsed.toLocaleDateString('en-IN', {
+const NOTE_PREFIX = 'cubitx-family-discovery:';
+
+const COLORS = {
+  blue: '#3978F6',
+  violet: '#8455E8',
+  green: '#0C9B78',
+};
+
+function formatDate(value: string) {
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString('en-IN', {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   });
 }
 
-function statusLabel(status: EvidenceStatus) {
-  const labels: Record<EvidenceStatus, string> = {
-    SUPPORTED: 'Supported',
-    CONTRADICTED: 'Contradicted',
-    UNRESOLVED: 'Unresolved',
-    CONDITIONALLY_SUPPORTED: 'Conditionally supported',
-    INVALIDATED_OBSERVATION: 'Excluded observation',
-    PENDING_REVIEW: 'Awaiting review',
-  };
-
-  return labels[status];
+function itemTitle(item: DayItem | undefined, index: number) {
+  if (!item) return `Activity ${index + 1}`;
+  if ('title' in item) return item.title;
+  if ('puzzle' in item) return item.puzzle;
+  if ('question' in item) return item.question;
+  if ('prompt' in item) return item.prompt;
+  return `Activity ${index + 1}`;
 }
 
-function statusClass(status: EvidenceStatus) {
-  const classes: Record<EvidenceStatus, string> = {
-    SUPPORTED: 'bg-[#DDF2ED] text-[#087F80]',
-    CONTRADICTED: 'bg-[#FCE8E6] text-[#A33B32]',
-    UNRESOLVED: 'bg-[#F0F1F3] text-[#586579]',
-    CONDITIONALLY_SUPPORTED: 'bg-[#FDF1D8] text-[#8A641B]',
-    INVALIDATED_OBSERVATION: 'bg-[#F0F1F3] text-[#586579]',
-    PENDING_REVIEW: 'bg-[#FFF2D8] text-[#8A641B]',
-  };
+function resolveMissionTitle(missionId: string, fallbackTier: 1 | 2) {
+  const match = /^t([12]):d(\d+):i(\d+)$/.exec(missionId);
+  if (!match) return missionId;
 
-  return classes[status];
+  const tier = Number(match[1]) as 1 | 2;
+  const day = Number(match[2]);
+  const index = Number(match[3]);
+  const config = loadDayConfig(tier || fallbackTier, day);
+
+  return itemTitle(config?.items[index], index);
 }
 
-function getSkill(id: SkillId) {
-  return SKILLS.find((skill) => skill.id === id)!;
+function loadFamilyNotes(childId: string): FamilyNote[] {
+  try {
+    const raw = window.localStorage.getItem(`${NOTE_PREFIX}${childId}`);
+    if (!raw) return [];
+
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as FamilyNote[]) : [];
+  } catch {
+    return [];
+  }
 }
-
-function isEligibleObservation(observation: Observation) {
-  return observation.status === 'SUPPORTED' ||
-    observation.status === 'CONDITIONALLY_SUPPORTED' ||
-    observation.status === 'CONTRADICTED' ||
-    observation.status === 'UNRESOLVED';
-}
-
-function getEvidenceCount(
-  observations: Observation[],
-  skillId: SkillId,
-) {
-  return observations.filter(
-    (observation) =>
-      observation.skillId === skillId &&
-      isEligibleObservation(observation),
-  ).length;
-}
-
-function getCoverageStatus(
-  observations: Observation[],
-  skillId: SkillId,
-) {
-  const count = getEvidenceCount(observations, skillId);
-
-  if (count === 0) return 'INSUFFICIENT';
-  if (count === 1) return 'LIMITED';
-  return 'AVAILABLE';
-}
-
-/* -------------------------------------------------------------------------- */
-/* Small reusable UI components                                               */
-/* -------------------------------------------------------------------------- */
 
 function SectionHeading({
   eyebrow,
   title,
   description,
+  number,
 }: {
-  eyebrow?: string;
+  eyebrow: string;
   title: string;
-  description?: string;
+  description: string;
+  number: string;
 }) {
   return (
     <div className="mb-5">
-      {eyebrow && (
-        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#087F80] mb-2">
+      <div className="flex items-center gap-2">
+        <span className="rounded-lg bg-[#172554] px-2.5 py-1 text-[10px] font-black tracking-widest text-white">
+          {number}
+        </span>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#5265B8]">
           {eyebrow}
         </p>
-      )}
-      <h2 className="text-xl sm:text-2xl font-extrabold text-[#142033]">
+      </div>
+
+      <h2 className="mt-2 text-2xl font-black tracking-tight text-[#172554] sm:text-3xl">
         {title}
       </h2>
-      {description && (
-        <p className="text-sm text-[#687589] mt-1 max-w-2xl leading-relaxed">
-          {description}
-        </p>
-      )}
-    </div>
-  );
-}
 
-function StatusBadge({ status }: { status: EvidenceStatus }) {
-  return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClass(status)}`}>
-      {statusLabel(status)}
-    </span>
-  );
-}
-
-function EmptyState({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <div className="rounded-2xl border border-dashed border-[#CBD4DD] bg-[#FAFBFC] p-6 text-center">
-      <div className="text-2xl mb-2">◌</div>
-      <h3 className="text-sm font-bold text-[#142033]">{title}</h3>
-      <p className="text-xs text-[#687589] mt-1 max-w-md mx-auto leading-relaxed">
+      <p className="mt-2 max-w-3xl text-sm leading-6 text-[#718096]">
         {description}
       </p>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Evidence coverage wheel                                                    */
-/* -------------------------------------------------------------------------- */
+/* =======================================================
+   VISUAL 1: THINKING PROFILE
+   Eight-axis spider chart.
+   No fabricated evidence polygon or ability scores.
+======================================================= */
 
-function EvidenceWheel({
-  observations,
-  selectedSkill,
-  onSelect,
-}: {
-  observations: Observation[];
-  selectedSkill: SkillId;
-  onSelect: (id: SkillId) => void;
-}) {
-  const size = 420;
-  const center = size / 2;
+function ThinkingSpider() {
+  const cx = 250;
+  const cy = 218;
   const radius = 125;
-  const total = SKILLS.length;
 
-  const polar = (index: number, r: number) => {
-    const angle = (Math.PI * 2 / total) * index - Math.PI / 2;
+  const point = (index: number, r: number) => {
+    const angle = -Math.PI / 2 + (index * Math.PI) / 4;
 
     return {
-      x: center + r * Math.cos(angle),
-      y: center + r * Math.sin(angle),
+      x: cx + Math.cos(angle) * r,
+      y: cy + Math.sin(angle) * r,
     };
   };
 
-  const segments = SKILLS.map((skill, index) => {
-    const status = getCoverageStatus(observations, skill.id);
-    const startAngle = (Math.PI * 2 / total) * index - Math.PI / 2;
-    const endAngle = startAngle + (Math.PI * 2 / total);
-
-    const r1 = radius * 0.48;
-    const r2 = radius;
-
-    const p1 = {
-      x: center + r1 * Math.cos(startAngle),
-      y: center + r1 * Math.sin(startAngle),
-    };
-    const p2 = {
-      x: center + r2 * Math.cos(startAngle),
-      y: center + r2 * Math.sin(startAngle),
-    };
-    const p3 = {
-      x: center + r2 * Math.cos(endAngle),
-      y: center + r2 * Math.sin(endAngle),
-    };
-    const p4 = {
-      x: center + r1 * Math.cos(endAngle),
-      y: center + r1 * Math.sin(endAngle),
-    };
-
-    const fill =
-      status === 'AVAILABLE'
-        ? '#087F80'
-        : status === 'LIMITED'
-          ? '#A9D6CC'
-          : '#E7EBEF';
-
-    return {
-      skill,
-      status,
-      path: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} A ${r2} ${r2} 0 0 1 ${p3.x} ${p3.y} L ${p4.x} ${p4.y} A ${r1} ${r1} 0 0 0 ${p1.x} ${p1.y} Z`,
-      fill,
-      selected: selectedSkill === skill.id,
-    };
-  });
-
   return (
-    <div className="w-full">
-      <svg
-        viewBox="0 0 420 420"
-        role="img"
-        aria-label="Eight-skill evidence coverage wheel"
-        className="w-full max-w-[420px] mx-auto"
-      >
-        <circle cx={center} cy={center} r={radius * 0.46} fill="#F7F6F1" />
-
-        {segments.map((segment) => (
-          <g
-            key={segment.skill.id}
-            role="button"
-            tabIndex={0}
-            aria-label={`${segment.skill.id}: ${segment.skill.name}, ${segment.status}`}
-            onClick={() => onSelect(segment.skill.id)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                onSelect(segment.skill.id);
-              }
-            }}
-            className="cursor-pointer"
-          >
-            <path
-              d={segment.path}
-              fill={segment.fill}
-              stroke={segment.selected ? '#142033' : '#FFFFFF'}
-              strokeWidth={segment.selected ? 4 : 2}
-            />
-          </g>
-        ))}
-
-        {SKILLS.map((skill, index) => {
-          const point = polar(index, radius + 30);
-
-          return (
-            <g key={skill.id}>
-              <text
-                x={point.x}
-                y={point.y - 7}
-                textAnchor="middle"
-                className="fill-[#142033] text-[13px] font-black"
-              >
-                {skill.id}
-              </text>
-              <text
-                x={point.x}
-                y={point.y + 8}
-                textAnchor="middle"
-                className="fill-[#586579] text-[9px] font-semibold"
-              >
-                {skill.shortName}
-              </text>
-            </g>
-          );
-        })}
-
-        <text
-          x={center}
-          y={center - 5}
-          textAnchor="middle"
-          className="fill-[#142033] text-[15px] font-black"
-        >
-          8 SKILLS
-        </text>
-        <text
-          x={center}
-          y={center + 14}
-          textAnchor="middle"
-          className="fill-[#687589] text-[9px] font-medium"
-        >
-          EVIDENCE COVERAGE
-        </text>
-      </svg>
-
-      <div className="flex flex-wrap justify-center gap-4 text-[10px] font-semibold text-[#687589] mt-2">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#087F80]" />
-          Evidence available
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#A9D6CC]" />
-          Limited evidence
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2.5 h-2.5 rounded-sm bg-[#E7EBEF]" />
-          Insufficient evidence
-        </span>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Conditional radar chart                                                    */
-/* -------------------------------------------------------------------------- */
-
-function SkillRadar({
-  measures,
-}: {
-  measures?: Partial<Record<SkillId, number>>;
-}) {
-  const complete =
-    !!measures &&
-    SKILLS.every((skill) => {
-      const value = measures[skill.id];
-      return typeof value === 'number' && value >= 0 && value <= 100;
-    });
-
-  if (!complete) {
-    return (
-      <EmptyState
-        title="A comparable skill profile is not available yet"
-        description="The evidence coverage wheel shows where observations exist. A radar chart will appear only when all required skill measures are supplied using an approved, comparable assessment method."
-      />
-    );
-  }
-
-  const size = 340;
-  const center = size / 2;
-  const radius = 112;
-
-  const points = SKILLS.map((skill, index) => {
-    const angle = (Math.PI * 2 / SKILLS.length) * index - Math.PI / 2;
-    const value = measures![skill.id]!;
-    const r = (value / 100) * radius;
-
-    return `${center + r * Math.cos(angle)},${center + r * Math.sin(angle)}`;
-  }).join(' ');
-
-  return (
-    <div>
-      <svg
-        viewBox="0 0 340 340"
-        className="w-full max-w-[340px] mx-auto"
-        role="img"
-        aria-label="Comparable skill measures radar chart"
-      >
-        {[0.25, 0.5, 0.75, 1].map((scale) => (
-          <polygon
-            key={scale}
-            points={SKILLS.map((_, index) => {
-              const angle = (Math.PI * 2 / SKILLS.length) * index - Math.PI / 2;
-              return `${center + radius * scale * Math.cos(angle)},${center + radius * scale * Math.sin(angle)}`;
-            }).join(' ')}
-            fill="none"
-            stroke="#DCE2E7"
-            strokeWidth="1"
-          />
-        ))}
-
-        {SKILLS.map((_, index) => {
-          const angle = (Math.PI * 2 / SKILLS.length) * index - Math.PI / 2;
-          return (
-            <line
-              key={index}
-              x1={center}
-              y1={center}
-              x2={center + radius * Math.cos(angle)}
-              y2={center + radius * Math.sin(angle)}
-              stroke="#DCE2E7"
-            />
-          );
-        })}
-
-        <polygon
-          points={points}
-          fill="rgba(8,127,128,0.18)"
-          stroke="#087F80"
-          strokeWidth="2"
-        />
-
-        {SKILLS.map((skill, index) => {
-          const angle = (Math.PI * 2 / SKILLS.length) * index - Math.PI / 2;
-          const labelRadius = radius + 23;
-
-          return (
-            <text
-              key={skill.id}
-              x={center + labelRadius * Math.cos(angle)}
-              y={center + labelRadius * Math.sin(angle)}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              className="fill-[#586579] text-[10px] font-bold"
-            >
-              {skill.id}
-            </text>
-          );
-        })}
-      </svg>
-      <p className="text-xs text-center text-[#687589]">
-        Measure: { 'Approved comparable measure' }. Interpret alongside sample sizes and rubric documentation.
-      </p>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Show Me the Moment replay                                                  */
-/* -------------------------------------------------------------------------- */
-
-function ReplayModal({
-  observation,
-  onClose,
-}: {
-  observation: Observation;
-  onClose: () => void;
-}) {
-  const skill = getSkill(observation.skillId);
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] bg-[#142033]/55 backdrop-blur-sm flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="replay-title"
+    <svg
+      viewBox="0 0 500 440"
+      role="img"
+      aria-labelledby="spider-title spider-desc"
+      className="block h-auto w-full"
     >
-      <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="p-6 border-b border-[#E4E8EC] flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-              Read-only activity replay
-            </p>
-            <h2 id="replay-title" className="text-xl font-extrabold mt-1">
-              {observation.missionName}
-            </h2>
-            <p className="text-xs text-[#687589] mt-1">
-              {formatDate(observation.date)} · {skill.id} {skill.name}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-9 h-9 rounded-full bg-[#F1F3F5] text-[#142033] font-bold"
-            aria-label="Close replay"
-          >
-            ✕
-          </button>
-        </div>
+      <title id="spider-title">Eight-area thinking profile</title>
 
-        <div className="p-6 space-y-5">
-          <div className="rounded-2xl bg-[#F7F6F1] p-4">
-            <p className="text-xs font-bold text-[#586579] mb-2">
-              Recorded observation
-            </p>
-            <p className="text-sm text-[#142033] leading-relaxed">
-              {observation.evidenceText}
-            </p>
-          </div>
+      <desc id="spider-desc">
+        An eight-axis spider chart. No skill evidence is currently
+        connected, so no ability polygon or scores are displayed.
+      </desc>
 
-          <div>
-            <h3 className="font-bold text-sm mb-3">Recorded interaction sequence</h3>
-
-            {observation.events.length === 0 ? (
-              <EmptyState
-                title="Replay unavailable"
-                description="The original event sequence is not available for this observation."
-              />
-            ) : (
-              <div className="space-y-3">
-                {observation.events.map((event, index) => (
-                  <div
-                    key={event.id}
-                    className="flex gap-3 items-start"
-                  >
-                    <div className="w-7 h-7 shrink-0 rounded-full bg-[#DDF2ED] text-[#087F80] flex items-center justify-center text-xs font-black">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 rounded-xl border border-[#E4E8EC] p-3">
-                      <p className="text-sm font-bold">{event.label}</p>
-                      <p className="text-xs text-[#687589] mt-1">
-                        {event.detail}
-                      </p>
-
-                      {event.input !== undefined && (
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                          <div className="bg-[#F7F6F1] rounded-lg p-3">
-                            <p className="text-[10px] text-[#687589]">Input</p>
-                            <p className="font-extrabold text-lg">{event.input}</p>
-                          </div>
-                          <div className="bg-[#F7F6F1] rounded-lg p-3">
-                            <p className="text-[10px] text-[#687589]">Output</p>
-                            <p className="font-extrabold text-lg">
-                              {event.output ?? 'Not recorded'}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="border-t border-[#E4E8EC] pt-4">
-            <p className="text-xs font-bold text-[#586579]">What this may show</p>
-            <p className="text-sm text-[#142033] mt-1 leading-relaxed">
-              {observation.interpretation}
-            </p>
-            <p className="text-xs text-[#687589] mt-3 leading-relaxed">
-              Limitation: {observation.limitation}
-            </p>
-          </div>
-
-          <div className="flex justify-between items-center text-[10px] text-[#8792A1]">
-            <span>Framework {observation.frameworkVersion}</span>
-            <span>Original events · Read only</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Framework detail panel                                                     */
-/* -------------------------------------------------------------------------- */
-
-function FrameworkPanel({
-  skill,
-  observation,
-}: {
-  skill: SkillDefinition;
-  observation?: Observation;
-}) {
-  const [tab, setTab] = useState<'home' | 'framework'>('home');
-
-  return (
-    <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-      <div className="flex flex-wrap justify-between gap-3 items-start">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-            {skill.id} · Thinking skill
-          </p>
-          <h3 className="text-lg font-extrabold mt-1">{skill.name}</h3>
-        </div>
-        {observation && <StatusBadge status={observation.status} />}
-      </div>
-
-      <div className="flex gap-2 mt-5 p-1 rounded-xl bg-[#F1F3F5]">
-        <button
-          type="button"
-          onClick={() => setTab('home')}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
-            tab === 'home'
-              ? 'bg-white text-[#087F80] shadow-sm'
-              : 'text-[#687589]'
-          }`}
-        >
-          What this means at home
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('framework')}
-          className={`flex-1 rounded-lg px-3 py-2 text-xs font-bold ${
-            tab === 'framework'
-              ? 'bg-white text-[#087F80] shadow-sm'
-              : 'text-[#687589]'
-          }`}
-        >
-          Framework science
-        </button>
-      </div>
-
-      {tab === 'home' ? (
-        <div className="mt-4 space-y-3">
-          <p className="text-sm leading-relaxed text-[#142033]">
-            {skill.homeMeaning}
-          </p>
-          <div className="rounded-xl bg-[#F7F6F1] p-3">
-            <p className="text-[10px] font-black uppercase tracking-wider text-[#087F80]">
-              A question to ask
-            </p>
-            <p className="text-sm text-[#142033] mt-1">
-              {skill.id === 'A1' && 'What else would you like to know before solving this?'}
-              {skill.id === 'A2' && 'What information are we still missing?'}
-              {skill.id === 'B1' && 'What made you choose that answer?'}
-              {skill.id === 'B2' && 'Which clue helped you decide?'}
-              {skill.id === 'B3' && 'Could there be another explanation?'}
-              {skill.id === 'C1' && 'What do we gain, and what might we lose?'}
-              {skill.id === 'C2' && 'Would you change your mind if we found something new?'}
-              {skill.id === 'C3' && 'What helped you solve that problem?'}
-            </p>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-4 space-y-3">
-          <div>
-            <p className="text-[10px] font-black uppercase text-[#687589]">
-              Master Framework V1.2
-            </p>
-            <p className="text-sm mt-1">{skill.frameworkMeaning}</p>
-          </div>
-
-          <div className="rounded-xl bg-[#F7F6F1] p-3 space-y-2">
-            <div>
-              <p className="text-[10px] font-bold text-[#687589]">Skill ID</p>
-              <p className="text-sm font-bold">{skill.id}</p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#687589]">
-                Parameter code
-              </p>
-              <p className="text-sm">
-                {observation?.parameterCode ??
-                  skill.parameterCode ??
-                  'Not mapped in this demonstration'}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#687589]">
-                Rubric constraint
-              </p>
-              <p className="text-xs leading-relaxed">
-                {skill.rubricConstraint}
-              </p>
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-[#687589]">
-                Framework version
-              </p>
-              <p className="text-sm">
-                {observation?.frameworkVersion ?? 'V1.2'}
-              </p>
-            </div>
-          </div>
-
-          <p className="text-[10px] text-[#8792A1]">
-            Exact parameter mappings and rubric anchors must be loaded from
-            the approved, version-controlled framework source.
-          </p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Trend chart                                                                 */
-/* -------------------------------------------------------------------------- */
-
-function ObservationTrend({ points }: { points: TrendPoint[] }) {
-  if (points.length < 2) {
-    return (
-      <EmptyState
-        title="Not enough time-series data"
-        description="The observation timeline remains available. A trend requires at least two valid reporting periods."
-      />
-    );
-  }
-
-  const width = 600;
-  const height = 220;
-  const padding = 35;
-  const maxValue = Math.max(1, ...points.map((point) => point.count));
-  const plotWidth = width - padding * 2;
-  const plotHeight = height - padding * 2;
-
-  const coordinates = points.map((point, index) => ({
-    x: padding + (index / Math.max(1, points.length - 1)) * plotWidth,
-    y: height - padding - (point.count / maxValue) * plotHeight,
-    ...point,
-  }));
-
-  const line = coordinates
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
-    .join(' ');
-
-  return (
-    <div>
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="w-full"
-        role="img"
-        aria-label="Valid observations recorded over time"
-      >
-        {[0, 1, 2, 3].map((lineIndex) => {
-          const y = padding + (lineIndex / 3) * plotHeight;
-
-          return (
-            <line
-              key={lineIndex}
-              x1={padding}
-              y1={y}
-              x2={width - padding}
-              y2={y}
-              stroke="#E5E9ED"
-              strokeDasharray="4 4"
-            />
-          );
-        })}
-
-        <path
-          d={line}
+      {[0.25, 0.5, 0.75, 1].map((scale, index) => (
+        <polygon
+          key={scale}
+          points={Array.from({ length: 8 }, (_, i) => {
+            const p = point(i, radius * scale);
+            return `${p.x},${p.y}`;
+          }).join(' ')}
           fill="none"
-          stroke="#087F80"
-          strokeWidth="3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          stroke={index === 3 ? '#B8C8E7' : '#DCE5F2'}
+          strokeWidth={index === 3 ? 1.8 : 1.3}
         />
+      ))}
 
-        {coordinates.map((point) => (
-          <g key={point.period}>
-            <circle cx={point.x} cy={point.y} r="5" fill="#087F80" />
+      {SKILLS.map((skill, index) => {
+        const end = point(index, radius);
+        const label = point(index, 177);
+
+        const angle = -Math.PI / 2 + (index * Math.PI) / 4;
+        const cos = Math.cos(angle);
+
+        const anchor =
+          cos > 0.35 ? 'start' : cos < -0.35 ? 'end' : 'middle';
+
+        let labelY = label.y;
+        if (index === 0) labelY += 3;
+        if (index === 4) labelY -= 3;
+
+        return (
+          <g key={skill}>
+            <line
+              x1={cx}
+              y1={cy}
+              x2={end.x}
+              y2={end.y}
+              stroke="#C6D4E9"
+              strokeWidth="1.5"
+            />
+
+            <circle
+              cx={end.x}
+              cy={end.y}
+              r="5.5"
+              fill="white"
+              stroke="#718DBA"
+              strokeWidth="2.5"
+            />
+
             <text
-              x={point.x}
-              y={point.y - 12}
-              textAnchor="middle"
-              className="fill-[#142033] text-[11px] font-bold"
+              x={label.x}
+              y={labelY}
+              textAnchor={anchor}
+              dominantBaseline="middle"
+              fontSize="11"
+              fontWeight="700"
+              fill="#425575"
             >
-              {point.count}
-            </text>
-            <text
-              x={point.x}
-              y={height - 10}
-              textAnchor="middle"
-              className="fill-[#687589] text-[10px]"
-            >
-              {point.period}
+              {skill}
             </text>
           </g>
+        );
+      })}
+
+      <circle
+        cx={cx}
+        cy={cy}
+        r="47"
+        fill="#EEF2FF"
+        stroke="#C8D2F4"
+        strokeWidth="1.5"
+      />
+
+      <circle
+        cx={cx}
+        cy={cy}
+        r="37"
+        fill="white"
+      />
+
+      <text
+        x={cx}
+        y={cy - 4}
+        textAnchor="middle"
+        fontSize="12"
+        fontWeight="900"
+        fill="#4657B8"
+      >
+        THINKING
+      </text>
+
+      <text
+        x={cx}
+        y={cy + 12}
+        textAnchor="middle"
+        fontSize="9"
+        fill="#718096"
+      >
+        profile
+      </text>
+    </svg>
+  );
+}
+
+/* =======================================================
+   VISUAL 2: EVIDENCE LANDSCAPE
+   Eight skills x four learning contexts.
+   Interactive matrix with selected-cell information.
+======================================================= */
+
+function EvidenceMatrix() {
+  const [selected, setSelected] = useState<{
+    skill: number;
+    context: number;
+  } | null>(null);
+
+  const selectedSkill =
+    selected !== null ? SKILLS[selected.skill] : null;
+
+  const selectedContext =
+    selected !== null ? CONTEXTS[selected.context] : null;
+
+  const contextColors = [
+    '#3978F6',
+    '#8455E8',
+    '#F47762',
+    '#0C9B78',
+  ];
+
+  return (
+    <div className="rounded-3xl border border-[#E0E6F3] bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#5265B8]">
+            Evidence coverage
+          </p>
+
+          <h3 className="mt-1 text-lg font-black text-[#172554]">
+            The evidence landscape
+          </h3>
+
+          <p className="mt-1 text-xs leading-5 text-[#718096]">
+            Explore where each thinking skill may be observed.
+          </p>
+        </div>
+
+        <div className="rounded-xl bg-[#F0F2FF] px-3 py-2 text-[10px] font-bold text-[#5265B8]">
+          8 skills · 4 contexts
+        </div>
+      </div>
+
+      {/* Context legend */}
+      <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {CONTEXTS.map((context, index) => (
+          <div
+            key={context}
+            className="flex items-center gap-2 rounded-xl bg-[#F8F9FC] px-2.5 py-2"
+          >
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: contextColors[index] }}
+            />
+
+            <span className="text-[10px] font-bold text-[#526078]">
+              {context}
+            </span>
+          </div>
         ))}
-      </svg>
-      <p className="text-xs text-[#687589] mt-2">
-        This chart describes recorded valid observations, not improvement in
-        thinking ability.
-      </p>
+      </div>
+
+      {/* Matrix */}
+      <div className="mt-5 overflow-x-auto">
+        <div className="min-w-[570px]">
+          <div className="grid grid-cols-[minmax(175px,1.6fr)_repeat(4,minmax(70px,1fr))] gap-2">
+            <div className="flex items-end pb-2 text-[9px] font-black uppercase tracking-wider text-[#98A2B3]">
+              Thinking skill
+            </div>
+
+            {CONTEXTS.map((context) => (
+              <div
+                key={context}
+                className="flex min-h-[43px] items-end justify-center pb-2 text-center text-[9px] font-extrabold text-[#526078]"
+              >
+                {context}
+              </div>
+            ))}
+
+            {/* IMPORTANT: iterate over SKILLS here, not CONTEXTS */}
+            {SKILLS.map((skill, skillIndex) => (
+              <div key={skill} className="contents">
+                <div className="flex min-h-[43px] items-center rounded-xl bg-[#F7F8FC] px-3 text-[10px] font-bold text-[#43516B]">
+                  <span className="mr-2 text-[9px] font-black text-[#A1AABD]">
+                    {String(skillIndex + 1).padStart(2, '0')}
+                  </span>
+
+                  {skill}
+                </div>
+
+                {CONTEXTS.map((context, contextIndex) => {
+                  const active =
+                    selected?.skill === skillIndex &&
+                    selected?.context === contextIndex;
+
+                  return (
+                    <button
+                      key={`${skillIndex}-${contextIndex}`}
+                      type="button"
+                      aria-label={`${skill} in ${context}: evidence not connected`}
+                      aria-pressed={active}
+                      onClick={() =>
+                        setSelected({
+                          skill: skillIndex,
+                          context: contextIndex,
+                        })
+                      }
+                      className={`group flex min-h-[43px] items-center justify-center rounded-xl border transition-all duration-200 ${
+                        active
+                          ? 'border-[#5265B8] bg-[#EEF0FF] shadow-md ring-2 ring-[#5265B8]/15'
+                          : 'border-[#E8ECF3] bg-white hover:border-[#AAB9E8] hover:bg-[#F5F6FF]'
+                      }`}
+                    >
+                      <span
+                        className={`h-4 w-4 rounded-md border-2 transition-all ${
+                          active
+                            ? 'border-[#5265B8] bg-[#5265B8]'
+                            : 'border-[#CBD3E1] bg-[#F9FAFC] group-hover:border-[#899BCB]'
+                        }`}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Selected cell detail */}
+      <div className="mt-4 rounded-2xl border border-[#E1E7F2] bg-gradient-to-r from-[#F4F6FF] to-[#F8F5FF] p-4">
+        {selected ? (
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-black text-[#35477F]">
+                {selectedSkill}
+              </p>
+
+              <span className="rounded-full bg-white px-3 py-1 text-[9px] font-bold text-[#8455E8]">
+                {selectedContext}
+              </span>
+            </div>
+
+            <p className="mt-2 text-xs leading-5 text-[#718096]">
+              No reviewed observation is connected to this skill and
+              context yet. This does not mean the child cannot demonstrate it.
+            </p>
+          </>
+        ) : (
+          <p className="text-xs leading-5 text-[#718096]">
+            <strong className="text-[#35477F]">
+              Explore the matrix.
+            </strong>{' '}
+            Select any cell to see its evidence status. An empty cell means
+            evidence has not been connected, not that the skill is absent.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-4 text-[10px] font-semibold text-[#8792A1]">
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded border border-[#CBD3E1] bg-[#F9FAFC]" />
+          Awaiting evidence
+        </span>
+
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-3 rounded bg-[#5265B8]" />
+          Selected cell
+        </span>
+      </div>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Thinking milestone card                                                    */
-/* -------------------------------------------------------------------------- */
+/* =======================================================
+   VISUAL 3: GROWTH TIMELINE
+   Illustrative annual journey, not actual child milestones.
+======================================================= */
 
-function MilestoneCard({
-  observations,
-}: {
-  observations: Observation[];
-}) {
-  const [selectedId, setSelectedId] = useState('');
-
-  const eligibleQuotes = observations.filter(
-    (observation) =>
-      observation.childVerbatim &&
-      observation.childVerbatimType === 'typed' &&
-      observation.status === 'SUPPORTED',
-  );
-
-  const selected =
-    eligibleQuotes.find((observation) => observation.id === selectedId) ??
-    eligibleQuotes[0];
-
-  const [showPreview, setShowPreview] = useState(false);
-
-  if (!selected) {
-    return (
-      <EmptyState
-        title="No shareable child-authored question yet"
-        description="A Thinking Milestone Card can be created when an eligible, verbatim child-authored question or realization is available."
-      />
-    );
-  }
+function EvidenceTimeline() {
+  const milestones = [
+    {
+      period: 'BEGIN',
+      title: 'First observations',
+      description: 'The first meaningful evidence is captured.',
+      color: '#3978F6',
+    },
+    {
+      period: 'REPEAT',
+      title: 'Patterns reappear',
+      description: 'A similar behaviour is observed again.',
+      color: '#8455E8',
+    },
+    {
+      period: 'EXPAND',
+      title: 'Different contexts',
+      description: 'Evidence appears in another situation.',
+      color: '#F47762',
+    },
+    {
+      period: 'REFLECT',
+      title: 'Annual reflection',
+      description: 'The accumulated evidence is reviewed.',
+      color: '#0C9B78',
+    },
+  ];
 
   return (
-    <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-      <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-        Family keepsake
-      </p>
-      <h3 className="text-lg font-extrabold mt-1">Thinking Milestone Card</h3>
-      <p className="text-xs text-[#687589] mt-1">
-        A genuine moment of curiosity, in the child's own words.
-      </p>
+    <div className="overflow-hidden rounded-3xl border border-[#263A72] bg-[#111D45] p-5 text-white shadow-xl sm:p-7">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#9EACFF]">
+            Longitudinal view
+          </p>
 
-      {eligibleQuotes.length > 1 && (
-        <select
-          value={selected.id}
-          onChange={(event) => setSelectedId(event.target.value)}
-          className="mt-4 w-full rounded-xl border border-[#DCE2E7] p-3 text-sm bg-white"
-        >
-          {eligibleQuotes.map((observation) => (
-            <option key={observation.id} value={observation.id}>
-              {observation.missionName} · {formatDate(observation.date)}
-            </option>
-          ))}
-        </select>
-      )}
+          <h3 className="mt-1 text-xl font-black">
+            The journey of evidence
+          </h3>
 
-      <div className="mt-4 rounded-2xl bg-[#F3EFE6] p-6 sm:p-8 text-[#27231F]">
-        <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#776B5D]">
-          A moment of curiosity
-        </p>
-        <p className="font-serif italic text-2xl sm:text-3xl leading-snug mt-6">
-          “{selected.childVerbatim}”
-        </p>
-        <div className="h-px bg-[#D4C9B8] my-6" />
-        <p className="text-sm font-semibold">{selected.missionName}</p>
-        <p className="text-xs text-[#776B5D] mt-1">
-          {formatDate(selected.date)}
+          <p className="mt-2 max-w-xl text-xs leading-5 text-[#B9C5E5]">
+            Thinking is not understood through one moment. Meaningful
+            observations become more useful when viewed over time.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-white/15 bg-white/10 px-3 py-2">
+          <p className="text-[9px] font-bold uppercase tracking-wider text-[#AAB7DD]">
+            Annual view
+          </p>
+
+          <p className="mt-1 text-sm font-black">
+            Evidence journey
+          </p>
+        </div>
+      </div>
+
+      {/* Visual timeline */}
+      <div className="mt-8">
+        <div className="relative">
+          <div className="absolute left-[7%] right-[7%] top-5 h-[3px] rounded-full bg-white/15" />
+
+          <div className="relative grid grid-cols-4 gap-1">
+            {milestones.map((milestone, index) => (
+              <div
+                key={milestone.period}
+                className="flex min-w-0 flex-col items-center text-center"
+              >
+                <div
+                  className="z-10 flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-[#111D45] shadow-lg"
+                  style={{
+                    backgroundColor: milestone.color,
+                    boxShadow: `0 0 22px ${milestone.color}55`,
+                  }}
+                >
+                  <span className="text-sm font-black text-white">
+                    {index + 1}
+                  </span>
+                </div>
+
+                <p
+                  className="mt-3 text-[8px] font-black tracking-wider sm:text-[9px]"
+                  style={{ color: milestone.color }}
+                >
+                  {milestone.period}
+                </p>
+
+                <p className="mt-2 text-[10px] font-extrabold leading-4 text-white sm:text-xs">
+                  {milestone.title}
+                </p>
+
+                <p className="mt-2 hidden max-w-[125px] text-[10px] leading-4 text-[#AAB7DD] sm:block">
+                  {milestone.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-7 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#F5A43B]" />
+
+          <p className="text-xs font-bold text-white">
+            Evidence timeline is not connected yet
+          </p>
+        </div>
+
+        <p className="mt-2 text-xs leading-5 text-[#B9C5E5]">
+          These are the stages the annual experience is designed to support,
+          not completed milestones for this child. Actual dates and examples
+          will appear only when reviewed observations are available.
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowPreview(!showPreview)}
-        className="mt-4 w-full rounded-xl border border-[#087F80] text-[#087F80] px-4 py-3 text-sm font-bold hover:bg-[#F0F8F6]"
-      >
-        {showPreview ? 'Close sharing information' : 'Review sharing information'}
-      </button>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {[
+          ['01', 'Original response'],
+          ['02', 'Reviewed observation'],
+          ['03', 'Context and date'],
+        ].map(([number, label]) => (
+          <div
+            key={number}
+            className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-3 py-2"
+          >
+            <span className="text-[9px] font-black text-[#9EACFF]">
+              {number}
+            </span>
 
-      {showPreview && (
-        <div className="mt-3 rounded-xl bg-[#F7F6F1] p-4">
-          <p className="text-xs font-bold">Before sharing</p>
-          <ul className="list-disc pl-5 mt-2 space-y-1 text-xs text-[#586579]">
-            <li>Check that the quotation is appropriate to share.</li>
-            <li>The child's full name is not included by default.</li>
-            <li>No scores or assessment labels are displayed.</li>
-            <li>Explicit parent confirmation and export permission are required.</li>
-          </ul>
-          <p className="text-[10px] text-[#8792A1] mt-3">
-            Export/download functionality must be connected to an approved
-            sharing service before production.
-          </p>
-        </div>
-      )}
+            <span className="text-[9px] font-semibold text-[#D5DCF0]">
+              {label}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Main Parent View                                                            */
-/* -------------------------------------------------------------------------- */
+/* =======================================================
+   MAIN PARENT VIEW
+======================================================= */
 
-export default function ParentView({
-  data = DEMO_DATA,
-}: {
-  data?: ParentInsightsData;
-}) {
+export default function ParentView() {
   const navigate = useNavigate();
+  const { activeChild } = useChild();
 
-  const [activeSection, setActiveSection] = useState<
-    'overview' | 'skills' | 'journey' | 'family'
-  >('overview');
+  const user = useApp((state) => state.user);
+  const days = useApp((state) => state.days);
+  const sessions = useApp((state) => state.sessions);
+  const responses = useApp((state) => state.responses);
 
-  const [selectedSkill, setSelectedSkill] = useState<SkillId>('B2');
-  const [selectedObservation, setSelectedObservation] =
-    useState<Observation | null>(null);
+  const childId = activeChild?.id ?? 'no-active-child';
 
-  const [showRadar, setShowRadar] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
-  const [period, setPeriod] = useState('all');
+  const [noteText, setNoteText] = useState('');
+  const [familyNotes, setFamilyNotes] = useState<FamilyNote[]>([]);
+  const [noteMessage, setNoteMessage] = useState('');
 
-  const observations = data.observations;
+  useEffect(() => {
+    setFamilyNotes(loadFamilyNotes(childId));
+  }, [childId]);
 
-  const validObservations = useMemo(
-    () => observations.filter(isEligibleObservation),
-    [observations],
-  );
+  const curriculumTier = curriculumTierFrom(user?.tier ?? 'foundation');
 
-  const pendingCount = observations.filter(
-    (observation) => observation.status === 'PENDING_REVIEW',
-  ).length;
+  const activity = useMemo(() => {
+    const completedMissionIds = Array.from(
+      new Set(sessions.flatMap((session) => session.missionsCompleted)),
+    );
 
-  const completedMissions = data.missions.filter(
-    (mission) => mission.completed,
-  );
+    const completedDays = Object.values(days).filter(
+      (day) => !!day.completedAt,
+    ).length;
 
-  const skillsWithEvidence = SKILLS.filter(
-    (skill) => getEvidenceCount(observations, skill.id) > 0,
-  ).length;
+    const activeDays = new Set(
+      sessions.map((session) => session.date),
+    ).size;
 
-  const selectedSkillDefinition = getSkill(selectedSkill);
+    const discoveries = sessions
+      .flatMap((session) =>
+        session.missionsCompleted.map((missionId) => ({
+          id: `${session.id}-${missionId}`,
+          date: session.date,
+          title: resolveMissionTitle(missionId, curriculumTier),
+        })),
+      )
+      .sort((a, b) => b.date.localeCompare(a.date));
 
-  const selectedSkillObservations = observations.filter(
-    (observation) => observation.skillId === selectedSkill,
-  );
+    return {
+      completedMissionCount: completedMissionIds.length,
+      completedDays,
+      activeDays,
+      responseCount: Object.keys(responses).length,
+      discoveries,
+    };
+  }, [days, sessions, responses, curriculumTier]);
 
-  const selectedSkillPrimaryObservation = selectedSkillObservations.find(
-    isEligibleObservation,
-  );
+  const saveFamilyNote = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
-  const radarAvailable =
-    !!data.comparableSkillMeasures &&
-    SKILLS.every((skill) => {
-      const value = data.comparableSkillMeasures?.[skill.id];
-      return typeof value === 'number' && value >= 0 && value <= 100;
-    });
+    const text = noteText.trim();
+    if (!text || !activeChild) return;
 
-  const displayedMissions =
-    period === 'all'
-      ? data.missions
-      : data.missions.filter((mission) => {
-          const missionDate = new Date(`${mission.date}T00:00:00`);
-          const now = new Date();
+    const next: FamilyNote[] = [
+      {
+        id: `note-${Date.now()}`,
+        text,
+        createdAt: new Date().toISOString(),
+      },
+      ...familyNotes,
+    ];
 
-          const days =
-            period === '7d' ? 7 : period === '30d' ? 30 : 90;
+    try {
+      window.localStorage.setItem(
+        `${NOTE_PREFIX}${childId}`,
+        JSON.stringify(next),
+      );
 
-          const cutoff = new Date(now);
-          cutoff.setDate(now.getDate() - days);
-
-          return missionDate >= cutoff;
-        });
-
-  const navigateSection = (
-    section: 'overview' | 'skills' | 'journey' | 'family',
-  ) => {
-    setActiveSection(section);
-    document.getElementById(`parent-section-${section}`)?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    });
+      setFamilyNotes(next);
+      setNoteText('');
+      setNoteMessage('Your note is saved in this browser.');
+    } catch {
+      setNoteMessage(
+        'This browser could not save the note. Please try again.',
+      );
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F6F1] text-[#142033] font-['DM_Sans',sans-serif] antialiased">
-      {/* Header */}
-      <header className="h-16 sm:h-20 sticky top-0 z-40 bg-[#F7F6F1]/95 backdrop-blur-md border-b border-[#DCE2E7]">
-        <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/')}
-              className="bg-transparent border-0 p-0"
-              aria-label="Go to CubitX home"
-            >
-              <img
-                src={CUBITX_LOGO_SRC}
-                alt="CubitX"
-                className="h-7 sm:h-8 w-auto object-contain"
-              />
-            </button>
+    <div className="min-h-screen bg-[#F4F6FC] text-[#172554]">
+      {/* HEADER */}
+      <header className="sticky top-0 z-30 border-b border-[#E1E6F0] bg-white/90 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
+          <div>
+            <p className="text-base font-black tracking-tight text-[#172554]">
+              CubitX
+            </p>
 
-            <span className="hidden sm:block h-6 w-px bg-[#DCE2E7]" />
-
-            <span className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-              Parent Insights
-            </span>
+            <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#5265B8]">
+              Parent insights
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-xs font-bold">{data.child.displayName}</p>
-              <p className="text-[10px] text-[#687589]">
-                {data.child.classLabel}
+            <div className="hidden text-right sm:block">
+              <p className="text-sm font-bold">
+                {activeChild?.name ?? 'Your child'}
+              </p>
+
+              <p className="text-xs text-[#718096]">
+                {activeChild
+                  ? `Class ${activeChild.class_level}`
+                  : 'Child profile'}
               </p>
             </div>
 
             <button
               type="button"
-              onClick={() => navigate('/')}
-              className="rounded-full px-4 py-2 text-xs font-bold text-[#586579] hover:bg-white border border-transparent hover:border-[#DCE2E7]"
+              onClick={() => navigate('/home')}
+              className="rounded-full border border-[#DCE2EE] bg-white px-4 py-2 text-xs font-bold transition hover:bg-[#EEF1FA]"
             >
-              Exit
+              Back to activities
             </button>
           </div>
         </div>
       </header>
 
-      {/* Demo warning */}
-      {data.isDemo && (
-        <div className="bg-[#FFF2D8] border-b border-[#F0D9A9]">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-2 text-xs text-[#795B1E] font-semibold">
-            Demonstration mode — all child profiles, events, dates and
-            observations shown here are illustrative, not actual child records.
-          </div>
-        </div>
-      )}
+      <main className="mx-auto max-w-6xl space-y-9 px-4 py-7 sm:px-6 sm:py-10">
+        {/* HERO */}
+        <section className="relative isolate overflow-hidden rounded-[30px] bg-gradient-to-br from-[#172554] via-[#293C83] to-[#6347B9] p-6 text-white shadow-xl shadow-[#293C83]/15 sm:p-9">
+          <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-[#A78BFA]/20 blur-3xl" />
 
-      {/* Hero */}
-      <section className="bg-white border-b border-[#DCE2E7]">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-9 sm:py-12">
-          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
-            <div className="max-w-2xl">
-              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#087F80]">
-                A window into curiosity
-              </p>
-              <h1 className="font-['Plus_Jakarta_Sans',sans-serif] text-3xl sm:text-4xl font-extrabold tracking-tight mt-2">
-                {data.child.displayName === 'Demo child'
-                  ? 'Your child’s thinking journey'
-                  : `${data.child.displayName}’s thinking journey`}
-              </h1>
-              <p className="text-sm sm:text-base text-[#687589] mt-3 leading-relaxed">
-                Explore the questions, discoveries and decisions recorded
-                during CubitX activities. This is a record of observable
-                thinking behaviours — not an intelligence score or a ranking.
-              </p>
-            </div>
+          <div className="pointer-events-none absolute -bottom-32 left-1/3 h-64 w-64 rounded-full bg-[#31C7C0]/15 blur-3xl" />
 
-            <div className="flex flex-wrap gap-2 items-center">
-              <label htmlFor="period" className="text-xs text-[#687589]">
-                Reporting period
-              </label>
-              <select
-                id="period"
-                value={period}
-                onChange={(event) => setPeriod(event.target.value)}
-                className="rounded-xl bg-[#F7F6F1] border border-[#DCE2E7] px-3 py-2 text-xs font-bold"
-              >
-                <option value="all">All available activity</option>
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
-              </select>
-            </div>
-          </div>
+          <div className="relative">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5">
+              <span className="h-2 w-2 rounded-full bg-[#6EE7B7]" />
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            {[
-              ['overview', 'Overview'],
-              ['skills', 'Thinking skills'],
-              ['journey', 'Activity journey'],
-              ['family', 'Family connection'],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() =>
-                  navigateSection(
-                    id as 'overview' | 'skills' | 'journey' | 'family',
-                  )
-                }
-                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                  activeSection === id
-                    ? 'bg-[#142033] text-white'
-                    : 'bg-[#F1F3F5] text-[#586579] hover:bg-[#E7EBEF]'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-9 space-y-12">
-        {/* Overview */}
-        <section id="parent-section-overview" className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="01 · Journey at a glance"
-            title="A snapshot of the journey"
-            description="A simple overview of activities and eligible observations recorded by CubitX."
-          />
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {[
-              {
-                value: completedMissions.length,
-                label: 'Missions explored',
-                note: 'Completed activities',
-              },
-              {
-                value: validObservations.length,
-                label: 'Eligible observations',
-                note: 'Not a skill score',
-              },
-              {
-                value: skillsWithEvidence,
-                label: 'Skills with evidence',
-                note: 'Out of eight skills',
-              },
-              {
-                value: pendingCount,
-                label: 'Awaiting review',
-                note: 'Not included in approved evidence',
-              },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="bg-white rounded-2xl border border-[#DCE2E7] p-4 sm:p-5"
-              >
-                <p className="text-2xl sm:text-3xl font-extrabold text-[#142033] tabular-nums">
-                  {item.value}
-                </p>
-                <p className="text-xs font-bold mt-2">{item.label}</p>
-                <p className="text-[10px] text-[#8792A1] mt-1">{item.note}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 rounded-2xl bg-white border border-[#DCE2E7] p-5 flex flex-col sm:flex-row gap-3 items-start">
-            <span className="text-xl">🌿</span>
-            <div>
-              <h3 className="text-sm font-bold">The Not-Broken Signal</h3>
-              <p className="text-xs text-[#687589] mt-1 leading-relaxed">
-                Every learning journey has its own rhythm. There is no need
-                to maintain a daily schedule. Children can return to exploring
-                whenever they are ready.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Skills */}
-        <section id="parent-section-skills" className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="02 · Eight thinking skills"
-            title="Where have we observed thinking?"
-            description="The wheel shows evidence coverage, not ability or mastery. Select a segment to explore its observations."
-          />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-7 bg-white rounded-3xl border border-[#DCE2E7] p-4 sm:p-6">
-              <EvidenceWheel
-                observations={observations}
-                selectedSkill={selectedSkill}
-                onSelect={setSelectedSkill}
-              />
-            </div>
-
-            <div className="lg:col-span-5 bg-white rounded-3xl border border-[#DCE2E7] p-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-                Selected thinking skill
-              </p>
-              <h3 className="text-xl font-extrabold mt-2">
-                {selectedSkillDefinition.id}. {selectedSkillDefinition.name}
-              </h3>
-              <p className="text-sm text-[#687589] mt-2 leading-relaxed">
-                {selectedSkillDefinition.description}
-              </p>
-
-              <div className="mt-5 rounded-xl bg-[#F7F6F1] p-4">
-                <p className="text-xs font-bold">Eligible observations</p>
-                <p className="text-2xl font-extrabold mt-1">
-                  {getEvidenceCount(observations, selectedSkill)}
-                </p>
-                <p className="text-[10px] text-[#687589] mt-1">
-                  This count describes available evidence, not skill strength.
-                </p>
-              </div>
-
-              <div className="mt-4 space-y-2">
-                <p className="text-xs font-bold">Evidence status</p>
-                {getCoverageStatus(observations, selectedSkill) ===
-                'AVAILABLE' ? (
-                  <span className="inline-flex rounded-full bg-[#DDF2ED] text-[#087F80] px-3 py-1.5 text-xs font-bold">
-                    Evidence available
-                  </span>
-                ) : getCoverageStatus(observations, selectedSkill) ===
-                  'LIMITED' ? (
-                  <span className="inline-flex rounded-full bg-[#EAF3F0] text-[#477E70] px-3 py-1.5 text-xs font-bold">
-                    Limited evidence
-                  </span>
-                ) : (
-                  <span className="inline-flex rounded-full bg-[#F0F1F3] text-[#586579] px-3 py-1.5 text-xs font-bold">
-                    Insufficient evidence
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowDetails(!showDetails)}
-                className="mt-5 w-full rounded-xl bg-[#142033] text-white px-4 py-3 text-xs font-bold"
-              >
-                {showDetails ? 'Hide skill details' : 'Explore skill details'}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-5 bg-white rounded-3xl border border-[#DCE2E7] p-5 sm:p-6">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h3 className="text-base font-extrabold">Analytical skill profile</h3>
-                <p className="text-xs text-[#687589] mt-1">
-                  An additional view, available only with comparable approved measures.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowRadar(!showRadar)}
-                className="rounded-full border border-[#DCE2E7] px-4 py-2 text-xs font-bold"
-              >
-                {showRadar ? 'Hide radar view' : 'View radar chart'}
-              </button>
-            </div>
-
-            {showRadar && (
-              <div className="mt-5">
-                {radarAvailable ? (
-                  <SkillRadar measures={data.comparableSkillMeasures} />
-                ) : (
-                  <EmptyState
-                    title="Not enough comparable assessment data"
-                    description="A radar chart cannot be calculated from observation counts. CubitX will show this view only after approved skill measures and comparable evidence are available."
-                  />
-                )}
-              </div>
-            )}
-          </div>
-
-          {showDetails && (
-            <div className="mt-5 space-y-4">
-              <FrameworkPanel
-                skill={selectedSkillDefinition}
-                observation={selectedSkillPrimaryObservation}
-              />
-
-              <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-                <h3 className="font-bold text-sm mb-3">
-                  Evidence for {selectedSkill}
-                </h3>
-
-                {selectedSkillObservations.length === 0 ? (
-                  <EmptyState
-                    title="No eligible observations yet"
-                    description="There has not yet been enough eligible evidence to describe this skill."
-                  />
-                ) : (
-                  <div className="space-y-3">
-                    {selectedSkillObservations.map((observation) => (
-                      <div
-                        key={observation.id}
-                        className="border border-[#E4E8EC] rounded-xl p-4"
-                      >
-                        <div className="flex flex-wrap justify-between gap-2">
-                          <p className="text-sm font-bold">
-                            {observation.title}
-                          </p>
-                          <StatusBadge status={observation.status} />
-                        </div>
-                        <p className="text-xs text-[#687589] mt-2">
-                          {observation.summary}
-                        </p>
-                        <p className="text-[10px] text-[#8792A1] mt-2">
-                          {observation.missionName} · {formatDate(observation.date)}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedObservation(observation)}
-                          className="text-xs font-bold text-[#087F80] mt-3"
-                        >
-                          Show me the moment →
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Observable Action Trail */}
-        <section id="parent-section-journey" className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="03 · Observable action trail"
-            title="Thinking in action"
-            description="Explore actual recorded moments from activities. Each replay uses the event sequence associated with that observation."
-          />
-
-          {observations.length === 0 ? (
-            <EmptyState
-              title="No recorded moments yet"
-              description="When eligible mission events become available, they will appear here."
-            />
-          ) : (
-            <div className="space-y-4">
-              {observations.map((observation) => {
-                const skill = getSkill(observation.skillId);
-
-                return (
-                  <div
-                    key={observation.id}
-                    className="bg-white rounded-2xl border border-[#DCE2E7] p-5"
-                  >
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-3">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-                          {observation.missionName} · {skill.id}
-                        </p>
-                        <h3 className="text-base font-extrabold mt-1">
-                          {observation.title}
-                        </h3>
-                        <p className="text-xs text-[#687589] mt-2 leading-relaxed">
-                          {observation.summary}
-                        </p>
-                      </div>
-                      <div className="sm:text-right shrink-0">
-                        <StatusBadge status={observation.status} />
-                        <p className="text-[10px] text-[#8792A1] mt-2">
-                          {formatDate(observation.date)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 bg-[#F7F6F1] rounded-xl p-3">
-                      <p className="text-[10px] font-bold text-[#687589]">
-                        Recorded evidence
-                      </p>
-                      <p className="text-xs text-[#142033] mt-1 leading-relaxed">
-                        {observation.evidenceText}
-                      </p>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap justify-between gap-3 items-center">
-                      <span className="text-[10px] text-[#8792A1]">
-                        Source: {observation.source.replaceAll('_', ' ')}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedObservation(observation)}
-                        className="rounded-xl bg-[#142033] text-white px-4 py-2.5 text-xs font-bold"
-                      >
-                        Show me the moment
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* Progress */}
-        <section className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="04 · Progress over time"
-            title="The journey, across time"
-            description="The timeline shows what happened. The trend describes the amount of eligible evidence recorded — not cognitive improvement."
-          />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-              <h3 className="font-extrabold text-sm">Observation trend</h3>
-              <p className="text-xs text-[#687589] mt-1 mb-4">
-                Valid observations by reporting period.
-              </p>
-              <ObservationTrend points={data.trends} />
-            </div>
-
-            <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-              <h3 className="font-extrabold text-sm">Activity timeline</h3>
-              <p className="text-xs text-[#687589] mt-1 mb-4">
-                Recorded missions and observations.
-              </p>
-
-              {displayedMissions.length === 0 ? (
-                <EmptyState
-                  title="No activity in this period"
-                  description="There is no recorded CubitX activity in the selected reporting period. This does not tell us what the child has been learning elsewhere."
-                />
-              ) : (
-                <div className="space-y-4">
-                  {displayedMissions.map((mission) => (
-                    <div
-                      key={mission.id}
-                      className="flex gap-3 items-start"
-                    >
-                      <div className="w-3 h-3 rounded-full bg-[#087F80] mt-1 shrink-0" />
-                      <div>
-                        <p className="text-sm font-bold">{mission.name}</p>
-                        <p className="text-xs text-[#687589] mt-1">
-                          {mission.description}
-                        </p>
-                        <p className="text-[10px] text-[#8792A1] mt-1">
-                          {formatDate(mission.date)}
-                        </p>
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {mission.skillIds.map((skillId) => (
-                            <span
-                              key={skillId}
-                              className="rounded-full bg-[#EAF3F0] text-[#477E70] px-2 py-1 text-[9px] font-bold"
-                            >
-                              {skillId}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        {/* Evidence rigor */}
-        <section className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="05 · Invisible rigor"
-            title="What the evidence tells us"
-            description="Every interpretation should be traceable to an actual observation and an approved framework definition."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {SKILLS.map((skill) => {
-              const observation = observations.find(
-                (item) => item.skillId === skill.id && isEligibleObservation(item),
-              );
-
-              return (
-                <FrameworkPanel
-                  key={skill.id}
-                  skill={skill}
-                  observation={observation}
-                />
-              );
-            })}
-          </div>
-
-          <div className="mt-5 rounded-2xl bg-white border border-[#DCE2E7] p-5">
-            <h3 className="font-bold text-sm">What we know — and what we don't</h3>
-
-            {validObservations.length > 0 ? (
-              <div className="mt-3 space-y-3">
-                <div>
-                  <p className="text-xs font-bold text-[#087F80]">
-                    What we observed
-                  </p>
-                  <p className="text-sm mt-1">
-                    CubitX has recorded {validObservations.length} eligible
-                    observation(s) across the available activities.
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-[#687589]">
-                    What we do not yet know
-                  </p>
-                  <p className="text-sm mt-1 text-[#687589]">
-                    The available records do not automatically establish
-                    whether these behaviours appear consistently across
-                    different situations or outside CubitX activities.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-[#687589] mt-2">
-                There is not yet enough eligible evidence to draw a conclusion.
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* Mission map */}
-        <section className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="06 · Mission journey"
-            title="Places explored along the way"
-            description="Mission completion and evidence generation are shown separately."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {data.missions.map((mission, index) => (
-              <div
-                key={mission.id}
-                className="bg-white rounded-2xl border border-[#DCE2E7] p-5"
-              >
-                <div className="w-10 h-10 rounded-xl bg-[#EAF3F0] flex items-center justify-center text-[#087F80] font-black">
-                  {String(index + 1).padStart(2, '0')}
-                </div>
-                <h3 className="font-extrabold mt-4">{mission.name}</h3>
-                <p className="text-xs text-[#687589] mt-2 leading-relaxed">
-                  {mission.description}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-1">
-                  {mission.skillIds.map((skillId) => (
-                    <span
-                      key={skillId}
-                      className="text-[9px] font-bold bg-[#F1F3F5] text-[#586579] rounded-full px-2 py-1"
-                    >
-                      {skillId}
-                    </span>
-                  ))}
-                </div>
-                <div className="border-t border-[#E4E8EC] mt-4 pt-3">
-                  <p className="text-[10px] text-[#687589]">
-                    {mission.completed ? 'Mission completed' : 'Not completed'}
-                  </p>
-                  <p className="text-[10px] text-[#687589] mt-1">
-                    {mission.observationIds.length} linked observation record(s)
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Before / after */}
-        <section className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="07 · Comparable moments"
-            title="How approaches can differ"
-            description="A comparison should only be shown when the tasks and evidence are genuinely comparable."
-          />
-
-          <EmptyState
-            title="No approved comparison available"
-            description="Cubix will display a before-and-after evidence comparison only when valid, comparable observations are available for the same skill. No improvement percentage will be invented."
-          />
-        </section>
-
-        {/* Next opportunities */}
-        <section className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="08 · What to explore next"
-            title="New opportunities for curiosity"
-            description="Suggested activities create opportunities to explore thinking behaviours. They are not corrective exercises or diagnoses."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-                Suggested opportunity
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] text-[#DCE6FF]">
+                A year of curiosity
               </span>
-              <h3 className="text-base font-extrabold mt-2">
-                The Mystery of the Missing Clue
-              </h3>
-              <p className="text-xs text-[#687589] mt-2 leading-relaxed">
-                Explore a challenge in which the child must decide what
-                information is still needed before choosing an explanation.
-              </p>
-              <p className="text-[10px] text-[#687589] mt-3">
-                Opportunity: A2 · Spotting missing information
-              </p>
-              <p className="text-[10px] text-[#8792A1] mt-2">
-                Demonstration suggestion. Connect to an approved mission
-                catalogue before production.
-              </p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-[#DCE2E7] p-5">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#5267E8]">
-                Suggested opportunity
-              </span>
-              <h3 className="text-base font-extrabold mt-2">
-                Two Explanations, One Clue
-              </h3>
-              <p className="text-xs text-[#687589] mt-2 leading-relaxed">
-                Explore how one additional observation can help distinguish
-                between two possible explanations.
-              </p>
-              <p className="text-[10px] text-[#687589] mt-3">
-                Opportunity: B2 · Using evidence
-              </p>
-              <p className="text-[10px] text-[#8792A1] mt-2">
-                Demonstration suggestion. Connect to an approved mission
-                catalogue before production.
-              </p>
-            </div>
-          </div>
-        </section>
+            <h1 className="mt-5 max-w-3xl text-3xl font-black leading-tight tracking-tight sm:text-5xl">
+              {activeChild?.name
+                ? `${activeChild.name}’s thinking journey`
+                : 'Your child’s thinking journey'}
+            </h1>
 
-        {/* Family connection */}
-        <section id="parent-section-family" className="scroll-mt-28">
-          <SectionHeading
-            eyebrow="09 · Family connection"
-            title="Keep curiosity alive at home"
-            description="Conversation prompts, not another test. There is no need to score or submit the child's answers."
-          />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              {
-                skill: 'A1 · Asking good questions',
-                question: 'What else would you like to know before solving this?',
-                description: 'Encourages useful questions.',
-              },
-              {
-                skill: 'A2 · Missing information',
-                question: 'What information are we still missing?',
-                description: 'Encourages attention to unknowns.',
-              },
-              {
-                skill: 'B2 · Using evidence',
-                question: 'Which clue helped you decide?',
-                description: 'Connects conclusions to evidence.',
-              },
-              {
-                skill: 'C2 · Updating on evidence',
-                question: 'Would you change your mind if we found something new?',
-                description: 'Encourages proportionate reconsideration.',
-              },
-            ].map((prompt) => (
-              <div
-                key={prompt.skill}
-                className="bg-white rounded-2xl border border-[#DCE2E7] p-5"
-              >
-                <p className="text-[10px] font-black uppercase tracking-widest text-[#087F80]">
-                  {prompt.skill}
-                </p>
-                <h3 className="text-base font-bold mt-3 leading-relaxed">
-                  “{prompt.question}”
-                </h3>
-                <p className="text-xs text-[#687589] mt-2">
-                  {prompt.description}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-5">
-            <MilestoneCard observations={observations} />
-          </div>
-        </section>
-
-        {/* Methodology */}
-        <section className="scroll-mt-28">
-          <div className="bg-[#142033] text-white rounded-3xl p-6 sm:p-8">
-            <p className="text-[10px] font-black uppercase tracking-widest text-[#8FD2C4]">
-              10 · Understanding this report
-            </p>
-            <h2 className="text-xl sm:text-2xl font-extrabold mt-2">
-              Evidence before interpretation.
-            </h2>
-            <p className="text-sm text-[#D0D8E1] mt-3 leading-relaxed max-w-3xl">
-              CubitX reports observable behaviours within its activities.
-              These observations are not intelligence scores, diagnoses or
-              permanent labels. A single activity cannot establish a stable
-              pattern.
+            <p className="mt-4 max-w-2xl text-sm leading-6 text-[#D6DDF5]">
+              More than completed activities. Discover the questions,
+              reasoning and meaningful moments that make learning special.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
+            <nav
+              aria-label="Parent insights sections"
+              className="mt-7 flex gap-2 overflow-x-auto pb-1"
+            >
               {[
-                {
-                  title: 'Missing evidence is not zero',
-                  body: 'A skill without sufficient observations is shown as insufficient evidence, not poor performance.',
-                },
-                {
-                  title: 'Participation is not improvement',
-                  body: 'More completed activities or recorded events do not automatically establish cognitive development.',
-                },
-                {
-                  title: 'Contradictory evidence matters',
-                  body: 'Conflicting observations must remain visible rather than being silently discarded.',
-                },
-                {
-                  title: 'Source transparency',
-                  body: 'Platform observations, parent-shared information and system interpretations are kept distinct.',
-                },
-              ].map((item) => (
-                <div
-                  key={item.title}
-                  className="rounded-xl bg-white/5 border border-white/10 p-4"
+                ['activity', 'Activity'],
+                ['profile', 'Thinking profile'],
+                ['landscape', 'Evidence landscape'],
+                ['timeline', 'Growth journey'],
+                ['family', 'Family discoveries'],
+              ].map(([id, label]) => (
+                <a
+                  key={id}
+                  href={`#${id}`}
+                  className="shrink-0 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-[10px] font-bold text-white transition hover:bg-white/20"
                 >
-                  <h3 className="text-sm font-bold">{item.title}</h3>
-                  <p className="text-xs text-[#C4CED9] mt-2 leading-relaxed">
-                    {item.body}
+                  {label}
+                </a>
+              ))}
+            </nav>
+          </div>
+        </section>
+
+        {/* 01: LEARNING ACTIVITY */}
+        <section id="activity" className="scroll-mt-24">
+          <SectionHeading
+            number="01"
+            eyebrow="Participation"
+            title="Learning activity"
+            description="A snapshot of the learning activity recorded on this device. These are participation measures, not cognitive scores."
+          />
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[
+              {
+                label: 'Missions completed',
+                value: activity.completedMissionCount,
+                description: 'Unique completed activities',
+                color: '#3978F6',
+                icon: '✦',
+              },
+              {
+                label: 'Active days',
+                value: activity.activeDays,
+                description: 'Days with recorded activity',
+                color: '#8455E8',
+                icon: '◷',
+              },
+              {
+                label: 'Days completed',
+                value: activity.completedDays,
+                description: 'Completed learning days',
+                color: '#0C9B78',
+                icon: '✓',
+              },
+              {
+                label: 'Responses saved',
+                value: activity.responseCount,
+                description: 'Answers saved on this device',
+                color: '#F47762',
+                icon: '✎',
+              },
+            ].map((metric) => (
+              <article
+                key={metric.label}
+                className="relative overflow-hidden rounded-2xl border border-[#E5E9F2] bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg sm:p-5"
+              >
+                <div
+                  className="absolute left-0 top-0 h-1 w-full"
+                  style={{ backgroundColor: metric.color }}
+                />
+
+                <div
+                  className="flex h-9 w-9 items-center justify-center rounded-xl text-sm font-black"
+                  style={{
+                    color: metric.color,
+                    backgroundColor: `${metric.color}15`,
+                  }}
+                >
+                  {metric.icon}
+                </div>
+
+                <p className="mt-4 text-3xl font-black tabular-nums text-[#172554]">
+                  {metric.value}
+                </p>
+
+                <h3 className="mt-1 text-xs font-extrabold text-[#34415D]">
+                  {metric.label}
+                </h3>
+
+                <p className="mt-1 text-[10px] leading-4 text-[#8993A6]">
+                  {metric.description}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <p className="mt-3 text-[10px] text-[#8792A1]">
+            Activity data currently comes from this browser’s saved CubitX
+            progress. It is not yet a cloud-synchronised annual record.
+          </p>
+        </section>
+
+        {/* 02: THINKING PROFILE */}
+        <section id="profile" className="scroll-mt-24">
+          <SectionHeading
+            number="02"
+            eyebrow="The thinking profile"
+            title="How does your child think?"
+            description="Eight areas of thinking that may become visible through meaningful activity and reviewed observations."
+          />
+
+          <div className="overflow-hidden rounded-[28px] border border-[#DFE5F2] bg-gradient-to-br from-white via-[#F4F6FF] to-[#E9EEFF] p-4 shadow-sm sm:p-7">
+            <div className="grid items-center gap-5 lg:grid-cols-[minmax(0,1.3fr)_minmax(220px,0.7fr)]">
+              <div className="rounded-2xl border border-white bg-white/80 p-2 shadow-sm sm:p-4">
+                <ThinkingSpider />
+              </div>
+
+              <div className="space-y-3">
+                <div className="rounded-2xl bg-gradient-to-br from-[#283C83] to-[#6651BD] p-5 text-white shadow-lg">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#D5D9FF]">
+                    Evidence status
+                  </p>
+
+                  <p className="mt-2 text-xl font-black">
+                    Awaiting observations
+                  </p>
+
+                  <p className="mt-2 text-xs leading-5 text-[#E0E5FF]">
+                    The thinking profile will develop as relevant
+                    observations are captured and reviewed.
                   </p>
                 </div>
-              ))}
-            </div>
 
-            <div className="mt-6 pt-5 border-t border-white/15 flex flex-wrap justify-between gap-3 text-[10px] text-[#AAB7C5]">
-              <span>Assessment authority: Master Framework V1.2</span>
-              <span>Framework version: V1.2</span>
+                <div className="rounded-2xl border border-[#DFE5F2] bg-white p-4">
+                  <p className="text-xs font-extrabold text-[#34415D]">
+                    What this map represents
+                  </p>
+
+                  <ul className="mt-3 space-y-2 text-[11px] leading-5 text-[#718096]">
+                    <li>• Eight distinct areas of thinking.</li>
+                    <li>• Evidence linked to actual learning activities.</li>
+                    <li>• No arbitrary scores or ability rankings.</li>
+                    <li>• Patterns interpreted only after review.</li>
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-[#D9E1FF] bg-[#EEF1FF] p-4">
+                  <p className="text-xs font-bold text-[#5265B8]">
+                    Remember
+                  </p>
+
+                  <p className="mt-1 text-[11px] leading-5 text-[#66749B]">
+                    An unobserved skill is not an absent skill. The map
+                    reflects available evidence, not the limits of a child.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <footer className="border-t border-[#DCE2E7] pt-5 pb-8 flex flex-col sm:flex-row justify-between gap-2 text-[10px] text-[#8792A1]">
-          <span>CubitX · Parent Insights</span>
-          <span>
-            {data.isDemo
-              ? 'Demonstration data — not a real child report'
-              : `Last updated: ${data.lastUpdated}`}
-          </span>
+        {/* 03: EVIDENCE LANDSCAPE */}
+        <section id="landscape" className="scroll-mt-24">
+          <SectionHeading
+            number="03"
+            eyebrow="The evidence landscape"
+            title="Where does thinking appear?"
+            description="The same skill may appear in different situations. This matrix is designed to reveal the breadth of evidence rather than create another score."
+          />
+
+          <EvidenceMatrix />
+        </section>
+
+        {/* 04: GROWTH TIMELINE */}
+        <section id="timeline" className="scroll-mt-24">
+          <SectionHeading
+            number="04"
+            eyebrow="The annual journey"
+            title="Growth through meaningful moments"
+            description="A chronological view of how reviewed observations can accumulate across activities, situations and time."
+          />
+
+          <EvidenceTimeline />
+        </section>
+
+        {/* 05: FAMILY DISCOVERY */}
+        <section id="family" className="scroll-mt-24">
+          <SectionHeading
+            number="05"
+            eyebrow="Beyond the screen"
+            title="Thinking continues at home"
+            description="Simple conversations can encourage children to question, explain, explore and reconsider. There is no test and no right answer."
+          />
+
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              {
+                title: 'Ask before deciding',
+                prompt: '“What else would we need to know before choosing?”',
+                color: '#3978F6',
+                background: '#EAF1FF',
+                icon: '?',
+              },
+              {
+                title: 'Look for the clue',
+                prompt: '“Which detail helped you reach that idea?”',
+                color: '#8455E8',
+                background: '#F0EAFE',
+                icon: '⌕',
+              },
+              {
+                title: 'Consider another view',
+                prompt: '“What new information might change your mind?”',
+                color: '#0C9B78',
+                background: '#E5F6F0',
+                icon: '↻',
+              },
+            ].map((card) => (
+              <article
+                key={card.title}
+                className="rounded-2xl border border-[#E5E9F2] bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+              >
+                <span
+                  className="flex h-11 w-11 items-center justify-center rounded-2xl text-lg font-black"
+                  style={{
+                    color: card.color,
+                    backgroundColor: card.background,
+                  }}
+                >
+                  {card.icon}
+                </span>
+
+                <h3 className="mt-4 text-sm font-extrabold text-[#172554]">
+                  {card.title}
+                </h3>
+
+                <p className="mt-3 text-sm leading-6 text-[#65728A]">
+                  {card.prompt}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          {/* FAMILY DISCOVERY LOG */}
+          <div className="mt-4 rounded-3xl border border-[#E1E6F0] bg-white p-5 shadow-sm sm:p-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF0E9] text-xl text-[#F47762]">
+                ✎
+              </div>
+
+              <div>
+                <h3 className="text-base font-black text-[#172554]">
+                  Family Discovery Log
+                </h3>
+
+                <p className="text-[10px] text-[#8993A6]">
+                  Your observations, in your own words
+                </p>
+              </div>
+            </div>
+
+            <p className="mt-3 text-xs leading-5 text-[#718096]">
+              Optional: record a moment you noticed. Family notes remain
+              separate from platform-reviewed observations.
+            </p>
+
+            <form onSubmit={saveFamilyNote} className="mt-4 space-y-3">
+              <label
+                htmlFor="family-note"
+                className="block text-xs font-bold text-[#526078]"
+              >
+                What happened?
+              </label>
+
+              <textarea
+                id="family-note"
+                value={noteText}
+                onChange={(event) => setNoteText(event.target.value)}
+                rows={3}
+                maxLength={1200}
+                placeholder="For example: During dinner, my child asked how we could check whether..."
+                className="w-full resize-y rounded-2xl border border-[#DFE5EF] bg-[#FAFBFE] p-4 text-sm outline-none transition focus:border-[#5265B8] focus:ring-4 focus:ring-[#5265B8]/10"
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="max-w-xl text-[10px] leading-4 text-[#8993A6]">
+                  Notes are saved only in this browser on this device.
+                  They are not uploaded, synced or analysed by AI.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={!noteText.trim() || !activeChild}
+                  className="rounded-xl bg-gradient-to-r from-[#283C83] to-[#6651BD] px-5 py-3 text-xs font-bold text-white shadow-md transition hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Save family note
+                </button>
+              </div>
+
+              {noteMessage && (
+                <p
+                  role="status"
+                  className="text-xs font-semibold text-[#0C9B78]"
+                >
+                  {noteMessage}
+                </p>
+              )}
+            </form>
+
+            {familyNotes.length > 0 && (
+              <div className="mt-5 space-y-3 border-t border-[#E9ECF3] pt-4">
+                <h4 className="text-xs font-bold text-[#34415D]">
+                  Your saved notes
+                </h4>
+
+                {familyNotes.map((note) => (
+                  <article
+                    key={note.id}
+                    className="rounded-xl bg-[#F5F6FA] p-3"
+                  >
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-[#34415D]">
+                      {note.text}
+                    </p>
+
+                    <p className="mt-2 text-[10px] text-[#8993A6]">
+                      {new Date(note.createdAt).toLocaleString('en-IN')}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* 06: RECENT ACTIVITY */}
+        <section id="discoveries" className="scroll-mt-24">
+          <SectionHeading
+            number="06"
+            eyebrow="Activity history"
+            title="Recent discoveries"
+            description="A record of completed CubitX activities saved in this browser. This is activity history, not a reviewed evidence timeline."
+          />
+
+          <div className="rounded-2xl border border-[#E2E7F0] bg-white p-5 shadow-sm">
+            {activity.discoveries.length === 0 ? (
+              <p className="text-sm text-[#718096]">
+                No completed activities have been recorded on this device yet.
+              </p>
+            ) : (
+              <ol className="space-y-4">
+                {activity.discoveries.slice(0, 20).map((item, index) => (
+                  <li key={item.id} className="flex gap-3">
+                    <span
+                      className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl text-[10px] font-black text-white"
+                      style={{
+                        backgroundColor:
+                          index % 3 === 0
+                            ? COLORS.blue
+                            : index % 3 === 1
+                              ? COLORS.violet
+                              : COLORS.green,
+                      }}
+                    >
+                      {index + 1}
+                    </span>
+
+                    <div>
+                      <p className="text-sm font-bold text-[#34415D]">
+                        {item.title}
+                      </p>
+
+                      <p className="mt-1 text-[10px] text-[#8993A6]">
+                        {formatDate(item.date)}
+                      </p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            )}
+
+            {activity.discoveries.length > 20 && (
+              <p className="mt-4 text-[10px] text-[#8993A6]">
+                Showing the latest 20 of {activity.discoveries.length}
+                {' '}completed activity records.
+              </p>
+            )}
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="rounded-2xl bg-[#172554] px-5 py-5 text-[10px] leading-5 text-[#C4CEE7]">
+          <p className="font-bold text-white">
+            About this report
+          </p>
+
+          <p className="mt-1">
+            Activity counts describe participation, not cognitive development.
+            Thinking interpretations will appear only when reviewed
+            observations are connected. Activity and family notes on this
+            version are stored locally in this browser and are not a
+            cloud-backed annual record.
+          </p>
         </footer>
       </main>
-
-      {selectedObservation && (
-        <ReplayModal
-          observation={selectedObservation}
-          onClose={() => setSelectedObservation(null)}
-        />
-      )}
     </div>
   );
 }
