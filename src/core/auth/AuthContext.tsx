@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -20,7 +19,7 @@ interface ParentProfile {
   consent_given: boolean;
 }
 
-interface Child {
+export interface Child {
   id: string;
   name: string;
   class_level: number;
@@ -69,6 +68,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const FAMILY_NOTE_PREFIX = 'cubitx-family-discovery:';
+
 const MOCK_SESSION = {
   access_token: 'dev',
   refresh_token: 'dev',
@@ -101,6 +102,24 @@ const MOCK_CHILD_LIST: Child[] = MOCK_CHILDREN.map((child) => ({
   avatar: child.avatar,
   school_id: null,
 }));
+
+function clearSharedDeviceStorage(): void {
+  try {
+    window.localStorage.removeItem('cubitx-active-child-id');
+    window.localStorage.removeItem('cubitx-dev-day');
+
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+      if (key && key.startsWith(FAMILY_NOTE_PREFIX)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+  } catch {
+    // Authentication sign-out must continue if storage is unavailable.
+  }
+}
 
 export function AuthProvider({
   children: reactChildren,
@@ -218,6 +237,7 @@ export function AuthProvider({
         const { data: childRows, error: childError } = await supabase
           .from('children')
           .select('id, name, class_level, avatar, school_id')
+          .eq('parent_id', session.user.id)
           .order('created_at', { ascending: true });
 
         if (childError) {
@@ -252,12 +272,6 @@ export function AuthProvider({
   }): Promise<{ error: string | null }> => {
     try {
       const redirectTo = `${window.location.origin}/onboard`;
-
-      console.info('[CubitX Auth] Starting OAuth:', {
-        provider,
-        redirectTo,
-        origin: window.location.origin,
-      });
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
@@ -378,13 +392,7 @@ export function AuthProvider({
   const signOut = async (): Promise<void> => {
     useApp.getState().reset();
     useApp.persist.clearStorage();
-
-    try {
-      window.localStorage.removeItem('cubitx-active-child-id');
-      window.localStorage.removeItem('cubitx-dev-day');
-    } catch {
-      // Authentication sign-out must continue if storage is unavailable.
-    }
+    clearSharedDeviceStorage();
 
     if (dev) {
       disableDevMode();
@@ -404,11 +412,12 @@ export function AuthProvider({
   /* ─── Refresh Children ───────────────────────────── */
 
   const refreshChildren = async (): Promise<void> => {
-    if (dev) return;
+    if (dev || !session?.user) return;
 
     const { data, error } = await supabase
       .from('children')
       .select('id, name, class_level, avatar, school_id')
+      .eq('parent_id', session.user.id)
       .order('created_at', { ascending: true });
 
     if (error) {

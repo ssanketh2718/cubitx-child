@@ -29,13 +29,28 @@ export interface SavedResponse {
   submittedAt: string;
 }
 
-type CubitXUser = User & {
+export type CubitXUser = User & {
+  childId?: string;
   supabaseId?: string;
   registeredAt: string;
   trialEndsAt: string;
 };
 
+export interface ChildLocalData {
+  childId: string;
+  user: CubitXUser;
+  days: Record<number, DayProgress>;
+  events: MissionEvent[];
+  sessions: Session[];
+  responses: Record<string, SavedResponse>;
+}
+
 interface AppState {
+  parentSupabaseId: string | null;
+  activeChildId: string | null;
+  childBuckets: Record<string, ChildLocalData>;
+
+  // Active child mirrored slices (preserved for backwards compatibility)
   user: CubitXUser | null;
   days: Record<number, DayProgress>;
   events: MissionEvent[];
@@ -44,6 +59,15 @@ interface AppState {
 
   devDayOverride: number | null;
   setDevDayOverride: (day: number | null) => void;
+
+  /** Preferred: isolate local progress per immutable child ID */
+  setActiveChildProfile: (
+    child: { id: string; name: string; grade: number },
+    trialDays?: number
+  ) => void;
+  getChildBucket: (childId: string) => ChildLocalData | null;
+
+  /** Legacy guest/onboarding helper (uses a transient 'guest-local' bucket) */
   setUser: (user: { name: string; grade: number }, trialDays: number) => void;
   setSupabaseId: (id: string) => void;
 
@@ -70,14 +94,21 @@ interface AppState {
 
   isTrialActive: () => boolean;
   getTrialDaysLeft: () => number | null;
+  /** @deprecated V1.2 prohibits streak pressure. Retained only for legacy callers. */
   getStreak: () => number;
   addEvent: (event: MissionEvent) => void;
   reset: () => void;
 }
 
+const GUEST_BUCKET_ID = 'guest-local';
+const MAX_DAYS = 30;
+const DEV_DAY_KEY = 'cubitx-dev-day';
+
 const todayKey = (): string => {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+    d.getDate()
+  ).padStart(2, '0')}`;
 };
 
 const daysBetweenMidnights = (
@@ -94,9 +125,6 @@ const daysBetweenMidnights = (
     (target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)
   );
 };
-
-const MAX_DAYS = 30;
-const DEV_DAY_KEY = 'cubitx-dev-day';
 
 const readDevDay = (): number | null => {
   if (typeof window === 'undefined') return null;
@@ -118,9 +146,51 @@ const writeDevDay = (day: number | null): void => {
   }
 };
 
+function createFreshBucket(
+  childId: string,
+  name: string,
+  grade: number,
+  trialDays: number,
+  parentSupabaseId: string | null
+): ChildLocalData {
+  const now = new Date();
+  const trialEnds = new Date();
+  trialEnds.setDate(trialEnds.getDate() + trialDays);
+
+  const tier: Tier = sdkTierForClass(grade);
+
+  return {
+    childId,
+    user: {
+      childId,
+      name: name.trim(),
+      grade,
+      tier,
+      createdAt: now.toISOString(),
+      registeredAt: now.toISOString(),
+      trialEndsAt: trialEnds.toISOString(),
+      supabaseId: parentSupabaseId ?? undefined,
+    },
+    days: {
+      1: {
+        unlockedAt: now.toISOString(),
+        completedAt: null,
+        itemsCompleted: [],
+      },
+    },
+    events: [],
+    sessions: [],
+    responses: {},
+  };
+}
+
 export const useApp = create<AppState>()(
   persist(
     (set, get) => ({
+      parentSupabaseId: null,
+      activeChildId: null,
+      childBuckets: {},
+
       user: null,
       days: {},
       events: [],
@@ -134,59 +204,104 @@ export const useApp = create<AppState>()(
       },
 
       setSupabaseId: (id) => {
-        const user = get().user;
-        if (user) {
-          set({ user: { ...user, supabaseId: id } });
+        set((state) => ({
+          parentSupabaseId: id,
+          user: state.user ? { ...state.user, supabaseId: id } : null,
+        }));
+      },
+
+      setActiveChildProfile: (child, trialDays = 30) => {
+        const state = get();
+        const buckets = { ...state.childBuckets };
+
+        // Persist any live state for the previously active child before switching
+        if (state.activeChildId && state.user) {
+          buckets[state.activeChildId] = {
+            childId: state.activeChildId,
+            user: state.user,
+            days: state.days,
+            events: state.events,
+            sessions: state.sessions,
+            responses: state.responses,
+          };
         }
+
+        const existingBucket = buckets[child.id];
+        const nextTier: Tier = sdkTierForClass(child.grade);
+
+        const targetBucket: ChildLocalData = existingBucket
+          ? {
+              ...existingBucket,
+              user: {
+                ...existingBucket.user,
+                childId: child.id,
+                name: child.name.trim(),
+                grade: child.grade,
+                tier: nextTier,
+                supabaseId:
+                  state.parentSupabaseId ?? existingBucket.user.supabaseId,
+              },
+            }
+          : createFreshBucket(
+              child.id,
+              child.name,
+              child.grade,
+              trialDays,
+              state.parentSupabaseId
+            );
+
+        buckets[child.id] = targetBucket;
+
+        set({
+          activeChildId: child.id,
+          childBuckets: buckets,
+          user: targetBucket.user,
+          days: targetBucket.days,
+          events: targetBucket.events,
+          sessions: targetBucket.sessions,
+          responses: targetBucket.responses,
+        });
+      },
+
+      getChildBucket: (childId) => {
+        const state = get();
+        if (state.activeChildId === childId && state.user) {
+          return {
+            childId,
+            user: state.user,
+            days: state.days,
+            events: state.events,
+            sessions: state.sessions,
+            responses: state.responses,
+          };
+        }
+        return state.childBuckets[childId] ?? null;
       },
 
       setUser: (input, trialDays) => {
-        const existing = get().user;
+        const state = get();
+        const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
 
         if (
-          existing &&
-          existing.name === input.name.trim() &&
-          existing.grade === input.grade
+          state.user &&
+          state.activeChildId === bucketId &&
+          state.user.name === input.name.trim() &&
+          state.user.grade === input.grade
         ) {
           return;
         }
 
-        const now = new Date();
-        const trialEnds = new Date();
-        trialEnds.setDate(trialEnds.getDate() + trialDays);
-
-        const tier: Tier = sdkTierForClass(input.grade);
-
-        set({
-          user: {
-            name: input.name.trim(),
-            grade: input.grade,
-            tier,
-            createdAt: now.toISOString(),
-            registeredAt: now.toISOString(),
-            trialEndsAt: trialEnds.toISOString(),
-            supabaseId: existing?.supabaseId,
-          },
-          days:
-            Object.keys(get().days).length > 0
-              ? get().days
-              : {
-                  1: {
-                    unlockedAt: now.toISOString(),
-                    completedAt: null,
-                    itemsCompleted: [],
-                  },
-                },
-          events: [],
-          sessions: [],
-          responses: {},
-        });
+        get().setActiveChildProfile(
+          { id: bucketId, name: input.name, grade: input.grade },
+          trialDays
+        );
       },
 
       completeItem: async (itemId, requiredCount) => {
         const state = get();
         if (!state.user) return;
 
+        const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
         const activeDay = state.getActiveDay();
 
         const existing = state.days[activeDay] || {
@@ -213,7 +328,10 @@ export const useApp = create<AppState>()(
         };
 
         const today = todayKey();
-        const sessions = [...state.sessions];
+        const sessions = state.sessions.map((s) => ({
+          ...s,
+          missionsCompleted: [...s.missionsCompleted],
+        }));
 
         let todaySession = sessions.find((s) => s.date === today);
 
@@ -230,7 +348,23 @@ export const useApp = create<AppState>()(
           todaySession.missionsCompleted.push(itemId);
         }
 
-        set({ days: updatedDays, sessions });
+        const updatedBucket: ChildLocalData = {
+          childId: bucketId,
+          user: state.user,
+          days: updatedDays,
+          events: state.events,
+          sessions,
+          responses: state.responses,
+        };
+
+        set({
+          days: updatedDays,
+          sessions,
+          childBuckets: {
+            ...state.childBuckets,
+            [bucketId]: updatedBucket,
+          },
+        });
       },
 
       completeMission: (missionId, requiredCount = 1) => {
@@ -244,19 +378,38 @@ export const useApp = create<AppState>()(
       },
 
       saveResponse: async (itemKey, data) => {
-        // Keep responses in local app state while server-side scoring is
-        // intentionally disabled. Do not create cloud attempts that cannot
-        // be scored, and do not imply that the answer was saved remotely.
-        set((s) => ({
-          responses: {
-            ...s.responses,
+        // Keep responses in local per-child app state while server-side
+        // scoring is intentionally disabled. Do not imply cloud sync.
+        set((state) => {
+          const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
+          const nextResponses = {
+            ...state.responses,
             [itemKey]: {
               ...data,
               itemKey,
               submittedAt: new Date().toISOString(),
             },
-          },
-        }));
+          };
+
+          const nextBuckets = state.user
+            ? {
+                ...state.childBuckets,
+                [bucketId]: {
+                  childId: bucketId,
+                  user: state.user,
+                  days: state.days,
+                  events: state.events,
+                  sessions: state.sessions,
+                  responses: nextResponses,
+                },
+              }
+            : state.childBuckets;
+
+          return {
+            responses: nextResponses,
+            childBuckets: nextBuckets,
+          };
+        });
       },
 
       getResponse: (itemKey) => get().responses[itemKey] ?? null,
@@ -324,7 +477,10 @@ export const useApp = create<AppState>()(
         const d = new Date();
 
         while (true) {
-          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+            2,
+            '0'
+          )}-${String(d.getDate()).padStart(2, '0')}`;
 
           if (dates.has(k)) {
             streak++;
@@ -338,12 +494,35 @@ export const useApp = create<AppState>()(
       },
 
       addEvent: (event) =>
-        set((s) => ({
-          events: [...s.events, event].slice(-5000),
-        })),
+        set((state) => {
+          const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
+          const nextEvents = [...state.events, event].slice(-5000);
+
+          const nextBuckets = state.user
+            ? {
+                ...state.childBuckets,
+                [bucketId]: {
+                  childId: bucketId,
+                  user: state.user,
+                  days: state.days,
+                  events: nextEvents,
+                  sessions: state.sessions,
+                  responses: state.responses,
+                },
+              }
+            : state.childBuckets;
+
+          return {
+            events: nextEvents,
+            childBuckets: nextBuckets,
+          };
+        }),
 
       reset: () =>
         set({
+          parentSupabaseId: null,
+          activeChildId: null,
+          childBuckets: {},
           user: null,
           days: {},
           events: [],
@@ -355,6 +534,8 @@ export const useApp = create<AppState>()(
     {
       name: 'cubitx-v1',
       partialize: (state) => ({
+        activeChildId: state.activeChildId,
+        childBuckets: state.childBuckets,
         user: state.user,
         days: state.days,
         events: state.events,

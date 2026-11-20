@@ -1,6 +1,6 @@
 // src/core/compliance/consent.ts
 
-export const CONSENT_VERSION = '1.0';
+export const CONSENT_VERSION = '1.1';
 
 export interface ConsentRecord {
   parentId: string;
@@ -28,52 +28,52 @@ export const CONSENT_TEXT = {
     {
       title: 'What we collect about your child',
       items: [
-        'First name',
+        'First name (stored separately from mission records using a pseudonymous ID)',
         'Class (5–10)',
-        'Their answers to thinking missions — including text, choices, and how long they spent on each',
+        'Their mission choices, optional short written answers, and approved learning events needed to generate parent insights',
       ],
     },
     {
       title: 'What we do NOT collect',
       items: [
-        'Date of birth',
-        'Photographs',
-        'Location',
-        'Contact list',
-        'Any information beyond what is needed to show you how your child is progressing',
+        'Date of birth or government IDs',
+        'Photographs, audio, or video recordings',
+        'Keystroke patterns, hover tracking, or behavioural advertising profiles',
+        'Precise location or contact lists',
+        'Public cognitive rankings or comparisons against other children',
       ],
     },
     {
       title: 'Why we collect it',
-      body: 'To show you how your child thinks — their reasoning, curiosity, and habits — so you can support them at home.',
+      body: 'To show you observable examples of how your child investigates, reasons, and revises ideas — so you can support them at home.',
     },
     {
       title: 'Who sees it',
-      body: 'Only you. No other parent, no advertiser, no third party. CubitX staff cannot read your child\'s answers.',
+      body: 'You, and authorised CubitX educators or trained reviewers who inspect a sample of pseudonymous responses to keep feedback fair and accurate. No advertisers, no other parents, and no unauthorised third parties.',
     },
     {
       title: 'How long we keep it',
-      body: 'While your account is active. Auto-deleted 12 months after your last login, unless you delete it earlier.',
+      body: 'While your account is active. Auto-deleted 12 months after your last login, unless you request deletion earlier.',
     },
     {
       title: 'Your rights',
       items: [
-        'Access — download everything we hold, anytime',
-        'Correct — fix any mistakes',
-        'Delete — remove your child\'s data permanently',
-        'Withdraw consent — stop all processing at any time',
+        'Access — view and export the records we hold for your child',
+        'Correct — fix any mistakes in your family or child profile',
+        'Delete — permanently remove your child’s data',
+        'Withdraw consent — stop processing at any time',
       ],
     },
     {
-      title: 'Data Protection Officer',
+      title: 'Data Protection Contact',
       body: 'hello@cubitx.in',
     },
   ],
   confirmation: [
     'I am the parent or legal guardian of this child.',
     'I am 18 years or older.',
-    'I have read and understood what CubitX collects and why.',
-    'I give my voluntary consent under Section 9(1) of the DPDP Act, 2023.',
+    'I have read and understood what CubitX collects, how it is reviewed, and why.',
+    'I give my voluntary parental consent for my child to use CubitX.',
   ],
 };
 
@@ -103,10 +103,13 @@ export async function hashConsent(input: {
     .join('');
 }
 
-/** Best-effort client fingerprint for the audit log. Not used for tracking. */
+/** Best-effort client metadata for the audit log. Not used for tracking. */
 export function getClientMeta(): { ip: string | null; userAgent: string } {
   return {
-    ip: null, // Filled in server-side later via Supabase Edge Function
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 200) : 'unknown',
+    ip: null, // Filled in server-side via Supabase Edge Function
+    userAgent:
+      typeof navigator !== 'undefined'
+        ? navigator.userAgent.slice(0, 200)
+        : 'unknown',
   };
 }

@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 
 import CrackTheMachine from '../../features/missions/components/CrackTheMachine';
-import DayOneMission from '../../features/missions/components/DayOneMission';
+import DayOneMission from '../../missions/components/DayOneMission';
 
 interface RouteParams {
   tier?: string;

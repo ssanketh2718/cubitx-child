@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useApp } from '../store';
 
-interface Child {
+export interface Child {
   id: string;
   name: string;
   class_level: number;
@@ -40,37 +40,54 @@ export function ChildProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Keep activeChild metadata fresh if name/class/avatar updated
+    if (activeChild) {
+      const updated = kids.find((k) => k.id === activeChild.id);
+      if (
+        updated &&
+        (updated.name !== activeChild.name ||
+          updated.class_level !== activeChild.class_level ||
+          updated.avatar !== activeChild.avatar)
+      ) {
+        setActiveChildState(updated);
+      }
+      return;
+    }
+
     // If nothing active, try to restore from localStorage
-    if (!activeChild) {
-      const savedId = localStorage.getItem(STORAGE_KEY);
-      if (savedId) {
-        const found = kids.find((k) => k.id === savedId);
-        if (found) {
-          setActiveChildState(found);
-          return;
-        }
+    const savedId = localStorage.getItem(STORAGE_KEY);
+    if (savedId) {
+      const found = kids.find((k) => k.id === savedId);
+      if (found) {
+        setActiveChildState(found);
+        return;
       }
-      // Auto-select if there's only one child
-      if (kids.length === 1) {
-        setActiveChildState(kids[0]);
-        localStorage.setItem(STORAGE_KEY, kids[0].id);
-      }
+    }
+
+    // Auto-select if there's only one child
+    if (kids.length === 1) {
+      setActiveChildState(kids[0]);
+      localStorage.setItem(STORAGE_KEY, kids[0].id);
     }
   }, [kids, activeChild]);
 
-  // Hydrate the Zustand store from the active child
+  // Hydrate the Zustand store using immutable child ID isolation
   useEffect(() => {
     if (!activeChild) return;
 
-    const current = useApp.getState().user;
-    const needsHydration =
-      !current ||
-      current.name !== activeChild.name ||
-      current.grade !== activeChild.class_level;
+    const state = useApp.getState();
+    const needsSwitch =
+      state.activeChildId !== activeChild.id ||
+      state.user?.name !== activeChild.name ||
+      state.user?.grade !== activeChild.class_level;
 
-    if (needsHydration) {
-      useApp.getState().setUser(
-        { name: activeChild.name, grade: activeChild.class_level },
+    if (needsSwitch) {
+      state.setActiveChildProfile(
+        {
+          id: activeChild.id,
+          name: activeChild.name,
+          grade: activeChild.class_level,
+        },
         30
       );
     }
@@ -87,7 +104,9 @@ export function ChildProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <ChildContext.Provider value={{ activeChild, setActiveChild, clearActiveChild }}>
+    <ChildContext.Provider
+      value={{ activeChild, setActiveChild, clearActiveChild }}
+    >
       {children}
     </ChildContext.Provider>
   );
