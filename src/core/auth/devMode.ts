@@ -1,4 +1,3 @@
-
 const MODE_KEY = 'cubitx-dev-mode';
 const DAY_KEY = 'cubitx-dev-day';
 
@@ -88,11 +87,13 @@ export const MOCK_CHILDREN = [
     name: 'Test Kid',
     class_level: 6,
     avatar: '🦊',
+    board: 'CBSE' as const,
   },
   {
     id: 'dev-child-2',
     name: 'Test Kid 2',
     class_level: 9,
     avatar: '🐼',
+    board: 'Maharashtra State Board' as const,
   },
 ];

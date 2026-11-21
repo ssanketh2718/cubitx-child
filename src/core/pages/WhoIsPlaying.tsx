@@ -1,94 +1,103 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChild } from '../auth/ChildContext';
-
-const BRAND = {
-  surface: '#05091a',
-  surface2: '#0a1228',
-  blue: '#7b8dff',
-  blueBright: '#9aaaff',
-  ink: '#ffffff',
-  inkDim: 'rgba(255,255,255,0.62)',
-  inkFaint: 'rgba(255,255,255,0.38)',
-  inkGhost: 'rgba(255,255,255,0.14)',
-};
+import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
 
 export default function WhoIsPlaying() {
   const navigate = useNavigate();
   const { children: kids, signOut } = useAuth();
   const { setActiveChild, activeChild } = useChild();
 
-  const canGoBack = !!activeChild;
+  const canGoBack = Boolean(activeChild);
 
   return (
-    <div
-      className="flex min-h-screen items-center justify-center px-5 py-12"
-      style={{ background: BRAND.surface, color: BRAND.ink, fontFamily: 'Inter, system-ui, sans-serif' }}
-    >
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#F7F6F1] text-[#142033] flex items-center justify-center px-5 py-12">
+      <div className="w-full max-w-md space-y-8">
         {canGoBack && (
           <button
+            type="button"
             onClick={() => navigate(-1)}
-            className="mb-6 flex items-center gap-1.5 text-[12.5px] font-semibold transition hover:text-white"
-            style={{ color: BRAND.inkFaint }}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#586579] hover:text-[#142033] transition cursor-pointer"
           >
             ← Back
           </button>
         )}
 
-        <img src="/cubitx-logo.jpg" alt="CubitX" className="mx-auto h-9 w-auto mb-8" />
+        {/* BRAND + HEADER */}
+        <header className="text-center space-y-3">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#142033] font-display text-sm font-extrabold text-[#55E2CE] shadow-md">
+            CX
+          </div>
+          <div className="space-y-1">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-[#142033]">
+              Who’s playing?
+            </h1>
+            <p className="text-sm text-[#586579]">
+              Pick a profile to start today’s missions.
+            </p>
+          </div>
+        </header>
 
-        <h1 className="text-center text-[26px] font-semibold">Who's playing?</h1>
-        <p className="mt-2 text-center text-[13.5px]" style={{ color: BRAND.inkDim }}>
-          Pick a child to start today's thinking
-        </p>
-
-        <div className="mt-8 grid gap-3">
+        {/* CHILD PROFILE LIST */}
+        <div className="space-y-3">
           {kids.map((child) => (
             <button
               key={child.id}
+              type="button"
               onClick={() => {
+                triggerSoftConfirm(true);
                 setActiveChild(child);
                 navigate('/home');
               }}
-              className="flex items-center gap-4 rounded-2xl p-5 text-left transition-transform hover:-translate-y-0.5"
-              style={{
-                background: BRAND.surface2,
-                border: `1px solid ${BRAND.inkGhost}`,
-              }}
+              className="group w-full flex items-center gap-4 rounded-3xl border border-[#142033]/12 bg-white p-5 text-left shadow-[var(--shadow-artifact)] transition hover:-translate-y-0.5 hover:border-[#087F80] cursor-pointer"
             >
-              <span className="text-[36px] leading-none">{child.avatar}</span>
-              <div className="flex-1">
-                <div className="text-[17px] font-semibold">{child.name}</div>
-                <div className="text-[12px] mt-0.5" style={{ color: BRAND.inkDim }}>
+              <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F7F6F1] text-3xl leading-none">
+                {child.avatar}
+              </span>
+
+              <div className="flex-1 min-w-0">
+                <div className="font-display text-lg font-extrabold text-[#142033] truncate">
+                  {child.name}
+                </div>
+                <div className="mt-0.5 font-mono-tech text-xs font-semibold text-[#586579]">
                   Class {child.class_level}
+                  {child.board ? ` · ${child.board}` : ''}
                 </div>
               </div>
-              <span className="text-[18px]" style={{ color: BRAND.blueBright }}>→</span>
+
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#142033] text-sm font-bold text-[#55E2CE] transition group-hover:bg-[#087F80] group-hover:text-white">
+                →
+              </span>
             </button>
           ))}
         </div>
 
-        {kids.length < 3 && (
-          <button
-            onClick={() => navigate('/add-child')}
-            className="mt-4 w-full rounded-2xl p-4 text-[13.5px] font-semibold transition hover:bg-white/[0.04]"
-            style={{
-              border: `1px dashed ${BRAND.inkGhost}`,
-              color: BRAND.inkDim,
-            }}
-          >
-            ➕ Add another child
-          </button>
-        )}
+        {/* ADD CHILD & SIGN OUT */}
+        <div className="space-y-4 pt-2">
+          {kids.length < 3 && (
+            <button
+              type="button"
+              onClick={() => {
+                triggerDialTick(true);
+                navigate('/add-child');
+              }}
+              className="w-full rounded-3xl border border-dashed border-[#142033]/25 bg-transparent py-4 text-xs font-extrabold text-[#142033] hover:border-[#087F80] hover:text-[#087F80] transition cursor-pointer"
+            >
+              + Add another child
+            </button>
+          )}
 
-        <button
-          onClick={async () => { await signOut(); navigate('/'); }}
-          className="mt-8 block w-full text-center text-[12px]"
-          style={{ color: BRAND.inkFaint }}
-        >
-          Sign out
-        </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut();
+              navigate('/');
+            }}
+            className="block w-full text-center text-xs font-semibold text-[#586579] hover:text-[#142033] transition cursor-pointer"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </div>
   );

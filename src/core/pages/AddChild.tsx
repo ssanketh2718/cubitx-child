@@ -1,11 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
+import { useAuth, type EducationBoard } from '../auth/AuthContext';
+import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
 
-const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐬', '🦉'];
+const AVATARS = ['🦊', '🐼', '🐯', '🦁', '🐙', '🦉'];
+const BOARDS: { id: EducationBoard; label: string; sub: string }[] = [
+  { id: 'CBSE', label: 'CBSE', sub: 'NCERT syllabus' },
+  {
+    id: 'Maharashtra State Board',
+    label: 'Maharashtra State Board',
+    sub: 'Balbharati syllabus',
+  },
+];
 
 const MIN_CLASS = 5;
-const MAX_CLASS = 10; // Updated to match platform specification (Classes 5-10)
+const MAX_CLASS = 10;
 
 export default function AddChild() {
   const navigate = useNavigate();
@@ -13,30 +22,27 @@ export default function AddChild() {
 
   const [name, setName] = useState('');
   const [grade, setGrade] = useState(5);
+  const [board, setBoard] = useState<EducationBoard>('CBSE');
   const [avatar, setAvatar] = useState(AVATARS[0]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-
     const cleanedName = name.trim();
 
     if (!cleanedName) {
-      setError('Please enter your child’s first name.');
+      setError("Please enter your child's first name.");
       return;
     }
-
     if (cleanedName.length > 30) {
       setError('Please use a name with 30 characters or fewer.');
       return;
     }
-
     if (!Number.isInteger(grade) || grade < MIN_CLASS || grade > MAX_CLASS) {
       setError('Please select a class from 5 to 10.');
       return;
     }
-
     if (children.length >= 3) {
       setError('You can create up to three child profiles per parent account.');
       return;
@@ -44,25 +50,20 @@ export default function AddChild() {
 
     setSaving(true);
     setError('');
+    triggerSoftConfirm(true);
 
     try {
-      // If running in local dev mode without live Supabase insert bindings, mock a smooth redirect
       if (isDev) {
-        setTimeout(() => {
-          navigate('/home', { replace: true });
-        }, 500);
+        setTimeout(() => navigate('/home', { replace: true }), 350);
         return;
       }
 
-      const result = await addChild(cleanedName, grade, avatar, null);
-
+      const result = await addChild(cleanedName, grade, avatar, null, board);
       if (result.error) {
         setError(result.error);
         return;
       }
 
-      // The first child is selected automatically by ChildContext.
-      // With multiple children, let the parent choose who will play.
       navigate(children.length === 0 ? '/home' : '/play-who', {
         replace: true,
       });
@@ -76,38 +77,37 @@ export default function AddChild() {
   const atLimit = children.length >= 3;
 
   return (
-    <div className="min-h-screen bg-[#05091a] text-white flex items-center justify-center p-4 font-sans">
-      <div className="w-full max-w-md space-y-6 rounded-3xl border border-[#16244a] bg-[#0a1228] p-6 shadow-2xl sm:p-8">
-        <header className="text-center">
-          <h1 className="text-3xl font-extrabold">Add your child</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Create a separate learning profile for each child (Classes 5–10).
+    <div className="min-h-screen bg-[#F7F6F1] text-[#142033] flex items-center justify-center p-4 sm:p-6">
+      <div className="w-full max-w-lg space-y-7">
+        <header className="space-y-2">
+          <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-[#087F80]">
+            Family Profile Setup
+          </span>
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-[#142033]">
+            Add your child
+          </h1>
+          <p className="text-sm text-[#586579]">
+            We use class and board to load the right Thinking Sheets automatically.
           </p>
         </header>
-
-        <div className="rounded-xl border border-[#1e2e5c] bg-[#0f1a38] p-3 text-sm text-gray-300">
-          <strong className="text-white">School connection is optional.</strong>
-          <p className="mt-1">
-            Your child can start learning without joining a school.
-          </p>
-        </div>
 
         {error && (
           <p
             role="alert"
-            className="rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300"
+            className="rounded-2xl border border-[#F07868]/40 bg-[#F07868]/10 px-4 py-3 text-xs font-bold text-[#9E3324]"
           >
             {error}
           </p>
         )}
 
-        <form onSubmit={handleSave} className="space-y-5">
+        <form onSubmit={handleSave} className="space-y-6 cx-hairline-t pt-6">
+          {/* FIRST NAME */}
           <div>
             <label
               htmlFor="child-name"
-              className="mb-2 block text-sm font-semibold text-gray-300"
+              className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-[#586579]"
             >
-              Child’s first name
+              First name
             </label>
             <input
               id="child-name"
@@ -116,15 +116,75 @@ export default function AddChild() {
               maxLength={30}
               required
               value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Enter first name"
-              className="w-full rounded-xl border border-[#1e2e5c] bg-[#0f1a38] px-4 py-3 text-white outline-none focus:border-[#7b8dff]"
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Neeta"
+              className="w-full rounded-2xl border border-[#142033]/15 bg-white px-4 py-3.5 text-sm font-semibold text-[#142033] outline-none focus:border-[#087F80]"
             />
           </div>
 
+          {/* CLASS (5-10) */}
+          <div>
+            <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-[#586579]">
+              Class
+            </span>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {[5, 6, 7, 8, 9, 10].map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    triggerDialTick(false);
+                    setGrade(c);
+                  }}
+                  className={`rounded-2xl border py-3 text-xs font-extrabold tabular-nums transition cursor-pointer ${
+                    grade === c
+                      ? 'border-[#142033] bg-[#142033] text-[#55E2CE]'
+                      : 'border-[#142033]/12 bg-white text-[#142033] hover:border-[#087F80]'
+                  }`}
+                >
+                  Class {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* EDUCATION BOARD */}
+          <div>
+            <span className="mb-2 block text-xs font-extrabold uppercase tracking-wider text-[#586579]">
+              School Board
+            </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {BOARDS.map((b) => {
+                const active = board === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      triggerDialTick(true);
+                      setBoard(b.id);
+                    }}
+                    className={`rounded-2xl border p-4 text-left transition cursor-pointer ${
+                      active
+                        ? 'border-[#087F80] bg-[#087F80]/8'
+                        : 'border-[#142033]/12 bg-white hover:border-[#142033]/40'
+                    }`}
+                  >
+                    <div className="font-display text-sm font-extrabold text-[#142033]">
+                      {b.label}
+                    </div>
+                    <div className="mt-0.5 text-xs text-[#586579]">{b.sub}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* AVATAR */}
           <fieldset>
-            <legend className="mb-2 text-sm font-semibold text-gray-300">
-              Choose an avatar
+            <legend className="mb-2 text-xs font-extrabold uppercase tracking-wider text-[#586579]">
+              Avatar
             </legend>
             <div className="grid grid-cols-6 gap-2">
               {AVATARS.map((item) => (
@@ -133,11 +193,14 @@ export default function AddChild() {
                   type="button"
                   aria-label={`Choose avatar ${item}`}
                   aria-pressed={avatar === item}
-                  onClick={() => setAvatar(item)}
-                  className={`flex min-h-12 items-center justify-center rounded-xl border text-2xl transition ${
+                  onClick={() => {
+                    triggerDialTick(false);
+                    setAvatar(item);
+                  }}
+                  className={`flex min-h-12 items-center justify-center rounded-2xl border text-2xl transition cursor-pointer ${
                     avatar === item
-                      ? 'border-[#9aaaff] bg-[#25335f]'
-                      : 'border-[#1e2e5c] bg-[#0f1a38] hover:bg-[#17254a]'
+                      ? 'border-[#142033] bg-[#142033] shadow-sm'
+                      : 'border-[#142033]/12 bg-white hover:border-[#087F80]'
                   }`}
                 >
                   {item}
@@ -146,30 +209,8 @@ export default function AddChild() {
             </div>
           </fieldset>
 
-          <div>
-            <label
-              htmlFor="child-grade"
-              className="mb-2 block text-sm font-semibold text-gray-300"
-            >
-              Class
-            </label>
-            <select
-              id="child-grade"
-              value={grade}
-              onChange={(event) => setGrade(Number(event.target.value))}
-              className="w-full rounded-xl border border-[#1e2e5c] bg-[#0f1a38] px-4 py-3 text-white outline-none focus:border-[#7b8dff]"
-            >
-              <option value={5}>Class 5</option>
-              <option value={6}>Class 6</option>
-              <option value={7}>Class 7</option>
-              <option value={8}>Class 8</option>
-              <option value={9}>Class 9</option>
-              <option value={10}>Class 10</option>
-            </select>
-          </div>
-
           {atLimit && (
-            <p className="text-sm text-amber-300">
+            <p className="text-xs font-bold text-[#8A5A00]">
               This account already has three child profiles.
             </p>
           )}
@@ -177,14 +218,10 @@ export default function AddChild() {
           <button
             type="submit"
             disabled={saving || atLimit}
-            className="w-full rounded-xl bg-[#7b8dff] px-4 py-4 font-bold text-[#05091a] transition hover:bg-[#9aaaff] disabled:cursor-not-allowed disabled:opacity-50"
+            className="cx-action-pill w-full bg-[#142033] py-4 text-sm text-white hover:bg-[#087F80] cursor-pointer disabled:opacity-50"
           >
-            {saving ? 'Saving profile…' : 'Create child profile'}
+            {saving ? 'Saving profile...' : 'Save and continue →'}
           </button>
-
-          <p className="text-center text-xs leading-5 text-gray-500">
-            Each child has a separate profile. You can connect a school later.
-          </p>
         </form>
       </div>
     </div>

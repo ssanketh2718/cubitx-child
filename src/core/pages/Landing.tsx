@@ -1,894 +1,1037 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { PRICE_INR, TRIAL_DAYS } from '../config';
+import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
 
-import { useEffect, useRef, useState } from 'react';
-import './Landing.css';
+interface HeroFrame {
+  id: string;
+  tabLabel: string;
+  contextLine: string;
+  statusLabel: string;
+  statusTone: 'teal' | 'amber' | 'ink';
+  title: string;
+  leftLabel: string;
+  leftValue: string;
+  rightLabel: string;
+  rightValue: string;
+  transcript: string;
+  footnote: string;
+}
+
+const HERO_FRAMES: HeroFrame[] = [
+  {
+    id: 'mission-probe',
+    tabLabel: '01 · Mission',
+    contextLine: 'Neeta · Class 6 · Secret Machine',
+    statusLabel: 'Testing clues',
+    statusTone: 'teal',
+    title: 'Checks a second input before locking in a rule',
+    leftLabel: 'Input tried',
+    leftValue: '3 → 9',
+    rightLabel: 'Next check',
+    rightValue: '5 → 15',
+    transcript:
+      '“3 gave 9, which could be +6 or ×3. Testing 5 gave 15, so adding 6 doesn’t hold.”',
+    footnote: 'Observed · Using evidence (B2)',
+  },
+  {
+    id: 'thinking-sheet',
+    tabLabel: '02 · Sheet',
+    contextLine: 'Class 6 · CBSE · Science',
+    statusLabel: 'After class',
+    statusTone: 'amber',
+    title: 'Spots the reasoning gap in a real-world chapter twist',
+    leftLabel: 'Step 2 of 3',
+    leftValue: 'Spot the Catch',
+    rightLabel: 'Student note',
+    rightValue: 'Saved',
+    transcript:
+      '“Both plants got water, so we can’t blame soil until we check sunlight hours.”',
+    footnote: 'Auto-matched to Class 5–10 · CBSE & Maharashtra Board',
+  },
+  {
+    id: 'parent-replay',
+    tabLabel: '03 · Parent View',
+    contextLine: 'PIN / Fingerprint Protected · Parent Snapshot',
+    statusLabel: 'Observed',
+    statusTone: 'ink',
+    title: 'See the exact thinking steps—without marks or IQ scores',
+    leftLabel: 'Clue-testing habit',
+    leftValue: '78%',
+    rightLabel: 'Skills explored',
+    rightValue: '5 of 8',
+    transcript:
+      'Earlier: picked on the first hunch. More recently: tests an extra clue before deciding.',
+    footnote: 'Step-by-step deterministic replay · Zero streak guilt',
+  },
+  {
+    id: 'try-at-home',
+    tabLabel: '04 · Try at Home',
+    contextLine: 'Dinner-Table Prompt · The 10-Second Rule',
+    statusLabel: 'For parents',
+    statusTone: 'teal',
+    title: 'One calm everyday question—no worksheets required',
+    leftLabel: 'Skill',
+    leftValue: 'Missing Info',
+    rightLabel: 'Golden rule',
+    rightValue: 'Wait 10s',
+    transcript:
+      '“That ad says 2× energy. Who did they test it on, and what aren’t they telling us?”',
+    footnote: 'Stay quiet for 10 seconds. Let them think without hints.',
+  },
+];
+
+const EIGHT_SKILLS_PREVIEW = [
+  { code: 'A1', name: 'Asking good questions', status: 'Observed' },
+  { code: 'A2', name: 'Spotting missing info', status: 'Early signal' },
+  { code: 'B1', name: 'Giving reasons', status: 'Observed' },
+  { code: 'B2', name: 'Using evidence', status: 'Observed' },
+  { code: 'B3', name: 'Detecting weak reasoning', status: 'In review' },
+  { code: 'C1', name: 'Weighing trade-offs', status: 'Coming up' },
+  { code: 'C2', name: 'Updating on evidence', status: 'Early signal' },
+  { code: 'C3', name: 'Reflecting', status: 'Coming up' },
+] as const;
+
+const FAQ_ITEMS = [
+  {
+    q: 'Does CubitX give marks, ranks, or IQ scores?',
+    a: 'Never. Marks and rankings make children rush for the “safe” answer. CubitX logs observable thinking habits—like checking an extra clue or updating a first guess—and shows them to parents in plain English.',
+  },
+  {
+    q: 'How do Thinking Sheets match my child’s school syllabus?',
+    a: 'When you add your child’s profile, you pick their Class (5–10) and School Board (CBSE or Maharashtra State Board). CubitX automatically loads chapter-aligned Thinking Sheets across Science, History, Geography, and Extra Curricular.',
+  },
+  {
+    q: 'Can my child open Parent View by mistake?',
+    a: 'No. Both Parent View and Try at Home are protected by a 4-digit Parent PIN with optional Fingerprint / Face ID unlock on supported devices.',
+  },
+  {
+    q: 'What happens if my child skips a few days?',
+    a: 'Nothing breaks. Missions are organised by calendar date with zero streak-loss penalties or “falling behind” alerts. Children can pick today’s date or revisit any earlier date calmly.',
+  },
+  {
+    q: 'How does pricing and renewal work?',
+    a: `You start with a full ${TRIAL_DAYS}-day free trial with no card required. After that, full annual access is ₹${PRICE_INR}/year for up to 3 child profiles—manual renewal only, with no automatic recurring charges.`,
+  },
+];
 
 export default function Landing() {
-  const pageRef = useRef<HTMLDivElement | null>(null);
-  const [selectedMission, setSelectedMission] = useState('secret');
-  const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
+  const navigate = useNavigate();
 
-  const missionContent: Record<string, { title: string; text: string; skill: string }> = {
-    secret: {
-      title: 'Secret Machine',
-      text: 'A hidden rule is waiting to be discovered. Look for what changes, what stays the same and what you still need to know.',
-      skill: 'THINKING FOCUS · PATTERN AND INFERENCE'
-    },
-    balance: {
-      title: 'Balance Detective',
-      text: 'Look beyond what seems obvious. Decide what information would help you compare the two sides fairly.',
-      skill: 'THINKING FOCUS · MISSING INFORMATION AND EVIDENCE'
-    },
-    pattern: {
-      title: 'Pattern Detective',
-      text: 'Spot a pattern, then test whether your suggested rule continues to hold in another example.',
-      skill: 'THINKING FOCUS · PATTERN AND TESTING IDEAS'
-    },
-    cause: {
-      title: 'Cause Detective',
-      text: 'When two things happen together, explore what else could explain the connection before deciding what caused what.',
-      skill: 'THINKING FOCUS · CAUSE AND ALTERNATIVE EXPLANATIONS'
-    },
-    question: {
-      title: 'Big Question',
-      text: 'Choose the question that would help you learn something important before making a decision.',
-      skill: 'THINKING FOCUS · QUESTIONING AND INFORMATION'
-    }
-  };
+  // Moving Hero Screen State
+  const [frameIdx, setFrameIdx] = useState(0);
+  const [heroPaused, setHeroPaused] = useState(false);
 
-  const feedbackMessages: Record<string, string> = {
-    light: 'That is useful information to investigate. Sunlight can affect plant growth. What else would you compare before drawing a conclusion?',
-    height: 'You have noticed the outcome. The next question is what might explain the difference between the plants.',
-    water: 'That is another useful factor to check. Comparing water, sunlight and other conditions can help you avoid jumping to one explanation.',
-    guess: 'A guess can be a starting point, but it is not evidence by itself. What could you observe or measure to check it?'
-  };
+  // Interactive Sandbox State (Mission vs Thinking Sheet)
+  const [sandboxTab, setSandboxTab] = useState<'mission' | 'sheet'>('mission');
+  const [machineInput, setMachineInput] = useState<number>(3);
+  const [probes, setProbes] = useState<Array<{ x: number; y: number }>>([
+    { x: 3, y: 9 },
+  ]);
+  const [ruleGuess, setRuleGuess] = useState<'plus6' | 'times3' | null>(null);
+
+  // Interactive Thinking Sheet Preview State
+  const [sheetBoard, setSheetBoard] = useState<
+    'CBSE' | 'Maharashtra State Board'
+  >('CBSE');
+  const [sheetPick, setSheetPick] = useState<number | null>(null);
+
+  // FAQ State
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
-    const root = pageRef.current;
-    if (!root) return;
+    if (heroPaused) return;
+    const id = window.setInterval(() => {
+      setFrameIdx((prev) => (prev + 1) % HERO_FRAMES.length);
+    }, 4200);
+    return () => window.clearInterval(id);
+  }, [heroPaused]);
 
-    const menuButton = root.querySelector<HTMLButtonElement>('#menuBtn');
-    const navigation = root.querySelector<HTMLElement>('#navlinks');
+  const activeFrame = HERO_FRAMES[frameIdx];
 
-    const closeMenu = () => {
-      navigation?.classList.remove('open');
-      menuButton?.setAttribute('aria-expanded', 'false');
-      menuButton?.setAttribute('aria-label', 'Open navigation menu');
+  const handleProbe = (n: number) => {
+    triggerDialTick(true);
+    setMachineInput(n);
+    setProbes((prev) =>
+      prev.some((p) => p.x === n)
+        ? prev
+        : [...prev.slice(-3), { x: n, y: n * 3 }]
+    );
+  };
 
-      if (menuButton) menuButton.textContent = '☰';
-    };
+  const resetMachine = () => {
+    triggerDialTick(false);
+    setMachineInput(3);
+    setProbes([{ x: 3, y: 9 }]);
+    setRuleGuess(null);
+  };
 
-    const onMenuClick = () => {
-      if (!navigation || !menuButton) return;
-
-      const open = navigation.classList.toggle('open');
-
-      menuButton.setAttribute('aria-expanded', String(open));
-      menuButton.setAttribute(
-        'aria-label',
-        open ? 'Close navigation menu' : 'Open navigation menu'
-      );
-
-      menuButton.textContent = open ? '×' : '☰';
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') closeMenu();
-    };
-
-    const onClickOutside = (event: MouseEvent) => {
-      const target = event.target;
-
-      if (!(target instanceof Element)) return;
-
-      if (target.closest('#navlinks a')) {
-        closeMenu();
-        return;
-      }
-
-      if (
-        navigation &&
-        menuButton &&
-        !navigation.contains(target) &&
-        !menuButton.contains(target)
-      ) {
-        closeMenu();
-      }
-    };
-
-    menuButton?.addEventListener('click', onMenuClick);
-    document.addEventListener('keydown', onKeyDown);
-    document.addEventListener('click', onClickOutside);
-
-    return () => {
-      menuButton?.removeEventListener('click', onMenuClick);
-      document.removeEventListener('keydown', onKeyDown);
-      document.removeEventListener('click', onClickOutside);
-    };
-  }, []);
-
-  const activeMission = missionContent[selectedMission];
-  const activeFeedback = selectedChoice
-    ? feedbackMessages[selectedChoice]
-    : '';
+  const handleStart = () => {
+    triggerSoftConfirm(true);
+    navigate('/signin');
+  };
 
   return (
-    <div className="cubitx-landing-page" ref={pageRef}>
-
-      <header className="topbar">
-        <div className="wrap nav">
-
-          <a className="brand" href="#top" aria-label="CubitX home">
-            <img src="/cubitx-logo.png" alt="CubitX" />
+    <div className="min-h-screen bg-[#F7F6F1] text-[#142033] font-sans">
+      {/* =================================================================
+          CLEAN EDITORIAL HEADER (SINGLE TOP BAR)
+          ================================================================= */}
+      <header className="sticky top-0 z-50 border-b border-[#142033]/10 bg-[#F7F6F1]/90 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+          <a href="#top" className="flex items-center gap-2.5">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142033] font-display text-xs font-extrabold text-white">
+              CX
+            </span>
+            <span className="font-display text-base font-extrabold tracking-tight text-[#142033]">
+              CubitX
+            </span>
           </a>
 
-          <nav className="navlinks" id="navlinks" aria-label="Main navigation">
-            <a href="#free-missions">Adventures</a>
-            <a href="#how">Try a challenge</a>
-            <a href="#parents">For parents</a>
-            <a href="#pathways">Classes 5–10</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#faqs">FAQs</a>
-            <a href="/signin" style={{ color: 'var(--purple)', fontWeight: 800 }}>
-              Log in
+          <nav
+            aria-label="Primary sections"
+            className="hidden md:flex items-center gap-7 text-xs font-semibold text-[#586579]"
+          >
+            <a href="#sandbox" className="hover:text-[#142033] transition">
+              Try it live
+            </a>
+            <a href="#how-it-works" className="hover:text-[#142033] transition">
+              How it works
+            </a>
+            <a href="#parents" className="hover:text-[#142033] transition">
+              Parent View
+            </a>
+            <a href="#access" className="hover:text-[#142033] transition">
+              Access
+            </a>
+            <a href="#faq" className="hover:text-[#142033] transition">
+              FAQ
             </a>
           </nav>
 
-          <div className="nav-actions">
-            <a className="btn btn-outline" href="/signin">Log in</a>
-            <a className="btn btn-dark" href="#free-missions">
-              Try free <span className="arrow">↗</span>
-            </a>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => navigate('/signin')}
+              className="px-3 py-2 text-xs font-semibold text-[#586579] hover:text-[#142033] transition cursor-pointer"
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={handleStart}
+              className="cx-action-pill bg-[#142033] px-4 py-2 text-xs text-white hover:bg-[#087F80] cursor-pointer"
+            >
+              Start free →
+            </button>
           </div>
-
-          <button
-            className="menu-btn"
-            id="menuBtn"
-            type="button"
-            aria-label="Open navigation menu"
-            aria-expanded="false"
-            aria-controls="navlinks"
-          >
-            ☰
-          </button>
-
         </div>
       </header>
 
-      <main id="top">
-
-        <section className="hero">
-          <div className="wrap hero-layout">
-
-            <div className="hero-copy">
-              <div className="hero-tag">
-                <span className="hero-dot"></span>
-                Interactive thinking adventures · Classes 5–10
-              </div>
-
-              <h1 className="display">
-                A world of little mysteries.
-                <em>A chance to think big.</em>
-              </h1>
-
-              <p className="hero-lede">
-                What if learning felt less like finding the right answer
-                and more like discovering something for yourself?
-                CubitX turns curiosity into adventures where children
-                question, experiment, solve and rethink.
-              </p>
-
-              <div className="hero-actions">
-                <a className="btn btn-dark" href="#free-missions">
-                  Try 5 Free Adventures <span className="arrow">↗</span>
-                </a>
-                <a className="btn btn-outline" href="#how">
-                  Experience a challenge <span className="arrow">↓</span>
-                </a>
-              </div>
-
-              <p className="micro">
-                No registration. No payment. Five adventures to begin.
-              </p>
+      <main id="top" className="mx-auto max-w-6xl px-4 sm:px-6">
+        {/* =================================================================
+            01 · HERO — CALM EDITORIAL COPY + MOVING LIVE PRODUCT SCREEN
+            ================================================================= */}
+        <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.02fr_0.98fr] lg:py-24">
+          <div className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#142033]/10 bg-white px-3.5 py-1.5 text-xs font-medium text-[#586579]">
+              <span className="h-2 w-2 rounded-full bg-[#087F80]" />
+              <span>Classes 5–10</span>
+              <span className="text-[#142033]/25">·</span>
+              <span className="font-semibold text-[#142033]">
+                CBSE &amp; Maharashtra State Board
+              </span>
             </div>
 
-            <div className="hero-stage" aria-label="Illustration of a child exploring a river crossing challenge">
-              <div className="orbit"></div>
-              <div className="stage-glow"></div>
+            <h1 className="font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-[#142033] sm:text-5xl lg:text-[60px]">
+              Eyes on how they think, not just the final answer.
+            </h1>
 
-              <div className="mission-window">
-                <div className="window-bar">
-                  <span>CUBITX / MISSION 001</span>
-                  <span className="window-dots">
-                    <i></i><i></i><i></i>
+            <p className="max-w-xl text-base leading-relaxed text-[#586579] sm:text-lg">
+              Daily thinking missions and syllabus-connected Thinking Sheets
+              that help children test clues, spot weak reasoning, and explain
+              ideas in their own words—without marks, timers, or streak guilt.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <button
+                type="button"
+                onClick={handleStart}
+                className="cx-action-pill bg-[#142033] px-7 py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
+              >
+                <span>Start {TRIAL_DAYS}-day free trial</span>
+                <span aria-hidden="true">→</span>
+              </button>
+
+              <a
+                href="#sandbox"
+                className="rounded-full border border-[#142033]/15 bg-white px-6 py-3.5 text-sm font-semibold text-[#142033] hover:border-[#142033]/40 transition"
+              >
+                Try a live mission ↓
+              </a>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 text-xs font-medium text-[#586579]">
+              <span>No credit card needed</span>
+              <span>·</span>
+              <span>Up to 3 child profiles</span>
+              <span>·</span>
+              <span>PIN-locked Parent View</span>
+            </div>
+          </div>
+
+          {/* LIVE MOVING PRODUCT SCREEN (CADENCE STYLE) */}
+          <div
+            onMouseEnter={() => setHeroPaused(true)}
+            onMouseLeave={() => setHeroPaused(false)}
+            className="cx-soft-float"
+          >
+            <div className="rounded-[28px] border border-[#142033]/12 bg-white p-5 sm:p-7 shadow-[var(--shadow-device)] space-y-5">
+              {/* TOP ARTIFACT BAR */}
+              <div className="flex items-center justify-between gap-3 border-b border-[#142033]/8 pb-4">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F7F6F1] font-display text-xs font-extrabold text-[#142033]">
+                    N
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-bold text-[#142033]">
+                      {activeFrame.contextLine}
+                    </div>
+                    <div className="font-mono-tech text-[10px] text-[#586579]">
+                      {activeFrame.footnote}
+                    </div>
+                  </div>
+                </div>
+
+                <span
+                  className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    activeFrame.statusTone === 'teal'
+                      ? 'bg-[#087F80]/10 text-[#087F80]'
+                      : activeFrame.statusTone === 'amber'
+                      ? 'bg-[#F5B942]/20 text-[#8A5A00]'
+                      : 'bg-[#142033]/8 text-[#142033]'
+                  }`}
+                >
+                  <span
+                    className={`h-1.5 w-1.5 rounded-full ${
+                      activeFrame.statusTone === 'teal'
+                        ? 'bg-[#087F80]'
+                        : activeFrame.statusTone === 'amber'
+                        ? 'bg-[#F5B942]'
+                        : 'bg-[#142033]'
+                    }`}
+                  />
+                  {activeFrame.statusLabel}
+                </span>
+              </div>
+
+              {/* ANIMATED FRAME CONTENT */}
+              <div key={activeFrame.id} className="cx-screen-enter space-y-4">
+                <h2 className="font-display text-lg sm:text-xl font-extrabold text-[#142033] leading-snug">
+                  {activeFrame.title}
+                </h2>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-[#142033]/8 bg-[#F7F6F1] p-4">
+                    <div className="text-[11px] font-medium text-[#586579]">
+                      {activeFrame.leftLabel}
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-extrabold tabular-nums text-[#142033]">
+                      {activeFrame.leftValue}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-[#087F80]/20 bg-[#087F80]/[0.05] p-4">
+                    <div className="text-[11px] font-medium text-[#087F80]">
+                      {activeFrame.rightLabel}
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-extrabold tabular-nums text-[#087F80]">
+                      {activeFrame.rightValue}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#142033]/8 bg-[#FFFDF7] px-4 py-3.5 text-xs sm:text-sm text-[#142033] leading-relaxed">
+                  {activeFrame.transcript}
+                </div>
+              </div>
+
+              {/* INTERACTIVE 4-STAGE PROGRESS STEPPER */}
+              <div className="space-y-2.5 pt-1">
+                <div className="grid grid-cols-4 gap-2">
+                  {HERO_FRAMES.map((frame, idx) => {
+                    const isCurrent = idx === frameIdx;
+                    const isPast = idx < frameIdx;
+                    return (
+                      <button
+                        key={frame.id}
+                        type="button"
+                        onClick={() => {
+                          triggerDialTick(false);
+                          setFrameIdx(idx);
+                        }}
+                        className="space-y-1.5 text-left cursor-pointer group"
+                      >
+                        <div className="h-1 w-full overflow-hidden rounded-full bg-[#142033]/10">
+                          {isCurrent && !heroPaused ? (
+                            <div
+                              key={`${frame.id}-sweep`}
+                              className="h-full w-full bg-[#087F80] cx-progress-sweep"
+                            />
+                          ) : (
+                            <div
+                              className={`h-full transition-all ${
+                                isCurrent || isPast
+                                  ? 'w-full bg-[#087F80]'
+                                  : 'w-0 bg-[#087F80]'
+                              }`}
+                            />
+                          )}
+                        </div>
+                        <span
+                          className={`block truncate font-mono-tech text-[10px] font-semibold ${
+                            isCurrent
+                              ? 'text-[#142033]'
+                              : 'text-[#586579] group-hover:text-[#142033]'
+                          }`}
+                        >
+                          {frame.tabLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setHeroPaused((p) => !p)}
+                    className="font-mono-tech text-[10px] font-semibold text-[#586579] hover:text-[#142033] cursor-pointer"
+                  >
+                    {heroPaused ? 'Resume live preview' : 'Pause preview'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================================
+            02 · LIVE INTERACTIVE SANDBOX (TEST BOTH MISSIONS & THINKING SHEETS)
+            ================================================================= */}
+        <section id="sandbox" className="cx-hairline-t py-16 sm:py-24 space-y-10">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div className="max-w-xl space-y-2">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Try It Right Now
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
+                Quiet helpers in the background. Curiosity in charge.
+              </h2>
+            </div>
+
+            <div
+              role="tablist"
+              aria-label="Interactive sandbox mode"
+              className="inline-flex rounded-full border border-[#142033]/12 bg-white p-1"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sandboxTab === 'mission'}
+                onClick={() => {
+                  triggerDialTick(false);
+                  setSandboxTab('mission');
+                }}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                  sandboxTab === 'mission'
+                    ? 'bg-[#142033] text-white'
+                    : 'text-[#586579] hover:text-[#142033]'
+                }`}
+              >
+                Daily Mission
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={sandboxTab === 'sheet'}
+                onClick={() => {
+                  triggerDialTick(false);
+                  setSandboxTab('sheet');
+                }}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                  sandboxTab === 'sheet'
+                    ? 'bg-[#142033] text-white'
+                    : 'text-[#586579] hover:text-[#142033]'
+                }`}
+              >
+                Thinking Sheet
+              </button>
+            </div>
+          </div>
+
+          {sandboxTab === 'mission' ? (
+            <div className="grid grid-cols-1 gap-8 rounded-[28px] border border-[#142033]/10 bg-white p-6 sm:p-10 shadow-[var(--shadow-artifact)] lg:grid-cols-[0.9fr_1.1fr] items-center">
+              <div className="space-y-4">
+                <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                  Mission Demo · Secret Machine
+                </span>
+                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
+                  One clue can fool you. Two clues reveal the rule.
+                </h3>
+                <p className="text-sm text-[#586579] leading-relaxed">
+                  Feed numbers into the machine, watch what comes out, and check
+                  whether your first guess still holds when you test a second
+                  number.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 pt-2">
+                  <span className="rounded-full bg-[#F7F6F1] border border-[#142033]/10 px-3 py-1 font-mono-tech text-[11px] font-semibold text-[#142033] tabular-nums">
+                    {probes.length} probe{probes.length === 1 ? '' : 's'} logged
+                  </span>
+                  <button
+                    type="button"
+                    onClick={resetMachine}
+                    className="text-xs font-semibold text-[#586579] hover:text-[#142033] underline underline-offset-4 cursor-pointer"
+                  >
+                    Reset machine
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-5 rounded-2xl border border-[#142033]/10 bg-[#F7F6F1] p-5 sm:p-6">
+                {/* INPUT -> OUTPUT DISPLAY */}
+                <div className="grid grid-cols-3 items-center gap-3 rounded-2xl border border-[#142033]/8 bg-white p-4 text-center">
+                  <div>
+                    <div className="font-mono-tech text-[10px] font-semibold uppercase text-[#586579]">
+                      Input
+                    </div>
+                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums text-[#142033]">
+                      {machineInput}
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="rounded-full bg-[#142033] px-3 py-1 font-mono-tech text-xs font-bold text-white">
+                      f(x)
+                    </span>
+                  </div>
+                  <div>
+                    <div className="font-mono-tech text-[10px] font-semibold uppercase text-[#087F80]">
+                      Output
+                    </div>
+                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums text-[#087F80]">
+                      {machineInput * 3}
+                    </div>
+                  </div>
+                </div>
+
+                {/* NUMBER PROBES */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[#586579]">
+                    Tap another number to test:
+                  </div>
+                  <div className="grid grid-cols-5 gap-2">
+                    {[2, 3, 4, 5, 7].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => handleProbe(n)}
+                        className={`rounded-xl border py-2.5 font-display text-base font-extrabold tabular-nums transition cursor-pointer ${
+                          machineInput === n
+                            ? 'border-[#142033] bg-[#142033] text-white'
+                            : 'border-[#142033]/12 bg-white text-[#142033] hover:border-[#087F80]'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* HYPOTHESIS CHECK */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[#586579]">
+                    Which rule fits all your logged checks?
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerDialTick(false);
+                        setRuleGuess('plus6');
+                      }}
+                      className={`rounded-xl border p-3 text-left text-xs font-bold transition cursor-pointer ${
+                        ruleGuess === 'plus6'
+                          ? 'border-[#F07868] bg-[#F07868]/10 text-[#9E3324]'
+                          : 'border-[#142033]/12 bg-white text-[#142033] hover:border-[#142033]/40'
+                      }`}
+                    >
+                      Input + 6
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerSoftConfirm(true);
+                        setRuleGuess('times3');
+                      }}
+                      className={`rounded-xl border p-3 text-left text-xs font-bold transition cursor-pointer ${
+                        ruleGuess === 'times3'
+                          ? 'border-[#087F80] bg-[#087F80]/10 text-[#087F80]'
+                          : 'border-[#142033]/12 bg-white text-[#142033] hover:border-[#142033]/40'
+                      }`}
+                    >
+                      Input × 3
+                    </button>
+                  </div>
+
+                  {ruleGuess === 'plus6' && (
+                    <p className="rounded-xl border border-[#F07868]/30 bg-white px-3.5 py-2.5 text-xs text-[#9E3324]">
+                      3 + 6 = 9 works once, but test 5 above—5 + 6 would be 11,
+                      not 15.
+                    </p>
+                  )}
+                  {ruleGuess === 'times3' && (
+                    <p className="rounded-xl border border-[#087F80]/30 bg-white px-3.5 py-2.5 text-xs font-semibold text-[#087F80]">
+                      Fits every tested input. That’s checking evidence before
+                      deciding.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-8 rounded-[28px] border border-[#142033]/10 bg-white p-6 sm:p-10 shadow-[var(--shadow-artifact)] lg:grid-cols-[0.9fr_1.1fr] items-center">
+              <div className="space-y-4">
+                <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                  Thinking Sheet Demo · After Class
+                </span>
+                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
+                  Solve each school topic on your own—in 3 clean steps.
+                </h3>
+                <p className="text-sm text-[#586579] leading-relaxed">
+                  Automatically matched to your child’s Class (5–10) and Board
+                  across Science, History, Geography, and Extra Curricular.
+                </p>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {(['CBSE', 'Maharashtra State Board'] as const).map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => {
+                        triggerDialTick(false);
+                        setSheetBoard(b);
+                      }}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                        sheetBoard === b
+                          ? 'border-[#142033] bg-[#142033] text-white'
+                          : 'border-[#142033]/15 bg-[#F7F6F1] text-[#586579]'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4 rounded-2xl border border-[#142033]/10 bg-[#F7F6F1] p-5 sm:p-6">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-[#586579]">
+                  <span>Class 6 · {sheetBoard} · Science</span>
+                  <span className="font-mono-tech text-[#087F80]">
+                    Step 2 · Spot the Catch
                   </span>
                 </div>
 
-                <div className="mission-art">
-                  <div className="sun"></div>
-                  <div className="mountain"></div>
-                  <div className="mountain two"></div>
-                  <div className="river"></div>
-                  <div className="bridge"></div>
-                  <div className="child-figure">🧒🏽</div>
-                  <span className="mission-label">THE RIVER CROSSING</span>
+                <p className="text-sm font-semibold text-[#142033] leading-relaxed">
+                  Two classmates placed identical saplings in opposite corners
+                  of the school garden. After three weeks, one grew much taller.
+                  Which explanation has a reasoning gap?
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    '“The taller sapling must have stronger seeds, because both were watered every morning.”',
+                    '“Before blaming the seeds, we should check how many hours of direct sunlight each corner gets.”',
+                  ].map((viewpoint, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        triggerDialTick(true);
+                        setSheetPick(idx);
+                      }}
+                      className={`w-full rounded-xl border p-3.5 text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
+                        sheetPick === idx
+                          ? 'border-[#087F80] bg-white text-[#142033]'
+                          : 'border-[#142033]/10 bg-white/70 text-[#586579] hover:border-[#142033]/35'
+                      }`}
+                    >
+                      {viewpoint}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="mission-bottom">
-                  <strong>How would you get everyone across?</strong>
-                  <span>EXPLORE · TEST · DISCOVER</span>
-                </div>
-              </div>
-
-              <div className="float-pill one">
-                A new challenge awaits <b>✦</b>
-              </div>
-              <div className="float-pill two">
-                Your idea matters <b>↗</b>
+                {sheetPick !== null && (
+                  <p className="rounded-xl border border-[#087F80]/25 bg-white px-4 py-3 text-xs text-[#142033]">
+                    {sheetPick === 0
+                      ? 'Good catch—it ignores sunlight and soil differences. Next step: write why in one short line of your own words.'
+                      : 'That second view actually checks the missing variable! Look at the first one—it jumps straight to seeds without checking sunlight.'}
+                  </p>
+                )}
               </div>
             </div>
-
-          </div>
+          )}
         </section>
 
-        <div className="ticker" aria-label="Question, explore, experiment, discover, create and decide">
-          <div className="ticker-track">
-            {['QUESTION', 'EXPLORE', 'EXPERIMENT', 'DISCOVER', 'CREATE', 'DECIDE',
-              'QUESTION', 'EXPLORE', 'EXPERIMENT', 'DISCOVER', 'CREATE', 'DECIDE'].map((item, index) => (
-              <span key={index}>{item} <i>✳</i></span>
-            ))}
+        {/* =================================================================
+            03 · HOW CUBITX WORKS — CALM HAIRLINE ROWS (NO CARD SOUP)
+            ================================================================= */}
+        <section id="how-it-works" className="cx-hairline-t py-16 sm:py-24 space-y-14">
+          <div className="max-w-2xl space-y-2">
+            <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+              How It Works
+            </div>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
+              Built for real family rhythms, not screen addiction.
+            </h2>
           </div>
-        </div>
 
-        <section className="section free-missions" id="free-missions">
-          <div className="wrap">
-
-            <div className="free-head">
-              <div>
-                <div className="section-kicker">YOUR FIRST CUBITX EXPERIENCE</div>
-                <h2 className="section-title">
-                  Five free adventures.<br />A world to explore.
-                </h2>
-              </div>
-
-              <div className="free-head-side">
-                <span className="free-stamp">₹0</span>
-                <p>No registration. No payment.<br />Just five chances to think differently.</p>
-              </div>
-            </div>
-
-            <div className="mission-grid">
-              <button className="mission-card feature" type="button"
-                aria-pressed={selectedMission === 'secret'}
-                onClick={() => setSelectedMission('secret')}>
-                <span className="mission-number">01 / THE HIDDEN RULE</span>
-                <span className="mission-icon">⚙</span>
-                <strong>Secret Machine</strong>
-                <span className="mission-tease">Can you uncover the rule behind what goes in — and what comes out?</span>
-                <span className="mission-open">Explore preview ↗</span>
-              </button>
-
-              <button className="mission-card balance" type="button"
-                aria-pressed={selectedMission === 'balance'}
-                onClick={() => setSelectedMission('balance')}>
-                <span className="mission-number">02 / FIND THE BALANCE</span>
-                <span className="mission-icon">⚖</span>
-                <strong>Balance Detective</strong>
-                <span className="mission-tease">What information would help you compare two sides fairly?</span>
-                <span className="mission-open">Explore preview ↗</span>
-              </button>
-
-              <button className="mission-card pattern" type="button"
-                aria-pressed={selectedMission === 'pattern'}
-                onClick={() => setSelectedMission('pattern')}>
-                <span className="mission-number">03 / SPOT THE CONNECTION</span>
-                <span className="mission-icon">⌁</span>
-                <strong>Pattern Detective</strong>
-                <span className="mission-tease">Spot a pattern. Then test whether your rule really holds.</span>
-                <span className="mission-open">Explore preview ↗</span>
-              </button>
-
-              <button className="mission-card cause" type="button"
-                aria-pressed={selectedMission === 'cause'}
-                onClick={() => setSelectedMission('cause')}>
-                <span className="mission-number">04 / WHAT CAUSED WHAT?</span>
-                <span className="mission-icon">↗</span>
-                <strong>Cause Detective</strong>
-                <span className="mission-tease">When two things happen together, is one really the cause?</span>
-                <span className="mission-open">Explore preview ↗</span>
-              </button>
-
-              <button className="mission-card question" type="button"
-                aria-pressed={selectedMission === 'question'}
-                onClick={() => setSelectedMission('question')}>
-                <span className="mission-number">05 / ONE QUESTION</span>
-                <span className="mission-icon">?</span>
-                <strong>Big Question</strong>
-                <span className="mission-tease">If you could ask one question before deciding, what would it be?</span>
-                <span className="mission-open">Explore preview ↗</span>
-              </button>
-            </div>
-
-            <div className="mission-preview" aria-live="polite">
-              <div>
-                <span className="preview-label">SELECTED ADVENTURE PREVIEW</span>
-                <h3>{activeMission.title}</h3>
-                <p>{activeMission.text}</p>
-              </div>
-
-              <div className="preview-meta">
-                <span>{activeMission.skill}</span>
-                <a className="btn btn-purple" href="#how">Try a sample challenge ↗</a>
-              </div>
-            </div>
-
-            <p className="preview-note">
-              These cards preview five introductory adventure themes. The preview
-              selector does not itself launch a full mission. The actual free
-              experience should match the published mission content.
-            </p>
-
-          </div>
-        </section>
-
-        <section className="section demo" id="how">
-          <div className="wrap demo-layout">
-
-            <div className="demo-copy">
-              <div className="eyebrow">DON'T JUST READ ABOUT IT</div>
-              <h2>Let your child experience the joy of figuring it out.</h2>
-              <p>
-                Here is a small sample challenge. There may be more than one
-                useful question to ask. The interesting part is the reason
-                behind the choice.
-              </p>
-
-              {[
-                ['1', 'Predict', 'Make an initial guess.'],
-                ['2', 'Investigate', 'Look for information that could support or challenge the idea.'],
-                ['3', 'Reconsider', 'Look again when new information changes the picture.'],
-                ['4', 'Explain', 'Share the reasons and evidence behind the conclusion.']
-              ].map(([number, title, description]) => (
-                <div className="demo-step" key={number}>
-                  <span className="step-number">{number}</span>
-                  <div><b>{title}</b><br />{description}</div>
+          <div className="divide-y divide-[#142033]/10 border-t border-b border-[#142033]/10">
+            {/* ROW 1: DATE-BASED MISSIONS */}
+            <div className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center">
+              <div className="space-y-2.5">
+                <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
+                  01 · Daily Missions
                 </div>
-              ))}
-            </div>
-
-            <div className="play-card">
-              <div className="play-top">
-                <span>CUBITX · MINI THINKING CHALLENGE</span>
-                <span>TRY IT</span>
-              </div>
-
-              <div className="scenario">
-                <div className="scenario-icon">🌱</div>
-                <h3>The School Garden Mystery</h3>
-                <p>
-                  Two plants are placed in different corners of the school.
-                  One grows taller than the other. What would you want to find
-                  out before deciding why?
+                <h3 className="font-display text-2xl font-extrabold text-[#142033]">
+                  Pick today’s date, or any earlier date.
+                </h3>
+                <p className="text-sm text-[#586579] leading-relaxed">
+                  No streak counters, no “missed Day 4” guilt. Children open
+                  today’s mission, test clues freely, and build a calm habit of
+                  coming back out of curiosity.
                 </p>
               </div>
 
-              <div className="choices">
+              <div className="grid grid-cols-4 gap-2.5">
                 {[
-                  ['light', 'How much sunlight does each plant receive?'],
-                  ['height', 'Which plant looks taller?'],
-                  ['water', 'Are both plants getting the same amount of water?'],
-                  ['guess', 'Which plant is probably healthier?']
-                ].map(([key, label]) => (
-                  <button
-                    className={`choice ${selectedChoice === key ? 'selected' : ''}`}
-                    type="button"
-                    key={key}
-                    onClick={() => setSelectedChoice(key)}
+                  { day: 'Thu', num: '19', status: 'Done', active: false },
+                  { day: 'Fri', num: '20', status: 'Done', active: false },
+                  { day: 'Today', num: '21', status: 'Open', active: true },
+                  { day: 'Sun', num: '22', status: 'Up Next', active: false },
+                ].map((d) => (
+                  <div
+                    key={d.num}
+                    className={`rounded-2xl border p-4 ${
+                      d.active
+                        ? 'border-[#142033] bg-[#142033] text-white'
+                        : d.status === 'Done'
+                        ? 'border-[#087F80]/30 bg-[#087F80]/[0.06] text-[#142033]'
+                        : 'border-[#142033]/10 bg-white text-[#586579]'
+                    }`}
                   >
-                    {label}
-                  </button>
+                    <div
+                      className={`font-mono-tech text-[10px] font-semibold uppercase ${
+                        d.active ? 'text-white/70' : 'text-[#586579]'
+                      }`}
+                    >
+                      {d.day}
+                    </div>
+                    <div className="mt-1 font-display text-2xl font-extrabold tabular-nums">
+                      {d.num}
+                    </div>
+                    <div
+                      className={`mt-1.5 text-[10px] font-semibold ${
+                        d.active
+                          ? 'text-[#55E2CE]'
+                          : d.status === 'Done'
+                          ? 'text-[#087F80]'
+                          : 'text-[#586579]'
+                      }`}
+                    >
+                      {d.status}
+                    </div>
+                  </div>
                 ))}
               </div>
-
-              <div className={`feedback ${activeFeedback ? 'show' : ''}`} aria-live="polite">
-                {activeFeedback}
-              </div>
-
-              <button className="reset-demo" type="button" onClick={() => setSelectedChoice(null)}>
-                Try another approach ↻
-              </button>
-
-              <p className="demo-disclaimer">
-                This is an illustrative sample challenge, not a scored assessment
-                or a live child progress report.
-              </p>
             </div>
 
+            {/* ROW 2: THINKING SHEETS */}
+            <div className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center">
+              <div className="space-y-2.5">
+                <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
+                  02 · Thinking Sheets
+                </div>
+                <h3 className="font-display text-2xl font-extrabold text-[#142033]">
+                  School chapters turned into real thinking.
+                </h3>
+                <p className="text-sm text-[#586579] leading-relaxed">
+                  Automatically set by Class (5–10) and Board (CBSE or
+                  Maharashtra State Board). Every sheet moves through three
+                  steps: The Twist, Spot the Catch, and Your Reason.
+                </p>
+              </div>
+
+              <div className="rounded-2xl border border-[#142033]/10 bg-white divide-y divide-[#142033]/8">
+                {[
+                  { subject: 'Science', meta: 'The Twist · Spot the Catch · Your Reason', tag: 'Done' },
+                  { subject: 'History', meta: 'Source checks & missing viewpoints', tag: 'Open' },
+                  { subject: 'Geography', meta: 'Cause, climate & trade-off prompts', tag: 'Open' },
+                  { subject: 'Extra Curricular', meta: 'AI claims, money sense & daily logic', tag: 'Open' },
+                ].map((row) => (
+                  <div
+                    key={row.subject}
+                    className="flex items-center justify-between gap-4 px-5 py-3.5"
+                  >
+                    <div>
+                      <div className="font-display text-sm font-bold text-[#142033]">
+                        {row.subject}
+                      </div>
+                      <div className="text-xs text-[#586579]">{row.meta}</div>
+                    </div>
+                    <span
+                      className={`rounded-full px-3 py-0.5 text-[11px] font-semibold ${
+                        row.tag === 'Done'
+                          ? 'bg-[#087F80]/10 text-[#087F80]'
+                          : 'bg-[#F7F6F1] text-[#586579]'
+                      }`}
+                    >
+                      {row.tag}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ROW 3: PARENT VIEW & TRY AT HOME */}
+            <div
+              id="parents"
+              className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center"
+            >
+              <div className="space-y-2.5">
+                <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
+                  03 · Parent View &amp; Try at Home
+                </div>
+                <h3 className="font-display text-2xl font-extrabold text-[#142033]">
+                  Honest snapshots of eight thinking skills.
+                </h3>
+                <p className="text-sm text-[#586579] leading-relaxed">
+                  Protected by a 4-digit Parent PIN or Fingerprint. Inspect
+                  step-by-step replays of real moments, see what is observed vs.
+                  coming up next, and get three calm home prompts each week.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {EIGHT_SKILLS_PREVIEW.map((skill) => (
+                  <div
+                    key={skill.code}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-[#142033]/10 bg-white px-3.5 py-2.5"
+                  >
+                    <span className="truncate text-xs font-semibold text-[#142033]">
+                      <span className="font-mono-tech text-[#586579] mr-1.5">
+                        {skill.code}
+                      </span>
+                      {skill.name}
+                    </span>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        skill.status === 'Observed'
+                          ? 'bg-[#087F80]/10 text-[#087F80]'
+                          : skill.status === 'Early signal'
+                          ? 'bg-[#F5B942]/20 text-[#8A5A00]'
+                          : 'bg-[#F7F6F1] text-[#586579]'
+                      }`}
+                    >
+                      {skill.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="section parent-section" id="parents">
-          <div className="wrap">
+        {/* =================================================================
+            04 · AGE PATHWAYS (CLASSES 5–7 & CLASSES 8–10)
+            ================================================================= */}
+        <section className="py-12 sm:py-16">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="rounded-3xl border border-[#142033]/10 bg-white p-8 space-y-3">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Classes 5–7 · Foundation
+              </div>
+              <h3 className="font-display text-2xl font-extrabold text-[#142033]">
+                Concrete clues &amp; pattern testing
+              </h3>
+              <p className="text-sm text-[#586579] leading-relaxed">
+                Visual mysteries where younger learners practise testing more
+                than one clue, noticing missing details, and explaining “why” in
+                plain words.
+              </p>
+            </div>
 
-            <div className="parent-head">
-              <div className="section-kicker">FOR PARENTS</div>
-              <h2 className="section-title">
-                See more than the answer. See the thinking behind it.
+            <div className="rounded-3xl border border-[#142033]/10 bg-white p-8 space-y-3">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Classes 8–10 · Advanced
+              </div>
+              <h3 className="font-display text-2xl font-extrabold text-[#142033]">
+                Ambiguity, trade-offs &amp; AI checks
+              </h3>
+              <p className="text-sm text-[#586579] leading-relaxed">
+                Real-world dilemmas, auditing confident AI claims, spotting weak
+                comparisons, and weighing competing constraints without a single
+                formula.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================================
+            05 · SIMPLE FAMILY ACCESS (TRANSPARENT PRICING)
+            ================================================================= */}
+        <section id="access" className="cx-hairline-t py-16 sm:py-24">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] items-start">
+            <div className="space-y-3">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Transparent Family Access
+              </div>
+              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
+                Start free for {TRIAL_DAYS} days. Stay only if you see the shift.
               </h2>
-              <p className="section-intro">
-                You are not a spectator in your child's journey. Parent Space
-                is designed to help you understand what your child explored,
-                which behaviours were observed and what the available evidence
-                can — and cannot — tell you.
-              </p>
-              <p className="parent-promise">
-                Answers are everywhere.
-                <strong>The joy is in figuring things out.</strong>
+              <p className="text-sm text-[#586579] max-w-md leading-relaxed">
+                One simple family plan covers up to three children with separate
+                profiles, boards, and parent snapshots.
               </p>
             </div>
 
-            <div className="parent-intro-card">
-              <div>
-                <h3>What should a parent be able to discover?</h3>
-                <p>
-                  A window into a child's learning journey — not a marksheet,
-                  intelligence test or judgement of ability.
-                </p>
-              </div>
-
-              <div className="parent-points">
-                <div className="parent-point"><span>01</span> Activities explored and choices made</div>
-                <div className="parent-point"><span>02</span> Thinking behaviours observed in action</div>
-                <div className="parent-point"><span>03</span> Evidence behind each observation</div>
-                <div className="parent-point"><span>04</span> What remains unknown and what to explore next</div>
-              </div>
-            </div>
-
-            <div className="parent-feature-grid">
-              <article className="parent-feature mint">
-                <span className="feature-index">01 / SHOW ME THE MOMENT</span>
-                <h3>Don't just read what happened. See the moment.</h3>
-                <p>
-                  A parent should be able to open an observation and inspect
-                  the recorded mission interaction — the actual input, output,
-                  choice or revision behind it.
-                </p>
-                <div className="feature-demo">
-                  <strong>Illustrative replay preview</strong>
-                  <small>Secret Machine · Input 3 → Output 9</small>
-                  <small>Recorded action → evidence → explanation</small>
-                </div>
-                <span className="parent-feature-link">Traceable moments · Read-only replay</span>
-              </article>
-
-              <article className="parent-feature blue">
-                <span className="feature-index">02 / THE NOT-BROKEN SIGNAL</span>
-                <h3>Every learning journey has its own rhythm.</h3>
-                <p>
-                  No lost streaks. No missed-day penalties. No warning that a
-                  child is falling behind. A pause in CubitX activity is simply
-                  a pause in CubitX activity.
-                </p>
-                <div className="feature-demo">
-                  <strong>Whenever curiosity returns</strong>
-                  <small>Your child can continue exploring whenever they are ready.</small>
-                  <small>No guilt. No artificial urgency.</small>
-                </div>
-                <span className="parent-feature-link">A calmer approach to learning</span>
-              </article>
-
-              <article className="parent-feature blue">
-                <span className="feature-index">03 / INVISIBLE RIGOR</span>
-                <h3>Simple explanations. Serious thinking underneath.</h3>
-                <p>
-                  Parents should be able to understand a thinking behaviour
-                  in everyday language, while educators can inspect the
-                  framework definition and evidence requirements.
-                </p>
-                <div className="feature-demo">
-                  <strong>Two ways to understand an observation</strong>
-                  <small>What this means at home</small>
-                  <small>Framework science · Master Framework V1.2</small>
-                </div>
-                <span className="parent-feature-link">Accessible and evidence-led</span>
-              </article>
-
-              <article className="parent-feature mint">
-                <span className="feature-index">04 / THINKING MILESTONE</span>
-                <h3>Keep a genuine moment of curiosity.</h3>
-                <p>
-                  A family keepsake can feature an eligible verbatim question
-                  or realisation from the child — without scores, grades
-                  or public rankings.
-                </p>
-                <div className="feature-demo">
-                  <strong>“But how do we know that is the correct rule?”</strong>
-                  <small>Illustrative quotation · Not an actual child record</small>
-                </div>
-                <span className="parent-feature-link">The child's own voice comes first</span>
-              </article>
-            </div>
-
-            <div className="parent-trust">
-              <h3>What we know — and what we don't.</h3>
-              <p>
-                One activity is one moment. A repeated pattern requires varied,
-                valid observations. Missing evidence is not a weakness, and
-                completing more missions does not automatically prove improvement.
-                CubitX should explain what happened, what it may suggest, what
-                remains unknown and where the evidence came from.
-              </p>
-            </div>
-
-            <p className="parent-preview-note">
-              Parent Space features shown here describe the intended experience.
-              Replay, reporting and milestone-card availability depends on the
-              relevant product functionality and verified records being implemented.
-              The examples above are illustrative, not actual child reports.
-            </p>
-
-          </div>
-        </section>
-
-        <section className="section research" id="why-cubitx-exists">
-          <div className="wrap">
-            <div className="section-kicker">WHY CUBITX EXISTS</div>
-            <h2 className="section-title">
-              Knowing an answer is not the same as knowing how to think.
-            </h2>
-            <p className="section-intro">
-              Children need opportunities to question, investigate, test ideas
-              and reason through unfamiliar situations — not only recall information.
-            </p>
-
-            <div className="research-grid">
-              <article className="study">
-                <span>ACTIVE PARTICIPATION</span>
-                <h3>Learning involves doing.</h3>
-                <p>
-                  Children need opportunities to engage with ideas, explain
-                  their reasoning and test their understanding — not only
-                  receive information.
-                </p>
-              </article>
-
-              <article className="study">
-                <span>REFLECTION</span>
-                <h3>Notice how you are thinking.</h3>
-                <p>
-                  Planning, monitoring and reconsidering an approach can help
-                  learners become more aware of how they work through a challenge.
-                </p>
-              </article>
-
-              <article className="study">
-                <span>EVIDENCE AND JUDGEMENT</span>
-                <h3>Good decisions need reasons.</h3>
-                <p>
-                  Considering evidence, alternatives and uncertainty gives
-                  children opportunities to practise thoughtful judgement.
-                </p>
-              </article>
-            </div>
-
-            <div className="research-note">
-              These are the learning principles behind the CubitX experience.
-              They are not claims that CubitX has already demonstrated a measured
-              improvement in learning outcomes. Product effectiveness must be
-              evaluated separately.
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="pathways">
-          <div className="wrap">
-            <div className="section-kicker">A JOURNEY THAT GROWS</div>
-
-            <div className="path-head">
-              <h2 className="section-title">Room to grow, one challenge at a time.</h2>
-              <p className="section-intro">
-                Different age groups need different kinds of challenges.
-                CubitX is designed to grow with the learner.
-              </p>
-            </div>
-
-            <div className="path-grid">
-              <article className="path-card foundation">
+            <div className="rounded-3xl border border-[#142033]/12 bg-white p-7 sm:p-9 shadow-[var(--shadow-artifact)] space-y-6">
+              <div className="flex items-baseline justify-between gap-4 border-b border-[#142033]/10 pb-5">
                 <div>
-                  <span className="grade">CLASSES 5–7 · TIER 1</span>
-                  <h3>Foundation Explorers</h3>
-                  <p>
-                    Build confidence through observation, curiosity,
-                    simple investigations and everyday problem-solving.
-                  </p>
+                  <div className="font-display text-lg font-extrabold text-[#142033]">
+                    Full Year Family Access
+                  </div>
+                  <div className="text-xs text-[#586579]">
+                    After your {TRIAL_DAYS}-day free trial
+                  </div>
                 </div>
-                <div className="path-tags">
-                  <span>Observe</span><span>Question</span><span>Explore</span>
+                <div className="text-right">
+                  <span className="font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
+                    ₹{PRICE_INR}
+                  </span>
+                  <span className="text-xs font-semibold text-[#586579]">
+                    /year
+                  </span>
                 </div>
-              </article>
-
-              <article className="path-card advanced">
-                <div>
-                  <span className="grade">CLASSES 8–10 · TIER 2</span>
-                  <h3>Advanced Explorers</h3>
-                  <p>
-                    Take on more layered challenges involving evidence,
-                    trade-offs, uncertainty and decisions.
-                  </p>
-                </div>
-                <div className="path-tags">
-                  <span>Investigate</span><span>Evaluate</span><span>Decide</span>
-                </div>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section className="family-section">
-          <div className="wrap family-layout">
-            <div>
-              <div className="eyebrow">A FAMILY JOURNEY</div>
-              <h2>Every child deserves the space to think in their own way.</h2>
-              <p>
-                One parent-owned family account can support up to three child
-                profiles. Each child has their own learning journey and needs
-                a separate paid entitlement for paid access.
-              </p>
-            </div>
-
-            <div className="family-bubbles" aria-label="Illustration of a family">
-              <span className="family-bubble">🧒🏽</span>
-              <span className="family-bubble">👧🏽</span>
-              <span className="family-bubble">🧑🏽</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="section" id="pricing">
-          <div className="wrap">
-            <div className="pricing-head">
-              <div className="section-kicker">SIMPLE, TRANSPARENT ACCESS</div>
-              <h2 className="section-title">Choose the pace that works for your family.</h2>
-              <p className="section-intro">
-                Start with five free adventures. When you are ready,
-                choose a plan. All renewals are manual — there are no
-                automatic charges.
-              </p>
-            </div>
-
-            <div className="pricing-info">
-              PLAN INFORMATION ONLY · PAID CHECKOUT IS NOT ENABLED YET
-            </div>
-
-            <div className="pricing-grid">
-              <article className="price-card">
-                <span className="price-label">A first step</span>
-                <h3>₹49 <small>/ 7 days</small></h3>
-                <p>A short introduction to the CubitX adventure experience.</p>
-                <ul>
-                  <li>7 days of access</li>
-                  <li>One-time pass</li>
-                  <li>No automatic renewal</li>
-                </ul>
-              </article>
-
-              <article className="price-card featured">
-                <span className="price-label">For regular explorers</span>
-                <h3>₹149 <small>/ 30 days</small></h3>
-                <p>More time to explore, practise and discover.</p>
-                <ul>
-                  <li>30 days from activation</li>
-                  <li>Manual renewal</li>
-                  <li>No automatic charges</li>
-                </ul>
-              </article>
-
-              <article className="price-card">
-                <span className="price-label">The longer journey</span>
-                <h3>₹999 <small>/ 12 months</small></h3>
-                <p>A year of opportunities to explore and practise thinking.</p>
-                <ul>
-                  <li>12 months from activation</li>
-                  <li>Manual renewal</li>
-                  <li>No automatic charges</li>
-                </ul>
-              </article>
-            </div>
-
-            <div className="family-discount">
-              <div>
-                <strong>Growing together?</strong>
-                <p>
-                  Families with two or three paid child profiles receive
-                  a 20% family discount.
-                </p>
               </div>
-              <strong>Save 20%</strong>
-            </div>
 
-            <p className="pricing-foot">
-              Prices are per child, before applicable family or approved school
-              discounts. The ₹49 pass may be credited in full towards the same
-              child's annual plan upgrade during the pass's seven-day validity,
-              subject to the published terms. Payment links and checkout will
-              be added when payment integration is ready.
-            </p>
-          </div>
-        </section>
+              <ul className="space-y-2.5 text-sm text-[#142033]">
+                <li className="flex items-center gap-2.5">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Up to 3 child profiles (Classes 5–10)</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Daily Missions + CBSE &amp; Maharashtra Board Thinking Sheets</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>PIN-locked Parent View &amp; weekly Try at Home prompts</span>
+                </li>
+                <li className="flex items-center gap-2.5">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Manual renewal only — zero auto-debit surprises</span>
+                </li>
+              </ul>
 
-        <section className="school-section" id="schools">
-          <div className="wrap school-layout">
-            <div>
-              <div className="section-kicker">FOR SCHOOLS</div>
-              <h2 className="section-title">Make room for thinking in your classroom.</h2>
-              <p>
-                Give students opportunities to question, investigate,
-                experiment and solve unfamiliar problems through interactive
-                adventures.
-              </p>
-            </div>
-
-            <a className="btn btn-dark" href="mailto:hello@cubitx.in?subject=CubitX%20for%20Schools">
-              Partner with CubitX ↗
-            </a>
-          </div>
-        </section>
-
-        <section className="section" id="faqs">
-          <div className="wrap faq-layout">
-            <div>
-              <div className="section-kicker">A FEW THINGS YOU MAY WONDER</div>
-              <h2 className="section-title">Before you begin.</h2>
-              <p className="section-intro">
-                A little clarity for families exploring CubitX.
-              </p>
-            </div>
-
-            <div className="faq-list">
-              <details>
-                <summary>Which classes is CubitX designed for?</summary>
-                <p>
-                  CubitX is designed for Classes 5–10. The learning pathways
-                  are grouped into Classes 5–7 and Classes 8–10, with challenges
-                  suited to each stage.
-                </p>
-              </details>
-
-              <details>
-                <summary>Can my child try CubitX without registering?</summary>
-                <p>
-                  The introductory experience offers five free adventures
-                  without registration. Guest activity evidence exists only
-                  during the current session; closing the session may lose
-                  that evidence.
-                </p>
-              </details>
-
-              <details>
-                <summary>Does CubitX give children marks or IQ scores?</summary>
-                <p>
-                  CubitX is designed around evidence-linked observations
-                  of activity, not IQ scores, public rankings or fixed labels.
-                  One activity is not enough to make a stable judgement about
-                  a child.
-                </p>
-              </details>
-
-              <details>
-                <summary>What can parents see?</summary>
-                <p>
-                  Parent Space is intended to show activities explored,
-                  responses or choices, observed thinking in action,
-                  what remains unknown and practical ideas for a
-                  parent-child conversation. Actual reports must be based
-                  only on recorded activity and validated observation rules.
-                </p>
-              </details>
-
-              <details>
-                <summary>How many children can one family account support?</summary>
-                <p>
-                  One parent-owned family account can support up to three
-                  child profiles. Each child needs a separate paid and
-                  active entitlement for paid access.
-                </p>
-              </details>
-
-              <details>
-                <summary>Are paid plans and payments available now?</summary>
-                <p>
-                  The prices shown are plan information only. Paid-plan
-                  selection and payment are not enabled yet. The five
-                  introductory adventures are free.
-                </p>
-              </details>
-
-              <details>
-                <summary>Does a subscription renew automatically?</summary>
-                <p>
-                  No. The current pricing decision is manual renewal,
-                  with no automatic charges.
-                </p>
-              </details>
-
-              <details>
-                <summary>Can schools use CubitX?</summary>
-                <p>
-                  Schools can contact CubitX to discuss a possible relationship.
-                  School access and staff permissions must be separately
-                  authorised.
-                </p>
-              </details>
+              <button
+                type="button"
+                onClick={handleStart}
+                className="cx-action-pill w-full bg-[#142033] py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
+              >
+                Create Free Family Account →
+              </button>
             </div>
           </div>
         </section>
 
-        <section className="final-cta" id="start">
-          <div className="wrap">
-            <img src="/cubitx-logo.png" alt="CubitX" loading="lazy" />
-            <div className="section-kicker">START WITH CURIOSITY</div>
-            <h2>Give your child the joy of figuring things out.</h2>
-            <p>
-              Five free adventures. No registration. A little room to question,
-              explore and discover.
-            </p>
-            <a className="btn btn-dark" href="#free-missions">
-              Try 5 Free Adventures ↗
-            </a>
+        {/* =================================================================
+            06 · CALM FAQ ACCORDION
+            ================================================================= */}
+        <section id="faq" className="cx-hairline-t py-16 sm:py-24">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[0.75fr_1.25fr]">
+            <div className="space-y-2">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Questions
+              </div>
+              <h2 className="font-display text-3xl font-extrabold text-[#142033]">
+                Honest answers for parents.
+              </h2>
+            </div>
+
+            <div className="divide-y divide-[#142033]/10 border-t border-b border-[#142033]/10">
+              {FAQ_ITEMS.map((item, idx) => {
+                const isOpen = openFaq === idx;
+                return (
+                  <div key={item.q}>
+                    <button
+                      type="button"
+                      aria-expanded={isOpen}
+                      onClick={() => {
+                        triggerDialTick(false);
+                        setOpenFaq(isOpen ? null : idx);
+                      }}
+                      className="flex w-full items-center justify-between gap-4 py-5 text-left cursor-pointer"
+                    >
+                      <span className="font-display text-base font-bold text-[#142033]">
+                        {item.q}
+                      </span>
+                      <span className="font-mono-tech text-lg font-medium text-[#586579]">
+                        {isOpen ? '−' : '+'}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <p className="pb-5 pr-8 text-sm text-[#586579] leading-relaxed">
+                        {item.a}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
 
+        {/* =================================================================
+            07 · CLOSING CTA
+            ================================================================= */}
+        <section className="cx-hairline-t py-16 sm:py-24 text-center space-y-6">
+          <h2 className="mx-auto max-w-2xl font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033] leading-[1.08]">
+            Develop the mind behind the marks.
+          </h2>
+          <p className="mx-auto max-w-lg text-sm sm:text-base text-[#586579]">
+            Set up your child’s profile in under a minute and explore today’s
+            mission together.
+          </p>
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={handleStart}
+              className="cx-action-pill bg-[#142033] px-8 py-4 text-sm text-white hover:bg-[#087F80] cursor-pointer"
+            >
+              Start {TRIAL_DAYS}-day free trial →
+            </button>
+          </div>
+        </section>
       </main>
 
-      <footer>
-        <div className="wrap">
-          <div className="footer-top">
-            <div className="footer-brand">
-              <a href="#top" aria-label="CubitX home">
-                <img src="/cubitx-logo.png" alt="CubitX" loading="lazy" />
-              </a>
-              <p>
-                Interactive adventures that give children space to question,
-                explore and think for themselves.
-              </p>
-            </div>
-
-            <div className="footer-links">
-              <div>
-                <strong>Explore</strong>
-                <a href="#free-missions">Free adventures</a>
-                <a href="#how">How it works</a>
-                <a href="#parents">For parents</a>
-              </div>
-
-              <div>
-                <strong>Learn more</strong>
-                <a href="#why-cubitx-exists">Why CubitX</a>
-                <a href="#schools">For schools</a>
-                <a href="#pricing">Pricing</a>
-                <a href="#faqs">FAQs</a>
-              </div>
-
-              <div>
-                <strong>Contact</strong>
-                <a href="mailto:hello@cubitx.in">hello@cubitx.in</a>
-                <a href="https://www.cubitx.in">www.cubitx.in</a>
-              </div>
-            </div>
+      {/* MINIMAL EDITORIAL FOOTER */}
+      <footer className="border-t border-[#142033]/10 bg-[#EFECE3]/60 py-8">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 text-xs text-[#586579]">
+          <div className="font-display font-bold text-[#142033]">
+            CubitX · Thinking Missions &amp; Syllabus Thinking Sheets
           </div>
-
-          <div className="footer-bottom">
-            <span>© 2026 CubitX. All rights reserved.</span>
-            <span>Develop the mind behind the marks.</span>
-          </div>
+          <div>© 2026 CubitX · hello@cubitx.in</div>
         </div>
       </footer>
-
-      <div className="mobile-cta">
-        <a className="btn btn-dark" href="#free-missions">
-          Try 5 Free Adventures ↗
-        </a>
-      </div>
-
     </div>
   );
 }

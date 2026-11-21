@@ -1,60 +1,148 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  /* CIX-WEB-003 Official Color Tokens */
-  --color-ink: #142033;
-  --color-paper: #F7F6F1;
-  --color-white: #FFFFFF;
-  --color-teal: #087F80;
-  --color-mint: #55E2CE;
-  --color-cobalt: #5267E8;
-  --color-amber: #F5B942;
-  --color-coral: #F07868;
-  --color-muted: #586579;
-  --color-border: #DCE2E7;
+  --cx-ink: #142033;
+  --cx-ink-elevated: #1B2A42;
+  --cx-paper: #F7F6F1;
+  --cx-paper-deep: #EFECE3;
+  --cx-surface: #FFFFFF;
+  --cx-teal: #087F80;
+  --cx-teal-bright: #0B9D9E;
+  --cx-mint: #55E2CE;
+  --cx-cobalt: #5267E8;
+  --cx-amber: #F5B942;
+  --cx-coral: #F07868;
+  --cx-muted: #586579;
+  --cx-hairline: rgba(20, 32, 51, 0.10);
+  --cx-hairline-strong: rgba(20, 32, 51, 0.20);
 
-  /* Legacy brand compatibility tints */
-  --mint-soft: #DDF2ED;
-  --lilac-soft: #E9D9FF;
-  --yellow-soft: #FFE9B3;
-  --blue-soft: #DCEBFF;
+  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* Typography */
-  --font-display: 'Plus Jakarta Sans', 'Manrope', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --ease-studio: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-device: 0 28px 65px -20px rgba(20, 32, 51, 0.14), 0 4px 16px -4px rgba(20, 32, 51, 0.06);
+  --shadow-artifact: 0 12px 32px -12px rgba(20, 32, 51, 0.08), 0 2px 6px rgba(20, 32, 51, 0.03);
+}
 
-  /* 8pt / 4pt Spacing Base */
-  --space-unit: 8px;
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--cx-paper);
+  color: var(--cx-ink);
+  font-family: var(--font-body);
 }
 
 body {
   margin: 0;
-  background-color: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-body);
+  background-color: var(--cx-paper);
+  color: var(--cx-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
 }
 
-/* Accessible focus ring for all interactive elements */
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.035em;
+}
+
+.font-mono-tech {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.cx-hairline-t {
+  border-top: 1px solid var(--cx-hairline);
+}
+
+.cx-hairline-b {
+  border-bottom: 1px solid var(--cx-hairline);
+}
+
+.cx-action-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  transition: transform 240ms var(--ease-studio), background-color 180ms ease, box-shadow 240ms var(--ease-studio);
+}
+
+.cx-action-pill:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+}
+
+.cx-action-pill:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Cadence-style Live Moving Screen Transitions */
+@keyframes cxScreenEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes cxProgressSweep {
+  0% {
+    transform: scaleX(0);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes cxSoftFloat {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.cx-screen-enter {
+  animation: cxScreenEnter 480ms var(--ease-studio) forwards;
+}
+
+.cx-progress-sweep {
+  transform-origin: left center;
+  animation: cxProgressSweep 4.2s linear forwards;
+}
+
+.cx-soft-float {
+  animation: cxSoftFloat 6s ease-in-out infinite;
+}
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-details:focus-visible {
-  outline: 3px solid var(--color-teal);
-  outline-offset: 3px;
+select:focus-visible {
+  outline: 2px solid var(--cx-teal);
+  outline-offset: 2px;
 }
 
-/* Reduced motion compliance */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

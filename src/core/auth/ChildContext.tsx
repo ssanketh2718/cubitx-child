@@ -1,7 +1,6 @@
-// src/core/auth/ChildContext.tsx
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useAuth } from './AuthContext';
+import { useAuth, type EducationBoard } from './AuthContext';
 import { useApp } from '../store';
 
 export interface Child {
@@ -9,6 +8,7 @@ export interface Child {
   name: string;
   class_level: number;
   avatar: string;
+  board?: EducationBoard | null;
 }
 
 interface ChildContextType {
@@ -25,7 +25,6 @@ export function ChildProvider({ children }: { children: ReactNode }) {
   const { children: kids } = useAuth();
   const [activeChild, setActiveChildState] = useState<Child | null>(null);
 
-  // Restore + reconcile when the children list changes
   useEffect(() => {
     if (kids.length === 0) {
       setActiveChildState(null);
@@ -33,28 +32,26 @@ export function ChildProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // If the currently active child no longer exists, clear
     if (activeChild && !kids.some((k) => k.id === activeChild.id)) {
       setActiveChildState(null);
       localStorage.removeItem(STORAGE_KEY);
       return;
     }
 
-    // Keep activeChild metadata fresh if name/class/avatar updated
     if (activeChild) {
       const updated = kids.find((k) => k.id === activeChild.id);
       if (
         updated &&
         (updated.name !== activeChild.name ||
           updated.class_level !== activeChild.class_level ||
-          updated.avatar !== activeChild.avatar)
+          updated.avatar !== activeChild.avatar ||
+          updated.board !== activeChild.board)
       ) {
         setActiveChildState(updated);
       }
       return;
     }
 
-    // If nothing active, try to restore from localStorage
     const savedId = localStorage.getItem(STORAGE_KEY);
     if (savedId) {
       const found = kids.find((k) => k.id === savedId);
@@ -64,14 +61,12 @@ export function ChildProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Auto-select if there's only one child
     if (kids.length === 1) {
       setActiveChildState(kids[0]);
       localStorage.setItem(STORAGE_KEY, kids[0].id);
     }
   }, [kids, activeChild]);
 
-  // Hydrate the Zustand store using immutable child ID isolation
   useEffect(() => {
     if (!activeChild) return;
 

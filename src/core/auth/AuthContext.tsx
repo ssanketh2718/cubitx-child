@@ -10,6 +10,8 @@ import {
   disableDevMode,
 } from './devMode';
 
+export type EducationBoard = 'CBSE' | 'Maharashtra State Board';
+
 interface ParentProfile {
   id: string;
   email: string | null;
@@ -25,6 +27,7 @@ export interface Child {
   class_level: number;
   avatar: string;
   school_id: string | null;
+  board?: EducationBoard | null;
 }
 
 interface AuthContextType {
@@ -59,7 +62,8 @@ interface AuthContextType {
     name: string,
     classLevel: number,
     avatar: string,
-    schoolId?: string | null
+    schoolId?: string | null,
+    board?: EducationBoard
   ) => Promise<{ error: string | null }>;
 
   refreshChildren: () => Promise<void>;
@@ -101,6 +105,7 @@ const MOCK_CHILD_LIST: Child[] = MOCK_CHILDREN.map((child) => ({
   class_level: child.class_level,
   avatar: child.avatar,
   school_id: null,
+  board: child.board,
 }));
 
 function clearSharedDeviceStorage(): void {
@@ -134,8 +139,6 @@ export function AuthProvider({
 
   const setSupabaseId = useApp((state) => state.setSupabaseId);
 
-  /* ─── Derived State ──────────────────────────────── */
-
   const effectiveSession = dev ? MOCK_SESSION : session;
   const effectiveUser = dev
     ? MOCK_SESSION.user
@@ -145,15 +148,11 @@ export function AuthProvider({
   const effectiveChildren = dev ? MOCK_CHILD_LIST : kids;
   const hasConsent = dev ? true : !!parent?.consent_given;
 
-  /* ─── Sync Global Store ──────────────────────────── */
-
   useEffect(() => {
     if (effectiveUser?.id) {
       setSupabaseId(effectiveUser.id);
     }
   }, [effectiveUser?.id, setSupabaseId]);
-
-  /* ─── Session Listener ───────────────────────────── */
 
   useEffect(() => {
     if (dev) {
@@ -209,8 +208,6 @@ export function AuthProvider({
     };
   }, [dev]);
 
-  /* ─── Load Parent and Children ───────────────────── */
-
   useEffect(() => {
     if (dev || !session?.user) return;
 
@@ -236,7 +233,7 @@ export function AuthProvider({
 
         const { data: childRows, error: childError } = await supabase
           .from('children')
-          .select('id, name, class_level, avatar, school_id')
+          .select('id, name, class_level, avatar, school_id, board')
           .eq('parent_id', session.user.id)
           .order('created_at', { ascending: true });
 
@@ -262,8 +259,6 @@ export function AuthProvider({
       cancelled = true;
     };
   }, [session?.user?.id, dev]);
-
-  /* ─── Authentication Methods ─────────────────────── */
 
   const signInWithOAuth = async ({
     provider,
@@ -303,7 +298,6 @@ export function AuthProvider({
     }
   };
 
-  // Legacy interface retained for existing components.
   const signInWithGoogle = async (): Promise<void> => {
     const { error } = await signInWithOAuth({
       provider: 'google',
@@ -387,8 +381,6 @@ export function AuthProvider({
     }
   };
 
-  /* ─── Sign Out ───────────────────────────────────── */
-
   const signOut = async (): Promise<void> => {
     useApp.getState().reset();
     useApp.persist.clearStorage();
@@ -409,14 +401,12 @@ export function AuthProvider({
     }
   };
 
-  /* ─── Refresh Children ───────────────────────────── */
-
   const refreshChildren = async (): Promise<void> => {
     if (dev || !session?.user) return;
 
     const { data, error } = await supabase
       .from('children')
-      .select('id, name, class_level, avatar, school_id')
+      .select('id, name, class_level, avatar, school_id, board')
       .eq('parent_id', session.user.id)
       .order('created_at', { ascending: true });
 
@@ -427,8 +417,6 @@ export function AuthProvider({
 
     setKids((data as Child[]) ?? []);
   };
-
-  /* ─── Refresh Parent ─────────────────────────────── */
 
   const refreshParent = async (): Promise<void> => {
     if (dev || !session?.user) return;
@@ -447,13 +435,12 @@ export function AuthProvider({
     setParent(data ?? null);
   };
 
-  /* ─── Add Child ──────────────────────────────────── */
-
   const addChild = async (
     name: string,
     classLevel: number,
     avatar: string,
-    schoolId?: string | null
+    schoolId?: string | null,
+    board: EducationBoard = 'CBSE'
   ): Promise<{ error: string | null }> => {
     if (dev) {
       return { error: 'Not available in dev mode' };
@@ -473,6 +460,7 @@ export function AuthProvider({
       class_level: classLevel,
       avatar,
       school_id: schoolId ?? null,
+      board,
     });
 
     if (error) {
@@ -484,8 +472,6 @@ export function AuthProvider({
 
     return { error: null };
   };
-
-  /* ─── Context Provider ───────────────────────────── */
 
   return (
     <AuthContext.Provider
