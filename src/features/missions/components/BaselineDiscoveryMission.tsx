@@ -53,7 +53,7 @@ export default function BaselineDiscoveryMission() {
   const saveResponse = useApp((s) => s.saveResponse);
   const completeItem = useApp((s) => s.completeItem);
 
-  const curriculumTier = curriculumTierFrom(user?.tier);
+  const curriculumTier = curriculumTierFrom(user?.tier ?? 'foundation');
   const startedAtRef = useRef<number>(Date.now());
 
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
