@@ -10,15 +10,15 @@
   --cx-paper: #F7F6F1;
   --cx-paper-deep: #EFECE3;
   --cx-surface: #FFFFFF;
-  --cx-teal: #087F80;
-  --cx-teal-bright: #0B9D9E;
+  --cx-teal: #066869;
+  --cx-teal-bright: #087F80;
   --cx-mint: #55E2CE;
   --cx-cobalt: #5267E8;
   --cx-amber: #F5B942;
   --cx-coral: #F07868;
-  --cx-muted: #586579;
-  --cx-hairline: rgba(20, 32, 51, 0.10);
-  --cx-hairline-strong: rgba(20, 32, 51, 0.20);
+  --cx-muted: #424F63;
+  --cx-hairline: rgba(20, 32, 51, 0.12);
+  --cx-hairline-strong: rgba(20, 32, 51, 0.24);
 
   --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -29,7 +29,9 @@
   --shadow-artifact: 0 12px 32px -12px rgba(20, 32, 51, 0.08), 0 2px 6px rgba(20, 32, 51, 0.03);
 }
 
-* {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
@@ -90,7 +92,7 @@ h1, h2, h3, h4, .font-display {
   transform: translateY(0) scale(0.985);
 }
 
-/* Cadence-style Live Moving Screen Transitions */
+/* Live Moving Screen Transitions */
 @keyframes cxScreenEnter {
   0% {
     opacity: 0;
@@ -133,12 +135,18 @@ h1, h2, h3, h4, .font-display {
   animation: cxSoftFloat 6s ease-in-out infinite;
 }
 
+/* High-contrast visible keyboard focus across all interactive controls */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
-select:focus-visible {
-  outline: 2px solid var(--cx-teal);
-  outline-offset: 2px;
+select:focus-visible,
+textarea:focus-visible,
+[role='tab']:focus-visible,
+[role='button']:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--cx-teal);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 5px rgba(6, 104, 105, 0.22);
 }
 
 @media (prefers-reduced-motion: reduce) {
