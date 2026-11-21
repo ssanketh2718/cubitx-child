@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PRICE_INR, TRIAL_DAYS } from '../config';
+import {
+  FREE_DAILY_MISSIONS,
+  FREE_THINKING_SHEET_LIMIT,
+  PAID_THINKING_SHEET_MIN,
+  PRICE_INR,
+  TRIAL_DAYS,
+  TRIAL_PRICE_INR,
+} from '../config';
 import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
 
 interface HeroFrame {
@@ -20,34 +27,34 @@ interface HeroFrame {
 
 const HERO_FRAMES: HeroFrame[] = [
   {
-    id: 'mission-probe',
-    tabLabel: '01 · Mission',
-    contextLine: 'Neeta · Class 6 · Secret Machine',
-    statusLabel: 'Testing clues',
+    id: 'baseline-test',
+    tabLabel: '01 · 15-Min Test',
+    contextLine: 'Free 15-Minute Thinking Test · Classes 5–10',
+    statusLabel: 'Free to try',
     statusTone: 'teal',
-    title: 'Checks a second input before locking in a rule',
-    leftLabel: 'Input tried',
-    leftValue: '3 → 9',
-    rightLabel: 'Next check',
-    rightValue: '5 → 15',
+    title: 'See how your child handles clues, claims, and trade-offs',
+    leftLabel: 'Duration',
+    leftValue: '15 mins',
+    rightLabel: 'Result',
+    rightValue: 'Snapshot',
     transcript:
-      '“3 gave 9, which could be +6 or ×3. Testing 5 gave 15, so adding 6 doesn’t hold.”',
-    footnote: 'Observed · Using evidence (B2)',
+      'Three short interactive worlds—no marks, no timers—ending with a plain-English snapshot for parents.',
+    footnote: 'Zero card required · Instant family snapshot',
   },
   {
     id: 'thinking-sheet',
-    tabLabel: '02 · Sheet',
-    contextLine: 'Class 6 · CBSE · Science',
-    statusLabel: 'After class',
+    tabLabel: '02 · Sheets',
+    contextLine: 'Class 6 · CBSE & Maharashtra Board · Science',
+    statusLabel: 'Anti-copy',
     statusTone: 'amber',
-    title: 'Spots the reasoning gap in a real-world chapter twist',
-    leftLabel: 'Step 2 of 3',
-    leftValue: 'Spot the Catch',
-    rightLabel: 'Student note',
-    rightValue: 'Saved',
+    title: 'Chapter questions tailored per student so nobody can copy',
+    leftLabel: 'Free tier',
+    leftValue: `${FREE_THINKING_SHEET_LIMIT} questions`,
+    rightLabel: 'Full plan',
+    rightValue: `${PAID_THINKING_SHEET_MIN}+ / chapter`,
     transcript:
       '“Both plants got water, so we can’t blame soil until we check sunlight hours.”',
-    footnote: 'Auto-matched to Class 5–10 · CBSE & Maharashtra Board',
+    footnote: 'Shuffled order, dynamic names & zero A/B/C labels',
   },
   {
     id: 'parent-replay',
@@ -62,17 +69,17 @@ const HERO_FRAMES: HeroFrame[] = [
     rightValue: '5 of 8',
     transcript:
       'Earlier: picked on the first hunch. More recently: tests an extra clue before deciding.',
-    footnote: 'Step-by-step deterministic replay · Zero streak guilt',
+    footnote: 'Step-by-step replay + Weekly Championship updates',
   },
   {
     id: 'try-at-home',
     tabLabel: '04 · Try at Home',
-    contextLine: 'Dinner-Table Prompt · The 10-Second Rule',
-    statusLabel: 'For parents',
+    contextLine: 'Open on Free Plan · The 10-Second Rule',
+    statusLabel: 'Free forever',
     statusTone: 'teal',
-    title: 'One calm everyday question—no worksheets required',
-    leftLabel: 'Skill',
-    leftValue: 'Missing Info',
+    title: 'Everyday home questions that build reasoning at dinner',
+    leftLabel: 'Weekly moments',
+    leftValue: '3 prompts',
     rightLabel: 'Golden rule',
     rightValue: 'Wait 10s',
     transcript:
@@ -94,35 +101,33 @@ const EIGHT_SKILLS_PREVIEW = [
 
 const FAQ_ITEMS = [
   {
-    q: 'Does CubitX give marks, ranks, or IQ scores?',
-    a: 'Never. Marks and rankings make children rush for the “safe” answer. CubitX logs observable thinking habits—like checking an extra clue or updating a first guess—and shows them to parents in plain English.',
+    q: 'What is included in the Free Plan?',
+    a: `Every family gets the 15-Minute Thinking Test, ${FREE_DAILY_MISSIONS} daily missions every day, full access to Try at Home, ${FREE_THINKING_SHEET_LIMIT} thinking questions per chapter, Weekly Championship entry, and a restricted Parent View snapshot.`,
   },
   {
-    q: 'How do Thinking Sheets match my child’s school syllabus?',
-    a: 'When you add your child’s profile, you pick their Class (5–10) and School Board (CBSE or Maharashtra State Board). CubitX automatically loads chapter-aligned Thinking Sheets across Science, History, Geography, and Extra Curricular.',
+    q: 'What unlocks when I pay ₹49 for 7 days or ₹999/year?',
+    a: `Full unlock opens all ${PAID_THINKING_SHEET_MIN}+ tailored Thinking Sheet questions per chapter (CBSE & Maharashtra State Board), the complete unblurred Parent View (verbatim child quotes, step-by-step replay, 8-area progress web), Monthly Championship Awards eligibility, and up to 3 child profiles.`,
+  },
+  {
+    q: 'What if I join individually now and my child’s school joins CubitX later?',
+    a: 'If your child’s school partners with CubitX later at a school rate, any remaining balance from your individual plan automatically carries forward for next year. Nothing is lost.',
+  },
+  {
+    q: 'How do you stop classmates from copying Thinking Sheet answers?',
+    a: 'Each student receives a tailored set—question order, character names, scenario values, and viewpoint positions are shuffled per child with zero A/B/C labels.',
   },
   {
     q: 'Can my child open Parent View by mistake?',
-    a: 'No. Both Parent View and Try at Home are protected by a 4-digit Parent PIN with optional Fingerprint / Face ID unlock on supported devices.',
-  },
-  {
-    q: 'What happens if my child skips a few days?',
-    a: 'Nothing breaks. Missions are organised by calendar date with zero streak-loss penalties or “falling behind” alerts. Children can pick today’s date or revisit any earlier date calmly.',
-  },
-  {
-    q: 'How does pricing and renewal work?',
-    a: `You start with a full ${TRIAL_DAYS}-day free trial with no card required. After that, full annual access is ₹${PRICE_INR}/year for up to 3 child profiles—manual renewal only, with no automatic recurring charges.`,
+    a: 'No. Parent View is protected by a 4-digit Parent PIN with optional Fingerprint / Face ID unlock on supported devices.',
   },
 ];
 
 export default function Landing() {
   const navigate = useNavigate();
 
-  // Moving Hero Screen State
   const [frameIdx, setFrameIdx] = useState(0);
   const [heroPaused, setHeroPaused] = useState(false);
 
-  // Interactive Sandbox State (Mission vs Thinking Sheet)
   const [sandboxTab, setSandboxTab] = useState<'mission' | 'sheet'>('mission');
   const [machineInput, setMachineInput] = useState<number>(3);
   const [probes, setProbes] = useState<Array<{ x: number; y: number }>>([
@@ -130,13 +135,11 @@ export default function Landing() {
   ]);
   const [ruleGuess, setRuleGuess] = useState<'plus6' | 'times3' | null>(null);
 
-  // Interactive Thinking Sheet Preview State
   const [sheetBoard, setSheetBoard] = useState<
     'CBSE' | 'Maharashtra State Board'
   >('CBSE');
   const [sheetPick, setSheetPick] = useState<number | null>(null);
 
-  // FAQ State
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
@@ -173,9 +176,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] text-[#142033] font-sans">
-      {/* =================================================================
-          CLEAN EDITORIAL HEADER (SINGLE TOP BAR)
-          ================================================================= */}
+      {/* SINGLE TOP BAR */}
       <header className="sticky top-0 z-50 border-b border-[#142033]/10 bg-[#F7F6F1]/90 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <a href="#top" className="flex items-center gap-2.5">
@@ -189,19 +190,19 @@ export default function Landing() {
 
           <nav
             aria-label="Primary sections"
-            className="hidden md:flex items-center gap-7 text-xs font-semibold text-[#586579]"
+            className="hidden md:flex items-center gap-6 text-xs font-semibold text-[#586579]"
           >
             <a href="#sandbox" className="hover:text-[#142033] transition">
-              Try it live
+              Try live
             </a>
             <a href="#how-it-works" className="hover:text-[#142033] transition">
               How it works
             </a>
-            <a href="#parents" className="hover:text-[#142033] transition">
-              Parent View
+            <a href="#schools" className="hover:text-[#142033] transition">
+              For Schools
             </a>
             <a href="#access" className="hover:text-[#142033] transition">
-              Access
+              Plans
             </a>
             <a href="#faq" className="hover:text-[#142033] transition">
               FAQ
@@ -221,7 +222,7 @@ export default function Landing() {
               onClick={handleStart}
               className="cx-action-pill bg-[#142033] px-4 py-2 text-xs text-white hover:bg-[#087F80] cursor-pointer"
             >
-              Start free →
+              15-Min Test →
             </button>
           </div>
         </div>
@@ -229,7 +230,7 @@ export default function Landing() {
 
       <main id="top" className="mx-auto max-w-6xl px-4 sm:px-6">
         {/* =================================================================
-            01 · HERO — CALM EDITORIAL COPY + MOVING LIVE PRODUCT SCREEN
+            01 · HERO — 15-MINUTE THINKING TEST + LIVE MOVING SCREEN
             ================================================================= */}
         <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.02fr_0.98fr] lg:py-24">
           <div className="space-y-6">
@@ -242,14 +243,14 @@ export default function Landing() {
               </span>
             </div>
 
-            <h1 className="font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-[#142033] sm:text-5xl lg:text-[60px]">
+            <h1 className="font-display text-4xl font-extrabold leading-[1.04] tracking-tight text-[#142033] sm:text-5xl lg:text-[58px]">
               Eyes on how they think, not just the final answer.
             </h1>
 
             <p className="max-w-xl text-base leading-relaxed text-[#586579] sm:text-lg">
-              Daily thinking missions and syllabus-connected Thinking Sheets
-              that help children test clues, spot weak reasoning, and explain
-              ideas in their own words—without marks, timers, or streak guilt.
+              Start with our free <strong>15-Minute Thinking Test</strong>. Build
+              real reasoning with daily missions, board-matched Thinking Sheets,
+              and Weekly Championships—without marks, timers, or streak guilt.
             </p>
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -258,7 +259,7 @@ export default function Landing() {
                 onClick={handleStart}
                 className="cx-action-pill bg-[#142033] px-7 py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
               >
-                <span>Start {TRIAL_DAYS}-day free trial</span>
+                <span>Take Free 15-Min Thinking Test</span>
                 <span aria-hidden="true">→</span>
               </button>
 
@@ -270,27 +271,24 @@ export default function Landing() {
               </a>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-2 text-xs font-medium text-[#586579]">
-              <span>No credit card needed</span>
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-2 text-xs font-medium text-[#586579]">
+              <span>Free tier ({FREE_DAILY_MISSIONS} daily missions + Try at Home)</span>
               <span>·</span>
-              <span>Up to 3 child profiles</span>
-              <span>·</span>
-              <span>PIN-locked Parent View</span>
+              <span>Full unlock ₹{TRIAL_PRICE_INR} for {TRIAL_DAYS} days</span>
             </div>
           </div>
 
-          {/* LIVE MOVING PRODUCT SCREEN (CADENCE STYLE) */}
+          {/* CADENCE-STYLE LIVE MOVING SCREEN */}
           <div
             onMouseEnter={() => setHeroPaused(true)}
             onMouseLeave={() => setHeroPaused(false)}
             className="cx-soft-float"
           >
             <div className="rounded-[28px] border border-[#142033]/12 bg-white p-5 sm:p-7 shadow-[var(--shadow-device)] space-y-5">
-              {/* TOP ARTIFACT BAR */}
               <div className="flex items-center justify-between gap-3 border-b border-[#142033]/8 pb-4">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#F7F6F1] font-display text-xs font-extrabold text-[#142033]">
-                    N
+                    CX
                   </span>
                   <div className="min-w-0">
                     <div className="truncate text-xs font-bold text-[#142033]">
@@ -324,7 +322,6 @@ export default function Landing() {
                 </span>
               </div>
 
-              {/* ANIMATED FRAME CONTENT */}
               <div key={activeFrame.id} className="cx-screen-enter space-y-4">
                 <h2 className="font-display text-lg sm:text-xl font-extrabold text-[#142033] leading-snug">
                   {activeFrame.title}
@@ -354,7 +351,6 @@ export default function Landing() {
                 </div>
               </div>
 
-              {/* INTERACTIVE 4-STAGE PROGRESS STEPPER */}
               <div className="space-y-2.5 pt-1">
                 <div className="grid grid-cols-4 gap-2">
                   {HERO_FRAMES.map((frame, idx) => {
@@ -415,7 +411,7 @@ export default function Landing() {
         </section>
 
         {/* =================================================================
-            02 · LIVE INTERACTIVE SANDBOX (TEST BOTH MISSIONS & THINKING SHEETS)
+            02 · LIVE INTERACTIVE SANDBOX
             ================================================================= */}
         <section id="sandbox" className="cx-hairline-t py-16 sm:py-24 space-y-10">
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -498,7 +494,6 @@ export default function Landing() {
               </div>
 
               <div className="space-y-5 rounded-2xl border border-[#142033]/10 bg-[#F7F6F1] p-5 sm:p-6">
-                {/* INPUT -> OUTPUT DISPLAY */}
                 <div className="grid grid-cols-3 items-center gap-3 rounded-2xl border border-[#142033]/8 bg-white p-4 text-center">
                   <div>
                     <div className="font-mono-tech text-[10px] font-semibold uppercase text-[#586579]">
@@ -523,7 +518,6 @@ export default function Landing() {
                   </div>
                 </div>
 
-                {/* NUMBER PROBES */}
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-[#586579]">
                     Tap another number to test:
@@ -546,7 +540,6 @@ export default function Landing() {
                   </div>
                 </div>
 
-                {/* HYPOTHESIS CHECK */}
                 <div className="space-y-2">
                   <div className="text-xs font-semibold text-[#586579]">
                     Which rule fits all your logged checks?
@@ -601,14 +594,16 @@ export default function Landing() {
             <div className="grid grid-cols-1 gap-8 rounded-[28px] border border-[#142033]/10 bg-white p-6 sm:p-10 shadow-[var(--shadow-artifact)] lg:grid-cols-[0.9fr_1.1fr] items-center">
               <div className="space-y-4">
                 <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                  Thinking Sheet Demo · After Class
+                  Thinking Sheet Demo · Anti-Copy
                 </span>
                 <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
-                  Solve each school topic on your own—in 3 clean steps.
+                  Tailored per student—no copying across classmates.
                 </h3>
                 <p className="text-sm text-[#586579] leading-relaxed">
-                  Automatically matched to your child’s Class (5–10) and Board
-                  across Science, History, Geography, and Extra Curricular.
+                  Automatically matched to Class (5–10) and Board across
+                  Science, History, Geography, and Extra Curricular. Free gives{' '}
+                  {FREE_THINKING_SHEET_LIMIT} questions; Paid unlocks{' '}
+                  {PAID_THINKING_SHEET_MIN}+ per chapter.
                 </p>
 
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -682,7 +677,7 @@ export default function Landing() {
         </section>
 
         {/* =================================================================
-            03 · HOW CUBITX WORKS — CALM HAIRLINE ROWS (NO CARD SOUP)
+            03 · HOW CUBITX WORKS + CHAMPIONSHIPS (HAIRLINE ROWS)
             ================================================================= */}
         <section id="how-it-works" className="cx-hairline-t py-16 sm:py-24 space-y-14">
           <div className="max-w-2xl space-y-2">
@@ -690,24 +685,24 @@ export default function Landing() {
               How It Works
             </div>
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
-              Built for real family rhythms, not screen addiction.
+              Built for real family rhythms and genuine curiosity.
             </h2>
           </div>
 
           <div className="divide-y divide-[#142033]/10 border-t border-b border-[#142033]/10">
-            {/* ROW 1: DATE-BASED MISSIONS */}
             <div className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center">
               <div className="space-y-2.5">
                 <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
-                  01 · Daily Missions
+                  01 · Daily Missions &amp; Weekly Championship
                 </div>
                 <h3 className="font-display text-2xl font-extrabold text-[#142033]">
-                  Pick today’s date, or any earlier date.
+                  Pick today’s date, or join the Weekly Championship.
                 </h3>
                 <p className="text-sm text-[#586579] leading-relaxed">
-                  No streak counters, no “missed Day 4” guilt. Children open
-                  today’s mission, test clues freely, and build a calm habit of
-                  coming back out of curiosity.
+                  Solve {FREE_DAILY_MISSIONS} daily missions free, enter the
+                  in-app Weekly Championship for kids and schools, and earn
+                  Monthly Championship Awards and certificates for sharp
+                  reasoning.
                 </p>
               </div>
 
@@ -716,10 +711,10 @@ export default function Landing() {
                   { day: 'Thu', num: '19', status: 'Done', active: false },
                   { day: 'Fri', num: '20', status: 'Done', active: false },
                   { day: 'Today', num: '21', status: 'Open', active: true },
-                  { day: 'Sun', num: '22', status: 'Up Next', active: false },
+                  { day: 'Wknd', num: '🏆', status: 'Champ', active: false },
                 ].map((d) => (
                   <div
-                    key={d.num}
+                    key={d.day}
                     className={`rounded-2xl border p-4 ${
                       d.active
                         ? 'border-[#142033] bg-[#142033] text-white'
@@ -754,28 +749,27 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* ROW 2: THINKING SHEETS */}
             <div className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center">
               <div className="space-y-2.5">
                 <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
-                  02 · Thinking Sheets
+                  02 · Thinking Sheets (CBSE &amp; Maharashtra Board)
                 </div>
                 <h3 className="font-display text-2xl font-extrabold text-[#142033]">
                   School chapters turned into real thinking.
                 </h3>
                 <p className="text-sm text-[#586579] leading-relaxed">
-                  Automatically set by Class (5–10) and Board (CBSE or
-                  Maharashtra State Board). Every sheet moves through three
-                  steps: The Twist, Spot the Catch, and Your Reason.
+                  Tailored per student across Science, History, Geography, and
+                  Extra Curricular. Every question moves through The Twist, Spot
+                  the Catch, and Your Reason.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-[#142033]/10 bg-white divide-y divide-[#142033]/8">
                 {[
-                  { subject: 'Science', meta: 'The Twist · Spot the Catch · Your Reason', tag: 'Done' },
-                  { subject: 'History', meta: 'Source checks & missing viewpoints', tag: 'Open' },
-                  { subject: 'Geography', meta: 'Cause, climate & trade-off prompts', tag: 'Open' },
-                  { subject: 'Extra Curricular', meta: 'AI claims, money sense & daily logic', tag: 'Open' },
+                  { subject: 'Science', meta: 'The Twist · Spot the Catch · Your Reason', tag: '4 Free / 12+ Paid' },
+                  { subject: 'History', meta: 'Source checks & missing viewpoints', tag: '4 Free / 12+ Paid' },
+                  { subject: 'Geography', meta: 'Cause, climate & trade-off prompts', tag: '4 Free / 12+ Paid' },
+                  { subject: 'Extra Curricular', meta: 'AI claims, money sense & daily logic', tag: '4 Free / 12+ Paid' },
                 ].map((row) => (
                   <div
                     key={row.subject}
@@ -787,13 +781,7 @@ export default function Landing() {
                       </div>
                       <div className="text-xs text-[#586579]">{row.meta}</div>
                     </div>
-                    <span
-                      className={`rounded-full px-3 py-0.5 text-[11px] font-semibold ${
-                        row.tag === 'Done'
-                          ? 'bg-[#087F80]/10 text-[#087F80]'
-                          : 'bg-[#F7F6F1] text-[#586579]'
-                      }`}
-                    >
+                    <span className="shrink-0 rounded-full bg-[#F7F6F1] px-3 py-0.5 font-mono-tech text-[10px] font-semibold text-[#586579]">
                       {row.tag}
                     </span>
                   </div>
@@ -801,11 +789,7 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* ROW 3: PARENT VIEW & TRY AT HOME */}
-            <div
-              id="parents"
-              className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center"
-            >
+            <div className="grid grid-cols-1 gap-8 py-10 lg:grid-cols-[0.9fr_1.1fr] items-center">
               <div className="space-y-2.5">
                 <div className="font-mono-tech text-[11px] font-bold text-[#087F80]">
                   03 · Parent View &amp; Try at Home
@@ -814,9 +798,9 @@ export default function Landing() {
                   Honest snapshots of eight thinking skills.
                 </h3>
                 <p className="text-sm text-[#586579] leading-relaxed">
-                  Protected by a 4-digit Parent PIN or Fingerprint. Inspect
-                  step-by-step replays of real moments, see what is observed vs.
-                  coming up next, and get three calm home prompts each week.
+                  Try at Home is completely open on the Free plan. Unlock the
+                  full PIN-protected Parent View for step-by-step replays,
+                  verbatim child quotes, and 8-area growth maps.
                 </p>
               </div>
 
@@ -851,103 +835,171 @@ export default function Landing() {
         </section>
 
         {/* =================================================================
-            04 · AGE PATHWAYS (CLASSES 5–7 & CLASSES 8–10)
+            04 · PARTNER WITH US (FOR SCHOOLS)
             ================================================================= */}
-        <section className="py-12 sm:py-16">
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-            <div className="rounded-3xl border border-[#142033]/10 bg-white p-8 space-y-3">
+        <section id="schools" className="py-12 sm:py-16">
+          <div className="rounded-[28px] border border-[#142033]/12 bg-white p-7 sm:p-10 shadow-[var(--shadow-artifact)] grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr] items-center">
+            <div className="space-y-3">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                Classes 5–7 · Foundation
+                Partner With Us · For Schools
               </div>
-              <h3 className="font-display text-2xl font-extrabold text-[#142033]">
-                Concrete clues &amp; pattern testing
-              </h3>
+              <h2 className="font-display text-3xl font-extrabold text-[#142033]">
+                Bring CubitX to your classrooms (Classes 5–10).
+              </h2>
               <p className="text-sm text-[#586579] leading-relaxed">
-                Visual mysteries where younger learners practise testing more
-                than one clue, noticing missing details, and explaining “why” in
-                plain words.
+                Partner schools receive class-wide Teacher Dashboards, guided
+                School-Level Activities, Weekly Championship participation, and
+                Monthly Championship Awards—with zero extra grading work for
+                teachers.
+              </p>
+              <p className="text-xs font-medium text-[#087F80]">
+                Already joined as an individual parent? If your child’s school
+                partners with CubitX later, your remaining balance carries
+                forward to next year automatically.
               </p>
             </div>
 
-            <div className="rounded-3xl border border-[#142033]/10 bg-white p-8 space-y-3">
-              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                Classes 8–10 · Advanced
+            <div className="rounded-2xl border border-[#142033]/10 bg-[#F7F6F1] p-6 space-y-4">
+              <ul className="space-y-2 text-xs sm:text-sm font-medium text-[#142033]">
+                <li className="flex items-center gap-2">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Class-wide Teacher Dashboard (zero student ranking)</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Ready-to-run School-Level Activity kits</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-[#087F80] font-bold">✓</span>
+                  <span>Weekly Championship &amp; Monthly Championship Awards</span>
+                </li>
+              </ul>
+
+              <div className="flex flex-wrap gap-2.5 pt-1">
+                <a
+                  href="mailto:hello@cubitx.in?subject=CubitX%20School%20Partnership%20Inquiry"
+                  className="cx-action-pill bg-[#142033] px-5 py-3 text-xs text-white hover:bg-[#087F80]"
+                >
+                  Partner with us →
+                </a>
+                <button
+                  type="button"
+                  onClick={() => navigate('/teacher')}
+                  className="rounded-full border border-[#142033]/15 bg-white px-5 py-3 text-xs font-bold text-[#142033] hover:border-[#142033] transition cursor-pointer"
+                >
+                  Teacher Sign In
+                </button>
               </div>
-              <h3 className="font-display text-2xl font-extrabold text-[#142033]">
-                Ambiguity, trade-offs &amp; AI checks
-              </h3>
-              <p className="text-sm text-[#586579] leading-relaxed">
-                Real-world dilemmas, auditing confident AI claims, spotting weak
-                comparisons, and weighing competing constraints without a single
-                formula.
-              </p>
             </div>
           </div>
         </section>
 
         {/* =================================================================
-            05 · SIMPLE FAMILY ACCESS (TRANSPARENT PRICING)
+            05 · TRANSPARENT PLANS (FREE / ₹49 7-DAY / ₹999 YEAR)
             ================================================================= */}
-        <section id="access" className="cx-hairline-t py-16 sm:py-24">
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1fr_1fr] items-start">
-            <div className="space-y-3">
-              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                Transparent Family Access
-              </div>
-              <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
-                Start free for {TRIAL_DAYS} days. Stay only if you see the shift.
-              </h2>
-              <p className="text-sm text-[#586579] max-w-md leading-relaxed">
-                One simple family plan covers up to three children with separate
-                profiles, boards, and parent snapshots.
-              </p>
+        <section id="access" className="cx-hairline-t py-16 sm:py-24 space-y-10">
+          <div className="max-w-2xl space-y-2">
+            <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+              Transparent Family Plans
             </div>
+            <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
+              Start free. Unlock full insights for ₹{TRIAL_PRICE_INR}.
+            </h2>
+          </div>
 
-            <div className="rounded-3xl border border-[#142033]/12 bg-white p-7 sm:p-9 shadow-[var(--shadow-artifact)] space-y-6">
-              <div className="flex items-baseline justify-between gap-4 border-b border-[#142033]/10 pb-5">
-                <div>
-                  <div className="font-display text-lg font-extrabold text-[#142033]">
-                    Full Year Family Access
-                  </div>
-                  <div className="text-xs text-[#586579]">
-                    After your {TRIAL_DAYS}-day free trial
-                  </div>
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+            {/* FREE PLAN */}
+            <div className="rounded-3xl border border-[#142033]/12 bg-white p-7 flex flex-col justify-between gap-6">
+              <div className="space-y-4">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#586579]">
+                  Free Forever
                 </div>
-                <div className="text-right">
-                  <span className="font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
-                    ₹{PRICE_INR}
-                  </span>
-                  <span className="text-xs font-semibold text-[#586579]">
-                    /year
-                  </span>
+                <div className="font-display text-3xl font-extrabold text-[#142033]">
+                  ₹0
                 </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-[#586579]">
+                  <li>✓ Free 15-Minute Thinking Test</li>
+                  <li>✓ {FREE_DAILY_MISSIONS} daily missions every day</li>
+                  <li>✓ Try at Home (full access)</li>
+                  <li>✓ {FREE_THINKING_SHEET_LIMIT} Thinking Sheet questions / chapter</li>
+                  <li>✓ Restricted Parent View snapshot</li>
+                </ul>
               </div>
-
-              <ul className="space-y-2.5 text-sm text-[#142033]">
-                <li className="flex items-center gap-2.5">
-                  <span className="text-[#087F80] font-bold">✓</span>
-                  <span>Up to 3 child profiles (Classes 5–10)</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="text-[#087F80] font-bold">✓</span>
-                  <span>Daily Missions + CBSE &amp; Maharashtra Board Thinking Sheets</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="text-[#087F80] font-bold">✓</span>
-                  <span>PIN-locked Parent View &amp; weekly Try at Home prompts</span>
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <span className="text-[#087F80] font-bold">✓</span>
-                  <span>Manual renewal only — zero auto-debit surprises</span>
-                </li>
-              </ul>
-
               <button
                 type="button"
                 onClick={handleStart}
-                className="cx-action-pill w-full bg-[#142033] py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
+                className="w-full rounded-full border border-[#142033]/20 py-3 text-xs font-extrabold text-[#142033] hover:border-[#142033] transition cursor-pointer"
               >
-                Create Free Family Account →
+                Start Free →
+              </button>
+            </div>
+
+            {/* ₹49 / 7 DAYS */}
+            <div className="rounded-3xl border-2 border-[#087F80] bg-white p-7 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-6">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#087F80]">
+                    Full Unlock Trial
+                  </span>
+                  <span className="rounded-full bg-[#087F80]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#087F80]">
+                    Most popular start
+                  </span>
+                </div>
+                <div>
+                  <span className="font-display text-3xl font-extrabold tabular-nums text-[#142033]">
+                    ₹{TRIAL_PRICE_INR}
+                  </span>
+                  <span className="text-xs font-semibold text-[#586579]">
+                    {' '}
+                    / {TRIAL_DAYS} days
+                  </span>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-[#142033]">
+                  <li>✓ Full unblurred Parent View + Replay</li>
+                  <li>✓ {PAID_THINKING_SHEET_MIN}+ tailored Thinking Sheet questions / chapter</li>
+                  <li>✓ Weekly Championship + Monthly Awards</li>
+                  <li>✓ Up to 3 child profiles</li>
+                  <li>✓ No auto-debit after {TRIAL_DAYS} days</li>
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={handleStart}
+                className="cx-action-pill w-full bg-[#142033] py-3.5 text-xs text-white hover:bg-[#087F80] cursor-pointer"
+              >
+                Try {TRIAL_DAYS} Days for ₹{TRIAL_PRICE_INR} →
+              </button>
+            </div>
+
+            {/* ₹999 / YEAR */}
+            <div className="rounded-3xl border border-[#142033]/12 bg-white p-7 flex flex-col justify-between gap-6">
+              <div className="space-y-4">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#586579]">
+                  Full Year Family Plan
+                </div>
+                <div>
+                  <span className="font-display text-3xl font-extrabold tabular-nums text-[#142033]">
+                    ₹{PRICE_INR}
+                  </span>
+                  <span className="text-xs font-semibold text-[#586579]">
+                    {' '}
+                    / year
+                  </span>
+                </div>
+                <ul className="space-y-2 text-xs sm:text-sm text-[#586579]">
+                  <li>✓ Everything unlocked for 12 months</li>
+                  <li>✓ Up to 3 child profiles (Classes 5–10)</li>
+                  <li>✓ CBSE &amp; Maharashtra State Board sheets</li>
+                  <li>✓ School credit carry-forward guarantee</li>
+                  <li>✓ Manual renewal only</li>
+                </ul>
+              </div>
+              <button
+                type="button"
+                onClick={handleStart}
+                className="w-full rounded-full border border-[#142033]/20 py-3 text-xs font-extrabold text-[#142033] hover:bg-[#142033] hover:text-white transition cursor-pointer"
+              >
+                Get Full Year →
               </button>
             </div>
           </div>
@@ -999,35 +1051,12 @@ export default function Landing() {
             </div>
           </div>
         </section>
-
-        {/* =================================================================
-            07 · CLOSING CTA
-            ================================================================= */}
-        <section className="cx-hairline-t py-16 sm:py-24 text-center space-y-6">
-          <h2 className="mx-auto max-w-2xl font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033] leading-[1.08]">
-            Develop the mind behind the marks.
-          </h2>
-          <p className="mx-auto max-w-lg text-sm sm:text-base text-[#586579]">
-            Set up your child’s profile in under a minute and explore today’s
-            mission together.
-          </p>
-          <div className="pt-2">
-            <button
-              type="button"
-              onClick={handleStart}
-              className="cx-action-pill bg-[#142033] px-8 py-4 text-sm text-white hover:bg-[#087F80] cursor-pointer"
-            >
-              Start {TRIAL_DAYS}-day free trial →
-            </button>
-          </div>
-        </section>
       </main>
 
-      {/* MINIMAL EDITORIAL FOOTER */}
       <footer className="border-t border-[#142033]/10 bg-[#EFECE3]/60 py-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 text-xs text-[#586579]">
           <div className="font-display font-bold text-[#142033]">
-            CubitX · Thinking Missions &amp; Syllabus Thinking Sheets
+            CubitX · Develop the mind behind the marks.
           </div>
           <div>© 2026 CubitX · hello@cubitx.in</div>
         </div>

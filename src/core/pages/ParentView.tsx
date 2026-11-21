@@ -7,7 +7,17 @@ import {
   analyzeThinking,
   buildMomentsFromResponses,
 } from '../../features/parent-insights/thinkingAnalysis';
-import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
+import {
+  triggerDialTick,
+  triggerSoftConfirm,
+} from '../lib/tactileFeedback';
+import {
+  PRICE_INR,
+  TRIAL_DAYS,
+  TRIAL_PAYMENT_LINK,
+  TRIAL_PRICE_INR,
+} from '../config';
+import { isDevMode } from '../auth/devMode';
 
 type TimeWindow = '7d' | '30d' | '90d' | 'all';
 type CoverageStatus = 'observed' | 'early' | 'review' | 'upcoming';
@@ -35,16 +45,16 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'A1',
     shortName: 'Questions',
     name: 'Asking good questions',
-    summary: 'Asks targeted questions before guessing.',
+    summary: 'Asks targeted questions that narrow down a mystery before guessing.',
     noticeAtHome: [
-      'Pauses before answering to check what a clue or rule really means.',
-      'Asks focused questions that test one idea at a time.',
+      'Pauses before answering to ask what a rule or clue actually means.',
+      'Asks specific “what if” questions instead of broad guesses.',
     ],
     whatWeSaw: 'Selected targeted diagnostic questions before changing variables.',
-    stillExploring: 'How consistently this shows up across open-ended topics.',
+    stillExploring: 'How consistently this shows up in open-ended, unstructured problems.',
     status: 'observed',
     obsCount: 3,
-    howWeObserve: 'Tracked when a learner asks a focused question before locking in a choice.',
+    howWeObserve: 'Tracked when your child isolates an unknown variable before making a choice.',
     growthSeries: [28, 42, 58, 72],
     politeProgressNote:
       'Showing steady, thoughtful growth—moving from broad guesses toward asking focused questions that test one idea at a time.',
@@ -55,16 +65,16 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'A2',
     shortName: 'Missing Info',
     name: 'Spotting missing info',
-    summary: 'Notices when a key fact is missing.',
+    summary: 'Notices when a story, claim, or puzzle is leaving out a crucial fact.',
     noticeAtHome: [
-      'Points out when an important detail is left out.',
-      'Checks what is still unknown before concluding.',
+      'Points out when a claim sounds confident but lacks proof.',
+      'Asks “how do we know that?” before accepting an assumption.',
     ],
-    whatWeSaw: 'Flagged an unstated constraint during investigation.',
-    stillExploring: 'A few more varied topics will show how often this appears.',
+    whatWeSaw: 'Flagged an unstated constraint during a logic challenge.',
+    stillExploring: 'We need a few more varied activities to see if this habit repeats.',
     status: 'early',
     obsCount: 1,
-    howWeObserve: 'Tracked when a learner identifies an omitted fact or hidden assumption.',
+    howWeObserve: 'Tracked when your child identifies an omitted fact or hidden assumption.',
     growthSeries: [20, 26, 35, 48],
     politeProgressNote:
       'Making a warm, encouraging start—beginning to pause and notice when an important clue has been left out.',
@@ -75,16 +85,16 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'B1',
     shortName: 'Reasons',
     name: 'Giving reasons',
-    summary: 'Explains why a choice makes sense.',
+    summary: 'Connects a decision to clear logic rather than “just because”.',
     noticeAtHome: [
-      'Connects a decision to clear reasons rather than “just because”.',
-      'Explains how two ideas fit together.',
+      'Explains why one option works better than another.',
+      'Links two separate clues together to back up a point.',
     ],
-    whatWeSaw: 'Provided clear, reason-backed choices across activities.',
-    stillExploring: 'How explanations hold up when two strong options compete.',
+    whatWeSaw: 'Gave clear, constraint-based reasons across multiple missions.',
+    stillExploring: 'Whether explanations stay just as clear under competing trade-offs.',
     status: 'observed',
     obsCount: 3,
-    howWeObserve: 'Tracked when a learner links their selection to a clear reason.',
+    howWeObserve: 'Tracked when your child links their choice directly to an observed cause or rule.',
     growthSeries: [32, 46, 60, 74],
     politeProgressNote:
       'Developing a clear voice—increasingly comfortable explaining the “why” behind choices in their own words.',
@@ -95,16 +105,16 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'B2',
     shortName: 'Evidence',
     name: 'Using evidence',
-    summary: 'Checks clues and test results before concluding.',
+    summary: 'Checks clues and test results before locking in a conclusion.',
     noticeAtHome: [
-      'Tests an idea more than once before trusting a first match.',
-      'Points back to actual results when explaining.',
+      'Tests an idea a second time instead of trusting the first coincidence.',
+      'Refers back to actual facts or observations when explaining.',
     ],
     whatWeSaw: 'Tested multiple inputs and compared outputs before confirming a rule.',
-    stillExploring: 'How clues are weighed when two signals conflict.',
+    stillExploring: 'How they weigh evidence when two clues point in opposite directions.',
     status: 'observed',
     obsCount: 4,
-    howWeObserve: 'Tracked when a learner checks multiple clues or test results before deciding.',
+    howWeObserve: 'Tracked when your child runs verification probes to rule out competing ideas.',
     growthSeries: [35, 52, 68, 82],
     politeProgressNote:
       'A wonderful area of strength right now—patiently checking extra clues before settling on a conclusion.',
@@ -115,19 +125,19 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'B3',
     shortName: 'Weak Logic',
     name: 'Detecting weak reasoning',
-    summary: 'Spots leaps or unfair comparisons.',
+    summary: 'Spots leaps in logic, small sample sizes, or unfair comparisons.',
     noticeAtHome: [
-      'Notices when a claim jumps from a tiny sample to a sweeping rule.',
-      'Questions one-sided comparisons.',
+      'Notices when someone generalizes from just one or two examples.',
+      'Questions bold claims that don’t have a fair comparison.',
     ],
-    whatWeSaw: 'Recent observation is currently under review.',
-    stillExploring: 'Will update once review completes.',
+    whatWeSaw: 'Recent activity is currently being reviewed.',
+    stillExploring: 'Will update once review is complete.',
     status: 'review',
     obsCount: 1,
-    howWeObserve: 'Tracked when a learner spots leaps in logic or unfair comparisons.',
+    howWeObserve: 'Tracked when your child flags unsupported generalizations or weak claims.',
     growthSeries: [18, 25, 32, 42],
     politeProgressNote:
-      'Early signs are very promising—starting to look past confident claims to check whether the logic holds up.',
+      'Early signs are very promising—starting to look past confident headlines to check whether the logic holds up.',
     webScore: 42,
   },
   {
@@ -135,19 +145,19 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'C1',
     shortName: 'Trade-Offs',
     name: 'Weighing trade-offs',
-    summary: 'Compares gains and limits across options.',
+    summary: 'Compares what is gained and what is given up across workable options.',
     noticeAtHome: [
-      'Looks at what is gained and what is given up in a choice.',
-      'Balances limits like time or cost.',
+      'Weighs pros and cons instead of grabbing the first option.',
+      'Balances limits like time, cost, or effort when planning.',
     ],
-    whatWeSaw: 'Upcoming activities will introduce trade-off choices.',
-    stillExploring: 'Not yet explored in this window.',
+    whatWeSaw: 'Upcoming missions will introduce multi-option trade-off challenges.',
+    stillExploring: 'Not yet explored in this time window.',
     status: 'upcoming',
     obsCount: 0,
-    howWeObserve: 'Tracked when a learner weighs competing gains and limits across choices.',
+    howWeObserve: 'Tracked when your child balances competing constraints across viable choices.',
     growthSeries: [15, 18, 22, 28],
     politeProgressNote:
-      'Just ahead on the journey—upcoming activities will gently introduce balancing competing choices and limits.',
+      'Just ahead on the journey—upcoming missions will gently introduce balancing competing choices and limits.',
     webScore: 28,
   },
   {
@@ -155,16 +165,16 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'C2',
     shortName: 'Updating',
     name: 'Updating on evidence',
-    summary: 'Revises a first guess when new clues appear.',
+    summary: 'Willing to revise a first hunch when new information disagrees.',
     noticeAtHome: [
-      'Willing to change an initial idea when new facts disagree.',
-      'Stays open rather than defending a first hunch.',
+      'Changes their mind calmly when shown a new fact.',
+      'Doesn’t stay stuck on a first guess just to be right.',
     ],
     whatWeSaw: 'Revised a candidate rule after a second test contradicted the first guess.',
-    stillExploring: 'How readily this happens across longer challenges.',
+    stillExploring: 'How readily this happens across longer, multi-step puzzles.',
     status: 'early',
     obsCount: 2,
-    howWeObserve: 'Tracked when a learner revises a prior choice after new evidence appears.',
+    howWeObserve: 'Tracked when your child updates or refines a prior guess after new feedback.',
     growthSeries: [24, 38, 52, 66],
     politeProgressNote:
       'Showing lovely flexibility—willing to let go of a first guess when a new clue tells a clearer story.',
@@ -175,19 +185,19 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     code: 'C3',
     shortName: 'Reflecting',
     name: 'Reflecting',
-    summary: 'Looks back on what strategy helped.',
+    summary: 'Looks back on what strategy worked and what to try differently next time.',
     noticeAtHome: [
-      'Talks about what felt tricky and what helped.',
-      'Suggests a better approach for next time.',
+      'Talks about which step felt tricky and why.',
+      'Suggests a smarter approach for a similar problem next time.',
     ],
-    whatWeSaw: 'More reflection moments will appear as new activities finish.',
-    stillExploring: 'Open to explore in upcoming sessions.',
+    whatWeSaw: 'Fresh reflection challenges are ready in upcoming sessions.',
+    stillExploring: 'More reflection moments will appear as new missions are completed.',
     status: 'upcoming',
     obsCount: 0,
-    howWeObserve: 'Tracked when a learner reviews what approach helped most.',
+    howWeObserve: 'Tracked when your child evaluates their own problem-solving strategy.',
     growthSeries: [16, 20, 26, 34],
     politeProgressNote:
-      'Ready to blossom next—as more activities are completed, we will invite your child to look back on what strategies helped most.',
+      'Ready to blossom next—as more missions are completed, we will invite your child to look back on what strategies helped most.',
     webScore: 34,
   },
 ];
@@ -277,9 +287,60 @@ function statusMeta(status: CoverageStatus) {
   }
 }
 
+function LockedOverlay({
+  headline,
+  sub,
+  dark = false,
+  onUnlock,
+}: {
+  headline: string;
+  sub: string;
+  dark?: boolean;
+  onUnlock: () => void;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 z-10 flex flex-col items-center justify-center rounded-3xl p-5 text-center backdrop-blur-[5px] ${
+        dark ? 'bg-[#142033]/75 text-white' : 'bg-[#F7F6F1]/78 text-[#142033]'
+      }`}
+    >
+      <span
+        className={`mb-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-mono-tech text-[10px] font-bold uppercase tracking-wider ${
+          dark
+            ? 'bg-[#55E2CE]/20 text-[#55E2CE]'
+            : 'bg-[#142033] text-[#55E2CE]'
+        }`}
+      >
+        🔒 Full Parent View
+      </span>
+      <p className="max-w-xs font-display text-sm sm:text-base font-extrabold leading-snug">
+        {headline}
+      </p>
+      <p
+        className={`mt-1 max-w-xs text-xs ${
+          dark ? 'text-white/75' : 'text-[#586579]'
+        }`}
+      >
+        {sub}
+      </p>
+      <button
+        type="button"
+        onClick={onUnlock}
+        className={`mt-3.5 cx-action-pill px-4 py-2 text-xs cursor-pointer ${
+          dark
+            ? 'bg-[#55E2CE] text-[#142033] hover:bg-white'
+            : 'bg-[#142033] text-white hover:bg-[#087F80]'
+        }`}
+      >
+        Unlock · ₹{TRIAL_PRICE_INR} for {TRIAL_DAYS} days →
+      </button>
+    </div>
+  );
+}
+
 export default function ParentView() {
   const navigate = useNavigate();
-  const { children: familyKids, signOut } = useAuth();
+  const { children: familyKids } = useAuth();
   const { activeChild, setActiveChild } = useChild();
 
   const childBuckets = useApp((s) => s.childBuckets);
@@ -287,6 +348,13 @@ export default function ParentView() {
   const storeUser = useApp((s) => s.user);
   const storeSessions = useApp((s) => s.sessions);
   const storeResponses = useApp((s) => s.responses);
+
+  const dev = isDevMode();
+  const [devPaidPreview, setDevPaidPreview] = useState(false);
+  const isPaid =
+    devPaidPreview ||
+    (typeof window !== 'undefined' &&
+      localStorage.getItem('cubitx-plan') === 'paid');
 
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
   const [selectedSkillId, setSelectedSkillId] = useState<string>('B2');
@@ -299,8 +367,12 @@ export default function ParentView() {
     activeChild?.name?.trim().split(/\s+/)[0] ||
     storeUser?.name?.trim().split(/\s+/)[0] ||
     'Explorer';
-  void activeChild?.class_level;
-  void storeUser?.grade;
+  const classLevel = activeChild?.class_level ?? storeUser?.grade ?? 7;
+
+  const openUnlockCheckout = () => {
+    triggerSoftConfirm(true);
+    window.open(TRIAL_PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+  };
 
   const record = useMemo(() => {
     if (!activeChild) {
@@ -325,8 +397,15 @@ export default function ParentView() {
         withinWindow(r.submittedAt, timeWindow)
       )
     );
-    const built = buildMomentsFromResponses(filteredResponses, () => 'Activity');
-    const analyzed = analyzeThinking(filteredSessions, filteredResponses, firstName);
+    const built = buildMomentsFromResponses(
+      filteredResponses,
+      () => 'Secret Machine'
+    );
+    const analyzed = analyzeThinking(
+      filteredSessions,
+      filteredResponses,
+      firstName
+    );
     return { moments: built, studentSummary: analyzed.studentSummary };
   }, [record, timeWindow, firstName]);
 
@@ -391,25 +470,25 @@ export default function ParentView() {
   const replaySteps = useMemo(
     () => [
       {
-        label: 'Step 1',
+        label: 'Step 1 · First Test',
         input: '3',
         output: '9',
-        thought: 'Initial guess: “Maybe it adds 6.”',
-        detail: `${firstName} checked one clue first, then looked for a second check.`,
+        thought: 'Initial guess: “Maybe the rule adds 6.”',
+        detail: `${firstName} tested 3 and saw 9. Since both +6 and ×3 give 9, a second check was needed.`,
       },
       {
-        label: 'Step 2',
+        label: 'Step 2 · Second Clue',
         input: '5',
         output: '15',
-        thought: 'Updated idea: “A second check doesn’t fit +6 — checking ×3.”',
-        detail: `${firstName} compared the new output against the first guess and updated their view.`,
+        thought: 'Revised idea: “5 + 6 would be 11, not 15 — it must be ×3.”',
+        detail: `${firstName} compared the new output against the first guess and updated the rule.`,
       },
       {
-        label: 'Step 3',
+        label: 'Step 3 · Final Check',
         input: '2',
         output: '6',
-        thought: 'Confirmed: “Checked a smaller number before deciding.”',
-        detail: `${firstName} verified one more case before settling on an answer.`,
+        thought: 'Confirmed: “×3 works on a smaller number too.”',
+        detail: `${firstName} verified one last boundary value before locking in the answer.`,
       },
     ],
     [firstName]
@@ -422,24 +501,24 @@ export default function ParentView() {
       id: 'm1',
       skillCode: 'B2',
       skillName: 'Using evidence',
-      headline: 'Checked a second clue before settling on an answer',
-      summary: `${firstName} tested more than one input and compared results before deciding.`,
+      headline: 'Tested a second input before locking in a rule',
+      summary: `${firstName} didn’t stop at the first coincidence—they ran a second probe, saw it contradict +6, and switched to ×3.`,
       hasReplay: true,
     },
     {
       id: 'm2',
       skillCode: 'A1',
       skillName: 'Asking good questions',
-      headline: 'Asked what was missing before guessing',
-      summary: `${firstName} paused to check what mattered most before choosing.`,
+      headline: 'Questioned a confident AI claim with a tiny sample',
+      summary: `${firstName} paused before trusting a bold percentage and asked who was actually tested.`,
       hasReplay: false,
     },
     {
       id: 'm3',
       skillCode: 'A2',
       skillName: 'Spotting missing info',
-      headline: 'Noticed an unstated detail in the problem',
-      summary: `${firstName} looked beyond surface cues to spot what was left unsaid.`,
+      headline: 'Checked time of day before explaining a shadow',
+      summary: `${firstName} looked for missing variables instead of jumping to a quick assumption.`,
       hasReplay: false,
     },
   ].filter((item) => trailFilter === 'ALL' || item.skillCode === trailFilter);
@@ -450,7 +529,7 @@ export default function ParentView() {
     );
     return withText?.verbatimText?.trim()
       ? `“${withText.verbatimText.trim()}”`
-      : '“How do we know that’s the whole story before we check one more clue?”';
+      : '“Wait — if it gives 9 for 3, how do we know it isn’t just adding 6 until we test another number?”';
   }, [moments]);
 
   const webPoints = useMemo(() => {
@@ -476,7 +555,8 @@ export default function ParentView() {
     return selectedGrowthSkill.growthSeries.map((val, i) => ({
       x: xs[i],
       y: 145 - (val / 100) * 115,
-      label: ['Wk 1', 'Wk 2', 'Wk 3', 'Now'][i],
+      val,
+      label: ['Month 1', 'Month 2', 'Month 3', 'Current'][i],
     }));
   }, [selectedGrowthSkill]);
 
@@ -487,266 +567,321 @@ export default function ParentView() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] text-[#142033] font-sans">
-      <main className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-8 space-y-16">
-        {/* TOP HEADER & CONTROLS */}
-        <section className="flex flex-wrap items-end justify-between gap-4 border-b border-[#142033]/10 pb-6">
-          <div className="space-y-1">
-            <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033]">
-              How {firstName} is thinking
-            </h1>
-            <p className="text-sm sm:text-base text-[#586579] max-w-2xl">
-              Visual snapshots of how {firstName} checks clues, questions claims, and updates ideas.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {familyKids.length > 1 && (
-              <div className="inline-flex rounded-full border border-[#142033]/12 bg-white p-1">
-                {familyKids.map((kid) => (
-                  <button
-                    key={kid.id}
-                    type="button"
-                    onClick={() => {
-                      triggerDialTick(true);
-                      setActiveChild(kid);
-                    }}
-                    className={`rounded-full px-3.5 py-1 text-xs font-bold cursor-pointer ${
-                      activeChild?.id === kid.id
-                        ? 'bg-[#142033] text-white'
-                        : 'text-[#586579]'
-                    }`}
-                  >
-                    {kid.name}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <select
-              aria-label="Time window"
-              value={timeWindow}
-              onChange={(e) => setTimeWindow(e.target.value as TimeWindow)}
-              className="rounded-full border border-[#142033]/12 bg-white px-3.5 py-1.5 text-xs font-bold text-[#142033] cursor-pointer"
-            >
-              <option value="7d">Last 7 days</option>
-              <option value="30d">Last 30 days</option>
-              <option value="90d">Last 90 days</option>
-              <option value="all">Full year</option>
-            </select>
-
-            <button
-              type="button"
-              onClick={() => navigate('/try-at-home')}
-              className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-4 py-1.5 text-xs font-bold text-[#087F80] hover:bg-[#087F80] hover:text-white transition cursor-pointer"
-            >
-              Try at Home →
-            </button>
-
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="px-2.5 py-1.5 text-xs font-semibold text-[#586579] hover:text-[#142033] cursor-pointer"
-            >
-              Sign out
-            </button>
-          </div>
-        </section>
-
-        {/* 4 VISUAL WINDOWS */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-sm flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-sm font-extrabold text-[#142033]">
-                Thinking Activity
-              </h2>
-              <span className="rounded-full bg-[#087F80]/10 px-2.5 py-0.5 text-[11px] font-extrabold text-[#087F80]">
-                {totalProbes} actions
-              </span>
-            </div>
-
-            <div className="flex items-end justify-between gap-2 h-28 pt-2">
-              {activitySeries.map((bar, idx) => {
-                const pct = Math.max(16, Math.round((bar.val / maxBar) * 100));
-                const isLatest = idx === activitySeries.length - 1;
-                return (
-                  <div
-                    key={bar.label}
-                    className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
-                  >
-                    <div
-                      className={`w-full rounded-t-xl transition-all duration-500 ${
-                        isLatest ? 'bg-[#087F80]' : 'bg-[#142033]/15'
-                      }`}
-                      style={{ height: `${pct}%` }}
-                    />
-                    <span className="text-[10px] font-bold text-[#586579]">
-                      {bar.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <p className="text-xs text-[#586579]">
-              Clue checks and reflections logged across sessions.
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-[#142033] p-6 text-white shadow-md flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-sm font-extrabold text-white">
-                Skills Explored
-              </h2>
-              <span className="rounded-full bg-[#55E2CE]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#55E2CE]">
-                {observedSkillsCount} of 8
-              </span>
-            </div>
-
-            <div className="flex items-center justify-center py-1">
-              <svg viewBox="0 0 120 120" className="w-28 h-28">
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="46"
-                  fill="none"
-                  stroke="rgba(255,255,255,0.12)"
-                  strokeWidth="12"
-                />
-                <circle
-                  cx="60"
-                  cy="60"
-                  r="46"
-                  fill="none"
-                  stroke="#55E2CE"
-                  strokeWidth="12"
-                  strokeLinecap="round"
-                  strokeDasharray={`${(observedSkillsCount / 8) * 289} 289`}
-                  transform="rotate(-90 60 60)"
-                />
-                <text
-                  x="60"
-                  y="58"
-                  textAnchor="middle"
-                  fill="#FFFFFF"
-                  fontSize="22"
-                  fontWeight="800"
-                >
-                  {observedSkillsCount}/8
-                </text>
-                <text
-                  x="60"
-                  y="74"
-                  textAnchor="middle"
-                  fill="#55E2CE"
-                  fontSize="9"
-                  fontWeight="700"
-                >
-                  ACTIVE SKILLS
-                </text>
-              </svg>
-            </div>
-
-            <p className="text-xs text-white/75">
-              Thinking skills practised so far across the year.
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-sm flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-sm font-extrabold text-[#142033]">
-                Clue-Testing Habit
-              </h2>
-              <span className="rounded-full bg-[#F5B942]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#8A5A00]">
-                Steady
-              </span>
-            </div>
-
-            <div className="space-y-3 py-2">
-              <div>
-                <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-[#142033]">Tested 2+ clues</span>
-                  <span className="text-[#087F80]">78%</span>
-                </div>
-                <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
-                  <div className="h-full w-[78%] rounded-full bg-[#087F80]" />
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-xs font-bold mb-1">
-                  <span className="text-[#586579]">First-hunch picks</span>
-                  <span className="text-[#586579]">22%</span>
-                </div>
-                <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
-                  <div className="h-full w-[22%] rounded-full bg-[#F5B942]" />
-                </div>
-              </div>
-            </div>
-
-            <p className="text-xs text-[#586579]">
-              {firstName} checks extra clues before deciding.
-            </p>
-          </div>
-
-          <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-sm flex flex-col justify-between gap-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-display text-sm font-extrabold text-[#142033]">
-                Key Thinking Moves
-              </h2>
-              <span className="rounded-full bg-[#5267E8]/10 px-2.5 py-0.5 text-[11px] font-extrabold text-[#5267E8]">
-                Stage {probeTier.tier}
-              </span>
-            </div>
-
-            <div className="space-y-2.5 py-1">
-              {[
-                {
-                  label: 'Clues checked',
-                  val: `${totalProbes} / ${probeTier.target}`,
-                  color: 'bg-[#087F80]',
-                  pct: probeTier.pct,
-                },
-                {
-                  label: 'Mind shifts',
-                  val: `${totalRechecks} / ${recheckTier.target}`,
-                  color: 'bg-[#5267E8]',
-                  pct: recheckTier.pct,
-                },
-                {
-                  label: 'Own-word notes',
-                  val: `${totalNotes} / ${notesTier.target}`,
-                  color: 'bg-[#F5B942]',
-                  pct: notesTier.pct,
-                },
-              ].map((row) => (
-                <div key={row.label} className="space-y-1">
-                  <div className="flex justify-between text-xs font-bold">
-                    <span className="text-[#142033]">{row.label}</span>
-                    <span className="tabular-nums text-[#586579]">{row.val}</span>
-                  </div>
-                  <div className="h-2 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${row.color}`}
-                      style={{ width: `${row.pct}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <p className="text-xs text-[#586579]">
-              Targets scale across the one-year journey.
-            </p>
-          </div>
-        </section>
-
-        {/* EIGHT THINKING SKILLS */}
+      <main className="mx-auto max-w-6xl px-2 py-4 pb-20 sm:px-4 space-y-14">
+        {/* HEADER + CONTROLS */}
         <section className="space-y-6">
+          <div className="flex flex-wrap items-end justify-between gap-4 cx-hairline-b pb-6">
+            <div className="space-y-1.5">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                Class {classLevel} · {isPaid ? 'Full Parent View' : 'Free Snapshot'}
+              </div>
+              <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033]">
+                How {firstName} is thinking
+              </h1>
+              <p className="text-sm sm:text-base text-[#586579] max-w-2xl">
+                Visual snapshots of how {firstName} checks clues, questions
+                claims, and updates ideas—without marks or IQ labels.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {familyKids.length > 1 && (
+                <div className="inline-flex rounded-full border border-[#142033]/12 bg-white p-1">
+                  {familyKids.map((kid) => (
+                    <button
+                      key={kid.id}
+                      type="button"
+                      onClick={() => {
+                        triggerDialTick(true);
+                        setActiveChild(kid);
+                      }}
+                      className={`rounded-full px-3.5 py-1 text-xs font-bold transition cursor-pointer ${
+                        activeChild?.id === kid.id
+                          ? 'bg-[#142033] text-white'
+                          : 'text-[#586579] hover:text-[#142033]'
+                      }`}
+                    >
+                      {kid.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <select
+                aria-label="Time window"
+                value={timeWindow}
+                onChange={(e) => setTimeWindow(e.target.value as TimeWindow)}
+                className="rounded-full border border-[#142033]/12 bg-white px-3.5 py-1.5 text-xs font-bold text-[#142033] cursor-pointer"
+              >
+                <option value="7d">Last 7 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="90d">Last 90 days</option>
+                <option value="all">Full year</option>
+              </select>
+
+              <button
+                type="button"
+                onClick={() => navigate('/try-at-home')}
+                className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-4 py-1.5 text-xs font-bold text-[#087F80] hover:bg-[#087F80] hover:text-white transition cursor-pointer"
+              >
+                Try at Home →
+              </button>
+
+              {dev && (
+                <button
+                  type="button"
+                  onClick={() => setDevPaidPreview((p) => !p)}
+                  className="rounded-full border border-[#142033]/20 bg-white px-3 py-1.5 font-mono-tech text-[10px] font-bold text-[#142033] cursor-pointer"
+                >
+                  DEV: {isPaid ? 'Paid View' : 'Free Blurred'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* CURIOSITY SIGNAL BANNER (SHOWN ON FREE TO HOOK INTEREST) */}
+          {!isPaid && (
+            <div className="rounded-3xl border border-[#087F80]/25 bg-white p-5 sm:p-6 shadow-[var(--shadow-artifact)] flex flex-wrap items-center justify-between gap-4">
+              <div className="space-y-1 max-w-2xl">
+                <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                  New Signal Observed
+                </span>
+                <p className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
+                  {firstName} paused to test a second clue before changing their
+                  first answer—and wrote a note in their own words.
+                </p>
+                <p className="text-xs text-[#586579]">
+                  Unlock the full step-by-step replay, verbatim quote, and
+                  8-area growth web for ₹{TRIAL_PRICE_INR} ({TRIAL_DAYS} days)
+                  or ₹{PRICE_INR}/year.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={openUnlockCheckout}
+                className="cx-action-pill bg-[#142033] px-5 py-3 text-xs text-white hover:bg-[#087F80] cursor-pointer"
+              >
+                Unlock Full Report · ₹{TRIAL_PRICE_INR} →
+              </button>
+            </div>
+          )}
+
+          {/* 4 VISUAL WINDOWS (WINDOWS 1 & 2 OPEN; WINDOWS 3 & 4 BLURRED ON FREE) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-sm font-extrabold text-[#142033]">
+                  Thinking Activity
+                </h2>
+                <span className="rounded-full bg-[#087F80]/10 px-2.5 py-0.5 text-[11px] font-extrabold text-[#087F80]">
+                  {totalProbes} actions
+                </span>
+              </div>
+
+              <div className="flex items-end justify-between gap-2 h-28 pt-2">
+                {activitySeries.map((bar, idx) => {
+                  const pct = Math.max(16, Math.round((bar.val / maxBar) * 100));
+                  const isLatest = idx === activitySeries.length - 1;
+                  return (
+                    <div
+                      key={bar.label}
+                      className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end"
+                    >
+                      <div
+                        className={`w-full rounded-t-xl transition-all duration-500 ${
+                          isLatest ? 'bg-[#087F80]' : 'bg-[#142033]/15'
+                        }`}
+                        style={{ height: `${pct}%` }}
+                      />
+                      <span className="text-[10px] font-bold text-[#586579]">
+                        {bar.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-[#586579]">
+                Clue checks and reflections logged across sessions.
+              </p>
+            </div>
+
+            <div className="rounded-3xl bg-[#142033] p-6 text-white shadow-[var(--shadow-device)] flex flex-col justify-between gap-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-display text-sm font-extrabold text-white">
+                  Skills Explored
+                </h2>
+                <span className="rounded-full bg-[#55E2CE]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#55E2CE]">
+                  {observedSkillsCount} of 8
+                </span>
+              </div>
+
+              <div className="flex items-center justify-center py-1">
+                <svg viewBox="0 0 120 120" className="w-28 h-28">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    fill="none"
+                    stroke="rgba(255,255,255,0.12)"
+                    strokeWidth="12"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="46"
+                    fill="none"
+                    stroke="#55E2CE"
+                    strokeWidth="12"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(observedSkillsCount / 8) * 289} 289`}
+                    transform="rotate(-90 60 60)"
+                  />
+                  <text
+                    x="60"
+                    y="58"
+                    textAnchor="middle"
+                    fill="#FFFFFF"
+                    fontSize="22"
+                    fontWeight="800"
+                  >
+                    {observedSkillsCount}/8
+                  </text>
+                  <text
+                    x="60"
+                    y="74"
+                    textAnchor="middle"
+                    fill="#55E2CE"
+                    fontSize="9"
+                    fontWeight="700"
+                  >
+                    ACTIVE SKILLS
+                  </text>
+                </svg>
+              </div>
+
+              <p className="text-xs text-white/75">
+                Thinking skills practised so far across the year.
+              </p>
+            </div>
+
+            {/* WINDOW 3: BLURRED ON FREE */}
+            <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
+              <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-4' : 'space-y-4'}>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-sm font-extrabold text-[#142033]">
+                    Clue-Testing Habit
+                  </h2>
+                  <span className="rounded-full bg-[#F5B942]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#8A5A00]">
+                    Strong
+                  </span>
+                </div>
+                <div className="space-y-3 py-2">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-[#142033]">Tested 2+ clues</span>
+                      <span className="text-[#087F80]">78%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
+                      <div className="h-full w-[78%] rounded-full bg-[#087F80]" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-[#586579]">First-hunch picks</span>
+                      <span className="text-[#586579]">22%</span>
+                    </div>
+                    <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
+                      <div className="h-full w-[22%] rounded-full bg-[#F5B942]" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-[#586579]">
+                  {firstName} checks extra clues before deciding.
+                </p>
+              </div>
+
+              {!isPaid && (
+                <LockedOverlay
+                  headline="Clue-Testing Habit"
+                  sub={`See how often ${firstName} verifies vs. guesses.`}
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
+            </div>
+
+            {/* WINDOW 4: BLURRED ON FREE */}
+            <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
+              <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-4' : 'space-y-4'}>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display text-sm font-extrabold text-[#142033]">
+                    Key Thinking Moves
+                  </h2>
+                  <span className="rounded-full bg-[#5267E8]/10 px-2.5 py-0.5 text-[11px] font-extrabold text-[#5267E8]">
+                    Stage {probeTier.tier}
+                  </span>
+                </div>
+                <div className="space-y-2.5 py-1">
+                  {[
+                    {
+                      label: 'Clues checked',
+                      val: `${totalProbes} / ${probeTier.target}`,
+                      color: 'bg-[#087F80]',
+                      pct: probeTier.pct,
+                    },
+                    {
+                      label: 'Mind shifts',
+                      val: `${totalRechecks} / ${recheckTier.target}`,
+                      color: 'bg-[#5267E8]',
+                      pct: recheckTier.pct,
+                    },
+                    {
+                      label: 'Own-word notes',
+                      val: `${totalNotes} / ${notesTier.target}`,
+                      color: 'bg-[#F5B942]',
+                      pct: notesTier.pct,
+                    },
+                  ].map((row) => (
+                    <div key={row.label} className="space-y-1">
+                      <div className="flex justify-between text-xs font-bold">
+                        <span className="text-[#142033]">{row.label}</span>
+                        <span className="tabular-nums text-[#586579]">
+                          {row.val}
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${row.color}`}
+                          style={{ width: `${row.pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-[#586579]">
+                  Targets scale across the one-year journey.
+                </p>
+              </div>
+
+              {!isPaid && (
+                <LockedOverlay
+                  headline="Key Thinking Moves"
+                  sub="Track mind shifts and own-word notes over time."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 2: EIGHT THINKING SKILLS (WHEEL VISIBLE; DEEP NOTES LOCKED ON FREE) */}
+        <section className="cx-hairline-t pt-10 space-y-6">
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
             Eight Thinking Skills
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
-            <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-sm grid grid-cols-1 sm:grid-cols-[260px_1fr] gap-6 items-center">
+            <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] grid grid-cols-1 sm:grid-cols-[260px_1fr] gap-6 items-center">
               <svg
                 viewBox="0 0 300 300"
                 className="w-full max-w-[260px] mx-auto h-auto overflow-visible"
@@ -853,7 +988,7 @@ export default function ParentView() {
               </div>
             </div>
 
-            <div className="rounded-3xl bg-white border border-[#142033]/10 p-7 shadow-sm space-y-5">
+            <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-7 shadow-[var(--shadow-artifact)] space-y-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5">
                   <span className="rounded-lg bg-[#142033] px-2.5 py-1 text-xs font-extrabold text-[#55E2CE]">
@@ -876,77 +1011,88 @@ export default function ParentView() {
                 {selectedSkill.summary}
               </p>
 
-              <div className="flex gap-2 border-b border-[#142033]/10 pb-3">
-                <button
-                  type="button"
-                  onClick={() => setInspectorTab('home')}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition cursor-pointer ${
-                    inspectorTab === 'home'
-                      ? 'bg-[#142033] text-white'
-                      : 'bg-[#F7F6F1] text-[#586579] hover:text-[#142033]'
-                  }`}
-                >
-                  What to notice
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setInspectorTab('how')}
-                  className={`rounded-full px-4 py-1.5 text-xs font-bold transition cursor-pointer ${
-                    inspectorTab === 'how'
-                      ? 'bg-[#142033] text-white'
-                      : 'bg-[#F7F6F1] text-[#586579] hover:text-[#142033]'
-                  }`}
-                >
-                  How we observe this
-                </button>
+              <div className="relative">
+                <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-5' : 'space-y-5'}>
+                  <div className="flex gap-2 border-b border-[#142033]/10 pb-3">
+                    <button
+                      type="button"
+                      onClick={() => setInspectorTab('home')}
+                      className={`rounded-full px-4 py-1.5 text-xs font-bold transition cursor-pointer ${
+                        inspectorTab === 'home'
+                          ? 'bg-[#142033] text-white'
+                          : 'bg-[#F7F6F1] text-[#586579]'
+                      }`}
+                    >
+                      What to notice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInspectorTab('how')}
+                      className={`rounded-full px-4 py-1.5 text-xs font-bold transition cursor-pointer ${
+                        inspectorTab === 'how'
+                          ? 'bg-[#142033] text-white'
+                          : 'bg-[#F7F6F1] text-[#586579]'
+                      }`}
+                    >
+                      How we observe this
+                    </button>
+                  </div>
+
+                  {inspectorTab === 'home' ? (
+                    <div className="space-y-5">
+                      <ul className="space-y-2 text-sm text-[#142033]">
+                        {selectedSkill.noticeAtHome.map((line) => (
+                          <li key={line} className="flex items-start gap-2">
+                            <span className="text-[#087F80] font-bold">→</span>
+                            <span>{line}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-4">
+                          <div className="text-xs font-extrabold text-[#087F80] mb-1">
+                            What we saw
+                          </div>
+                          <p className="text-xs text-[#142033] leading-relaxed">
+                            {selectedSkill.whatWeSaw}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-[#F7F6F1] border border-[#142033]/10 p-4">
+                          <div className="text-xs font-extrabold text-[#586579] mb-1">
+                            Still exploring
+                          </div>
+                          <p className="text-xs text-[#586579] leading-relaxed">
+                            {selectedSkill.stillExploring}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-2xl bg-[#F7F6F1] p-5 space-y-2">
+                      <div className="text-xs font-extrabold text-[#142033]">
+                        Observation method
+                      </div>
+                      <p className="text-sm text-[#586579] leading-relaxed">
+                        {selectedSkill.howWeObserve}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {!isPaid && (
+                  <LockedOverlay
+                    headline={`See what we observed for ${selectedSkill.name}`}
+                    sub="Unlock specific observations and what to notice at home."
+                    onUnlock={openUnlockCheckout}
+                  />
+                )}
               </div>
-
-              {inspectorTab === 'home' ? (
-                <div className="space-y-5">
-                  <ul className="space-y-2 text-sm text-[#142033]">
-                    {selectedSkill.noticeAtHome.map((line) => (
-                      <li key={line} className="flex items-start gap-2">
-                        <span className="text-[#087F80] font-bold">→</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-4">
-                      <div className="text-xs font-extrabold text-[#087F80] mb-1">
-                        What we saw
-                      </div>
-                      <p className="text-xs text-[#142033] leading-relaxed">
-                        {selectedSkill.whatWeSaw}
-                      </p>
-                    </div>
-                    <div className="rounded-2xl bg-[#F7F6F1] border border-[#142033]/10 p-4">
-                      <div className="text-xs font-extrabold text-[#586579] mb-1">
-                        Still exploring
-                      </div>
-                      <p className="text-xs text-[#586579] leading-relaxed">
-                        {selectedSkill.stillExploring}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl bg-[#F7F6F1] p-5 space-y-2">
-                  <div className="text-xs font-extrabold text-[#142033]">
-                    Observation method
-                  </div>
-                  <p className="text-sm text-[#586579] leading-relaxed">
-                    {selectedSkill.howWeObserve}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </section>
 
-        {/* REAL THINKING MOMENTS + STEP-BY-STEP REPLAY */}
-        <section className="space-y-6">
+        {/* SECTION 3: REAL THINKING MOMENTS + STEP-BY-STEP REPLAY */}
+        <section className="cx-hairline-t pt-10 space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
@@ -982,10 +1128,10 @@ export default function ParentView() {
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
             <div className="space-y-3">
-              {observationFeed.map((obs) => (
+              {observationFeed.map((obs, idx) => (
                 <article
                   key={obs.id}
-                  className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-sm space-y-2.5"
+                  className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] space-y-2.5"
                 >
                   <div className="flex items-center gap-2 text-xs font-bold text-[#087F80]">
                     <span className="rounded-md bg-[#087F80]/10 px-2 py-0.5">
@@ -996,270 +1142,261 @@ export default function ParentView() {
                   <h3 className="font-display text-lg font-extrabold text-[#142033]">
                     {obs.headline}
                   </h3>
-                  <p className="text-sm text-[#586579] leading-relaxed">
+                  <p
+                    className={`text-sm text-[#586579] leading-relaxed ${
+                      !isPaid && idx > 0 ? 'blur-[4px] select-none' : ''
+                    }`}
+                  >
                     {obs.summary}
                   </p>
                   {obs.hasReplay && (
                     <button
                       type="button"
                       onClick={() => {
+                        if (!isPaid) {
+                          openUnlockCheckout();
+                          return;
+                        }
                         triggerSoftConfirm(true);
                         setReplayStepIdx(0);
                       }}
                       className="mt-1 rounded-full bg-[#087F80] px-4 py-2 text-xs font-bold text-white hover:bg-[#142033] transition cursor-pointer"
                     >
-                      Replay this moment →
+                      {isPaid ? 'Replay this moment →' : '🔒 Unlock Step-by-Step Replay'}
                     </button>
                   )}
                 </article>
               ))}
             </div>
 
-            <aside className="rounded-3xl bg-[#142033] p-6 sm:p-7 text-white shadow-xl space-y-5 lg:sticky lg:top-24">
-              <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
-                <h3 className="font-display text-lg font-extrabold text-white">
-                  Step-by-Step Replay
-                </h3>
-                <span className="rounded-full bg-[#55E2CE]/15 px-3 py-0.5 text-[11px] font-bold text-[#55E2CE]">
-                  {firstName}’s moves
-                </span>
-              </div>
+            <aside className="relative overflow-hidden rounded-3xl bg-[#142033] p-6 sm:p-7 text-white shadow-[var(--shadow-device)] space-y-5 lg:sticky lg:top-24">
+              <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-5' : 'space-y-5'}>
+                <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
+                  <h3 className="font-display text-lg font-extrabold text-white">
+                    Step-by-Step Replay
+                  </h3>
+                  <span className="rounded-full bg-[#55E2CE]/15 px-3 py-0.5 text-[11px] font-bold text-[#55E2CE]">
+                    {firstName}’s moves
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                {replaySteps.map((st, idx) => (
-                  <button
-                    key={st.label}
-                    type="button"
-                    onClick={() => {
-                      triggerDialTick(true);
-                      setReplayStepIdx(idx);
-                    }}
-                    className={`rounded-xl py-2 text-xs font-bold transition cursor-pointer ${
-                      idx === replayStepIdx
-                        ? 'bg-[#55E2CE] text-[#142033]'
-                        : 'bg-white/10 text-white/75 hover:bg-white/15'
-                    }`}
-                  >
-                    {st.label}
-                  </button>
-                ))}
-              </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {replaySteps.map((st, idx) => (
+                    <button
+                      key={st.label}
+                      type="button"
+                      onClick={() => {
+                        triggerDialTick(true);
+                        setReplayStepIdx(idx);
+                      }}
+                      className={`rounded-xl py-2 text-xs font-bold transition cursor-pointer ${
+                        idx === replayStepIdx
+                          ? 'bg-[#55E2CE] text-[#142033]'
+                          : 'bg-white/10 text-white/75'
+                      }`}
+                    >
+                      Step {idx + 1}
+                    </button>
+                  ))}
+                </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-white/8 p-4">
-                  <div className="text-[11px] font-bold text-[#55E2CE]">
-                    Input tried
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-white/8 p-4">
+                    <div className="text-[11px] font-bold text-[#55E2CE]">
+                      Input tried
+                    </div>
+                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums">
+                      {currentStep.input}
+                    </div>
                   </div>
-                  <div className="mt-1 font-display text-3xl font-extrabold tabular-nums">
-                    {currentStep.input}
+                  <div className="rounded-2xl bg-white/8 p-4">
+                    <div className="text-[11px] font-bold text-[#55E2CE]">
+                      Result seen
+                    </div>
+                    <div className="mt-1 font-display text-3xl font-extrabold tabular-nums text-[#55E2CE]">
+                      {currentStep.output}
+                    </div>
                   </div>
                 </div>
-                <div className="rounded-2xl bg-white/8 p-4">
-                  <div className="text-[11px] font-bold text-[#55E2CE]">
-                    Result seen
+
+                <div className="rounded-2xl bg-white/8 p-4 space-y-1.5">
+                  <div className="text-xs font-extrabold text-[#F5B942]">
+                    {currentStep.thought}
                   </div>
-                  <div className="mt-1 font-display text-3xl font-extrabold tabular-nums text-[#55E2CE]">
-                    {currentStep.output}
-                  </div>
+                  <p className="text-xs text-white/80 leading-relaxed">
+                    {currentStep.detail}
+                  </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white/8 p-4 space-y-1.5">
-                <div className="text-xs font-extrabold text-[#F5B942]">
-                  {currentStep.thought}
-                </div>
-                <p className="text-xs text-white/80 leading-relaxed">
-                  {currentStep.detail}
-                </p>
-              </div>
+              {!isPaid && (
+                <LockedOverlay
+                  dark
+                  headline={`Replay the 3 steps where ${firstName} updated their idea`}
+                  sub="See every input tested and how their reasoning shifted."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
             </aside>
           </div>
         </section>
 
-        {/* CRITICAL THINKING GROWTH */}
-        <section className="space-y-6">
+        {/* SECTION 4: CRITICAL THINKING GROWTH (BLURRED ON FREE) */}
+        <section className="cx-hairline-t pt-10 space-y-6">
           <div className="space-y-1">
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
               Critical Thinking Growth
             </h2>
             <p className="text-sm text-[#586579] max-w-2xl">
-              How {firstName}’s thinking habits are growing over time.
+              How {firstName}’s thinking habits are growing across all eight
+              areas over time.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
-            <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 sm:p-7 shadow-sm space-y-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="font-display text-lg font-extrabold text-[#142033]">
-                    Progress Over Time · {selectedGrowthSkill.name}
-                  </h3>
-                  <p className="text-xs text-[#586579]">
-                    Select any of the eight areas to view growth.
+            <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 sm:p-7 shadow-[var(--shadow-artifact)]">
+              <div className={!isPaid ? 'blur-[5px] select-none pointer-events-none space-y-5' : 'space-y-5'}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h3 className="font-display text-lg font-extrabold text-[#142033]">
+                      Progress Over Time · {selectedGrowthSkill.name}
+                    </h3>
+                    <p className="text-xs text-[#586579]">
+                      Select any of the eight areas to view growth.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-[#087F80]/10 px-3 py-1 text-xs font-extrabold text-[#087F80]">
+                    {selectedGrowthSkill.code}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {skills.map((s) => {
+                    const active = s.id === selectedGrowthSkill.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          triggerDialTick(true);
+                          setGrowthSkillId(s.id);
+                        }}
+                        className={`rounded-full px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                          active
+                            ? 'bg-[#142033] text-[#55E2CE]'
+                            : 'bg-[#F7F6F1] text-[#586579]'
+                        }`}
+                      >
+                        {s.shortName}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="rounded-2xl bg-[#F7F6F1] p-4">
+                  <svg viewBox="0 0 360 175" className="w-full h-auto overflow-visible">
+                    <defs>
+                      <linearGradient id="cxGrowthFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#087F80" stopOpacity="0.28" />
+                        <stop offset="100%" stopColor="#087F80" stopOpacity="0.02" />
+                      </linearGradient>
+                    </defs>
+                    <path d={areaPath} fill="url(#cxGrowthFill)" />
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke="#087F80"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {lineChartPoints.map((pt) => (
+                      <g key={pt.label}>
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r="5.5"
+                          fill="#FFFFFF"
+                          stroke="#087F80"
+                          strokeWidth="3"
+                        />
+                        <text
+                          x={pt.x}
+                          y="166"
+                          textAnchor="middle"
+                          fontSize="10"
+                          fontWeight="700"
+                          fill="#586579"
+                        >
+                          {pt.label}
+                        </text>
+                      </g>
+                    ))}
+                  </svg>
+                </div>
+
+                <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-4">
+                  <div className="text-xs font-extrabold text-[#087F80] mb-1">
+                    What this tells us about {firstName}
+                  </div>
+                  <p className="text-sm text-[#142033] leading-relaxed">
+                    {selectedGrowthSkill.politeProgressNote}
                   </p>
                 </div>
-                <span className="rounded-full bg-[#087F80]/10 px-3 py-1 text-xs font-extrabold text-[#087F80]">
-                  {selectedGrowthSkill.code}
-                </span>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
-                {skills.map((s) => {
-                  const active = s.id === selectedGrowthSkill.id;
-                  return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => {
-                        triggerDialTick(true);
-                        setGrowthSkillId(s.id);
-                      }}
-                      className={`rounded-full px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
-                        active
-                          ? 'bg-[#142033] text-[#55E2CE]'
-                          : 'bg-[#F7F6F1] text-[#586579] hover:text-[#142033]'
-                      }`}
-                    >
-                      {s.shortName}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="rounded-2xl bg-[#F7F6F1] p-4">
-                <svg
-                  viewBox="0 0 360 175"
-                  className="w-full h-auto overflow-visible"
-                  role="img"
-                  aria-label={`Progress graph for ${selectedGrowthSkill.name}`}
-                >
-                  <defs>
-                    <linearGradient id="cxGrowthFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#087F80" stopOpacity="0.28" />
-                      <stop offset="100%" stopColor="#087F80" stopOpacity="0.02" />
-                    </linearGradient>
-                  </defs>
-                  {[40, 80, 120].map((y) => (
-                    <line
-                      key={y}
-                      x1="20"
-                      y1={y}
-                      x2="340"
-                      y2={y}
-                      stroke="rgba(20,32,51,0.08)"
-                      strokeDasharray="4 4"
-                    />
-                  ))}
-                  <path d={areaPath} fill="url(#cxGrowthFill)" />
-                  <path
-                    d={linePath}
-                    fill="none"
-                    stroke="#087F80"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                  {lineChartPoints.map((pt) => (
-                    <g key={pt.label}>
-                      <circle
-                        cx={pt.x}
-                        cy={pt.y}
-                        r="5.5"
-                        fill="#FFFFFF"
-                        stroke="#087F80"
-                        strokeWidth="3"
-                      />
-                      <text
-                        x={pt.x}
-                        y="166"
-                        textAnchor="middle"
-                        fontSize="10"
-                        fontWeight="700"
-                        fill="#586579"
-                      >
-                        {pt.label}
-                      </text>
-                    </g>
-                  ))}
-                </svg>
-              </div>
-
-              <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-4">
-                <div className="text-xs font-extrabold text-[#087F80] mb-1">
-                  What this tells us about {firstName}
-                </div>
-                <p className="text-sm text-[#142033] leading-relaxed">
-                  {selectedGrowthSkill.politeProgressNote}
-                </p>
-              </div>
+              {!isPaid && (
+                <LockedOverlay
+                  headline={`See ${firstName}’s month-by-month growth curve`}
+                  sub="Inspect progress across all 8 critical thinking skills."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
             </div>
 
-            <div className="rounded-3xl bg-[#142033] p-6 sm:p-7 text-white shadow-xl flex flex-col justify-between gap-4">
-              <div>
-                <h3 className="font-display text-lg font-extrabold text-white">
-                  All 8 Areas · Progress Web
-                </h3>
-                <p className="text-xs text-white/70 mt-0.5">
-                  A view of {firstName}’s thinking balance across all eight areas.
-                </p>
-              </div>
+            <div className="relative overflow-hidden rounded-3xl bg-[#142033] p-6 sm:p-7 text-white shadow-[var(--shadow-device)]">
+              <div className={!isPaid ? 'blur-[5px] select-none pointer-events-none flex flex-col justify-between gap-4' : 'flex flex-col justify-between gap-4'}>
+                <div>
+                  <h3 className="font-display text-lg font-extrabold text-white">
+                    All 8 Areas · Progress Web
+                  </h3>
+                  <p className="text-xs text-white/70 mt-0.5">
+                    A view of {firstName}’s thinking balance across all eight areas.
+                  </p>
+                </div>
 
-              <div className="flex items-center justify-center">
-                <svg
-                  viewBox="0 0 320 310"
-                  className="w-full max-w-[300px] h-auto overflow-visible"
-                  role="img"
-                  aria-label="Eight-area critical thinking progress web"
-                >
-                  {[0.33, 0.66, 1].map((scale) => {
-                    const ringPath =
-                      skills
-                        .map((_, idx) => {
-                          const pt = polarToCartesian(
-                            160,
-                            155,
-                            102 * scale,
-                            idx * (360 / 8)
-                          );
-                          return `${idx === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
-                        })
-                        .join(' ') + ' Z';
-                    return (
-                      <path
-                        key={scale}
-                        d={ringPath}
-                        fill="none"
-                        stroke="rgba(255,255,255,0.14)"
-                        strokeWidth="1"
-                      />
-                    );
-                  })}
-
-                  {skills.map((_, idx) => {
-                    const end = polarToCartesian(160, 155, 102, idx * (360 / 8));
-                    return (
-                      <line
-                        key={idx}
-                        x1="160"
-                        y1="155"
-                        x2={end.x}
-                        y2={end.y}
-                        stroke="rgba(255,255,255,0.12)"
-                        strokeWidth="1"
-                      />
-                    );
-                  })}
-
-                  <path
-                    d={webPolygonPath}
-                    fill="rgba(85, 226, 206, 0.25)"
-                    stroke="#55E2CE"
-                    strokeWidth="2.5"
-                  />
-
-                  {webPoints.map((pt) => {
-                    const active = pt.id === selectedGrowthSkill.id;
-                    return (
+                <div className="flex items-center justify-center">
+                  <svg viewBox="0 0 320 310" className="w-full max-w-[300px] h-auto overflow-visible">
+                    {[0.33, 0.66, 1].map((scale) => {
+                      const ringPath =
+                        skills
+                          .map((_, idx) => {
+                            const pt = polarToCartesian(
+                              160,
+                              155,
+                              102 * scale,
+                              idx * (360 / 8)
+                            );
+                            return `${idx === 0 ? 'M' : 'L'} ${pt.x.toFixed(1)} ${pt.y.toFixed(1)}`;
+                          })
+                          .join(' ') + ' Z';
+                      return (
+                        <path
+                          key={scale}
+                          d={ringPath}
+                          fill="none"
+                          stroke="rgba(255,255,255,0.14)"
+                          strokeWidth="1"
+                        />
+                      );
+                    })}
+                    <path
+                      d={webPolygonPath}
+                      fill="rgba(85, 226, 206, 0.25)"
+                      stroke="#55E2CE"
+                      strokeWidth="2.5"
+                    />
+                    {webPoints.map((pt) => (
                       <g
                         key={pt.id}
                         onClick={() => {
@@ -1268,12 +1405,7 @@ export default function ParentView() {
                         }}
                         className="cursor-pointer"
                       >
-                        <circle
-                          cx={pt.x}
-                          cy={pt.y}
-                          r={active ? 6 : 4}
-                          fill={active ? '#F5B942' : '#55E2CE'}
-                        />
+                        <circle cx={pt.x} cy={pt.y} r="4.5" fill="#55E2CE" />
                         <text
                           x={pt.lx}
                           y={pt.ly}
@@ -1281,54 +1413,84 @@ export default function ParentView() {
                           dominantBaseline="central"
                           fontSize="10"
                           fontWeight="700"
-                          fill={active ? '#F5B942' : 'rgba(255,255,255,0.85)'}
+                          fill="rgba(255,255,255,0.85)"
                         >
                           {pt.shortName}
                         </text>
                       </g>
-                    );
-                  })}
-                </svg>
+                    ))}
+                  </svg>
+                </div>
+
+                <p className="text-xs text-white/75 leading-relaxed">
+                  Every child’s web has its own shape—smaller areas are simply
+                  new skills to explore next.
+                </p>
               </div>
 
-              <p className="text-xs text-white/75 leading-relaxed">
-                Every child’s web has its own shape—smaller areas are simply new skills to explore next.
-              </p>
+              {!isPaid && (
+                <LockedOverlay
+                  dark
+                  headline={`Unlock ${firstName}’s 8-Area Thinking Web`}
+                  sub="See strengths and next focus areas at a glance."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 sm:p-7 shadow-sm space-y-4">
-              <h3 className="font-display text-xl font-extrabold text-[#142033]">
-                How {firstName}’s reasoning shifted
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="rounded-2xl bg-[#F7F6F1] p-4 space-y-1">
-                  <div className="text-xs font-extrabold text-[#586579]">
-                    Earlier
+            <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 sm:p-7 shadow-[var(--shadow-artifact)]">
+              <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-4' : 'space-y-4'}>
+                <h3 className="font-display text-xl font-extrabold text-[#142033]">
+                  How {firstName}’s reasoning shifted
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-[#F7F6F1] p-4 space-y-1">
+                    <div className="text-xs font-extrabold text-[#586579]">
+                      Earlier
+                    </div>
+                    <p className="text-sm text-[#142033] leading-relaxed">
+                      Picked an explanation after checking just one initial clue.
+                    </p>
                   </div>
-                  <p className="text-sm text-[#142033] leading-relaxed">
-                    Picked an explanation after checking just one initial clue.
-                  </p>
-                </div>
-                <div className="rounded-2xl bg-[#087F80]/10 border border-[#087F80]/20 p-4 space-y-1">
-                  <div className="text-xs font-extrabold text-[#087F80]">
-                    More Recently
+                  <div className="rounded-2xl bg-[#087F80]/10 border border-[#087F80]/20 p-4 space-y-1">
+                    <div className="text-xs font-extrabold text-[#087F80]">
+                      More Recently
+                    </div>
+                    <p className="text-sm text-[#142033] leading-relaxed">
+                      Tested an extra input and compared outputs before confirming.
+                    </p>
                   </div>
-                  <p className="text-sm text-[#142033] leading-relaxed">
-                    Tested an extra input and compared outputs before confirming.
-                  </p>
                 </div>
               </div>
+
+              {!isPaid && (
+                <LockedOverlay
+                  headline="See how their reasoning shifted"
+                  sub="Compare earlier habits with recent breakthroughs."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
             </div>
 
-            <div className="rounded-3xl bg-[#FFFDF7] border border-[#E6DEC8] p-6 sm:p-7 shadow-sm flex flex-col justify-center gap-3">
-              <div className="text-xs font-extrabold uppercase tracking-wider text-[#087F80]">
-                In {firstName}’s Own Words
+            <div className="relative overflow-hidden rounded-3xl bg-[#FFFDF7] border border-[#E6DEC8] p-6 sm:p-7 shadow-[var(--shadow-artifact)] flex flex-col justify-center gap-3">
+              <div className={!isPaid ? 'blur-[5px] select-none pointer-events-none space-y-3' : 'space-y-3'}>
+                <div className="text-xs font-extrabold uppercase tracking-wider text-[#087F80]">
+                  In {firstName}’s Own Words
+                </div>
+                <blockquote className="font-display text-xl sm:text-2xl font-extrabold text-[#142033] leading-snug">
+                  {verbatimQuote}
+                </blockquote>
               </div>
-              <blockquote className="font-display text-xl sm:text-2xl font-extrabold text-[#142033] leading-snug">
-                {verbatimQuote}
-              </blockquote>
+
+              {!isPaid && (
+                <LockedOverlay
+                  headline={`Read what ${firstName} wrote in their own words`}
+                  sub="Real verbatim quotes captured during missions."
+                  onUnlock={openUnlockCheckout}
+                />
+              )}
             </div>
           </div>
         </section>
