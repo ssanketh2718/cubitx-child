@@ -7,6 +7,7 @@ import { curriculumTierFrom } from '../../missions/tiers';
 import { PAYMENT_LINK } from '../config';
 import { supabase } from '../lib/supabase';
 import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
+import { summarizeThinkingSheets } from '../analytics/thinkingSheetBridge';
 
 interface DateSlot {
   iso: string;
@@ -72,7 +73,8 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     readoutLeftValue: '2 probes',
     readoutRightTitle: 'Mind shift',
     readoutRightValue: 'Updated',
-    liveNote: '“Because 5 gave 15, it couldn’t be adding 6 — multiplying by 3 fits both.”',
+    liveNote:
+      '“Because 5 gave 15, it could not be adding 6. Multiplying by 3 fits both.”',
     actionPreview: 'Save & unlock next',
   },
 ];
@@ -129,6 +131,11 @@ export default function Home() {
   const [isPaused, setIsPaused] = useState(false);
   const [openJourneyIdx, setOpenJourneyIdx] = useState<number | null>(null);
 
+  const sheetSummary = useMemo(
+    () => summarizeThinkingSheets(responses),
+    [responses]
+  );
+
   useEffect(() => {
     const fetchUser = async () => {
       const {
@@ -140,7 +147,6 @@ export default function Home() {
     refreshDayUnlocks();
   }, [refreshDayUnlocks, setSupabaseId]);
 
-  // Smooth auto-moving screen cycle (pauses when user hovers or clicks a step)
   useEffect(() => {
     if (isPaused) return;
     const timer = window.setInterval(() => {
@@ -183,38 +189,51 @@ export default function Home() {
   };
 
   const completedCount = Object.keys(responses).length;
-  const journeyItems = [
-    {
-      id: 'j-1',
-      code: '01',
-      title: '[Add mission title]',
-      state: completedCount > 0 ? 'Unlocked' : 'Next',
-      note: '[Add one-line reminder of what was figured out]',
-    },
-    {
-      id: 'j-2',
-      code: '02',
-      title: '[Add mission title]',
-      state: completedCount > 1 ? 'Unlocked' : 'Next',
-      note: '[Add one-line reminder of what was figured out]',
-    },
-    {
-      id: 'j-3',
-      code: '03',
-      title: '[Add mission title]',
-      state: 'Next',
-      note: '[Add one-line reminder of what was figured out]',
-    },
-  ];
+
+  const journeyItems = useMemo(() => {
+    if (sheetSummary.entries.length > 0) {
+      return sheetSummary.entries.slice(0, 6).map((entry, idx) => ({
+        id: entry.key,
+        code: String(idx + 1).padStart(2, '0'),
+        title: `${entry.topicName} · ${entry.questionTitle}`,
+        state: 'Completed',
+        note:
+          entry.text ||
+          entry.twistText ||
+          `Completed in ${entry.subject} (${entry.skillCode}).`,
+      }));
+    }
+
+    return [
+      {
+        id: 'j-1',
+        code: '01',
+        title: '[Add mission title]',
+        state: completedCount > 0 ? 'Unlocked' : 'Next',
+        note: '[Add one-line reminder of what was figured out]',
+      },
+      {
+        id: 'j-2',
+        code: '02',
+        title: '[Add mission title]',
+        state: completedCount > 1 ? 'Unlocked' : 'Next',
+        note: '[Add one-line reminder of what was figured out]',
+      },
+      {
+        id: 'j-3',
+        code: '03',
+        title: '[Add mission title]',
+        state: 'Next',
+        note: '[Add one-line reminder of what was figured out]',
+      },
+    ];
+  }, [sheetSummary.entries, completedCount]);
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] text-[#142033]">
       <div className="mx-auto max-w-6xl space-y-16 px-2 sm:px-4 pt-4 pb-16">
-        {/* ===============================================================
-            01 · CADENCE-STYLE ASYMMETRIC HERO + LIVE MOVING SCREEN
-            =============================================================== */}
+        {/* 01 · HERO + LIVE MOVING SCREEN */}
         <section className="grid grid-cols-1 gap-10 lg:grid-cols-[1.02fr_0.98fr] items-center pt-2">
-          {/* LEFT: CALM EDITORIAL BRIEFING */}
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#142033]/10 bg-white px-3.5 py-1.5 text-xs font-medium text-[#586579]">
               <span className="h-2 w-2 rounded-full bg-[#087F80]" />
@@ -262,25 +281,28 @@ export default function Home() {
                   triggerDialTick(false);
                   navigate('/sheets');
                 }}
-                className="rounded-full border border-[#142033]/15 bg-white px-5 py-3.5 text-sm font-semibold text-[#142033] hover:border-[#142033]/40 transition cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-full border border-[#142033]/15 bg-white px-5 py-3.5 text-sm font-semibold text-[#142033] hover:border-[#142033]/40 transition cursor-pointer"
               >
-                Thinking Sheets
+                <span>Thinking Sheets</span>
+                {sheetSummary.totalCompleted > 0 && (
+                  <span className="rounded-full bg-[#087F80]/12 px-2 py-0.5 font-mono-tech text-[11px] font-bold text-[#087F80]">
+                    {sheetSummary.totalCompleted} done
+                  </span>
+                )}
               </button>
             </div>
 
             <p className="text-xs text-[#586579]">
-              No timers, no marks, no pressure — just figure it out at your own pace.
+              No timers, no marks, no pressure. Just figure it out at your own pace.
             </p>
           </div>
 
-          {/* RIGHT: CADENCE-STYLE MOVING LIVE PRODUCT SCREEN */}
           <div
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
             className="cx-soft-float"
           >
             <div className="rounded-[28px] border border-[#142033]/12 bg-white p-5 sm:p-6 shadow-[var(--shadow-device)] space-y-5">
-              {/* WINDOW HEADER */}
               <div className="flex items-center justify-between border-b border-[#142033]/8 pb-3.5">
                 <div className="flex items-center gap-2.5">
                   <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F7F6F1] font-display text-xs font-extrabold text-[#142033]">
@@ -318,7 +340,6 @@ export default function Home() {
                 </span>
               </div>
 
-              {/* ANIMATED MOVING SCREEN BODY */}
               <div key={currentFrame.id} className="cx-screen-enter space-y-4">
                 <div className="space-y-1">
                   <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#087F80]">
@@ -329,7 +350,6 @@ export default function Home() {
                   </h2>
                 </div>
 
-                {/* CLEAN LIVE TELEMETRY PAIR */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-[#142033]/8 bg-[#F7F6F1] p-4">
                     <div className="text-[11px] font-medium text-[#586579]">
@@ -349,12 +369,10 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* LIVE THOUGHT LINE */}
                 <div className="rounded-2xl border border-[#142033]/8 bg-white px-4 py-3 text-xs sm:text-sm text-[#142033] leading-relaxed">
                   {currentFrame.liveNote}
                 </div>
 
-                {/* INTERACTIVE PREVIEW FOOTER */}
                 <div className="flex items-center justify-between pt-1">
                   <button
                     type="button"
@@ -373,7 +391,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* PROGRESS STEPPER TRACK */}
               <div className="grid grid-cols-3 gap-2 pt-1">
                 {MOVING_SCREEN_FRAMES.map((frame, idx) => {
                   const isCurrent = idx === activeFrameIdx;
@@ -422,9 +439,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ===============================================================
-            02 · PICK A DATE (YOUR PATH — CLEAN EDITORIAL STRIP)
-            =============================================================== */}
+        {/* 02 · PICK A DATE */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -497,23 +512,26 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ===============================================================
-            03 · YOUR JOURNEY (CLEAN HAIRLINE TABLE — CADENCE STYLE)
-            =============================================================== */}
+        {/* 03 · YOUR JOURNEY */}
         <section className="cx-hairline-t pt-10 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
               Your journey
             </h2>
             <span className="text-xs text-[#586579]">
-              Tap any row to see what you figured out
+              {sheetSummary.totalCompleted > 0
+                ? `${sheetSummary.totalCompleted} Thinking Sheet${
+                    sheetSummary.totalCompleted === 1 ? '' : 's'
+                  } completed. Tap any row to read your note.`
+                : 'Tap any row to see what you figured out'}
             </span>
           </div>
 
           <div className="cx-hairline-t">
             {journeyItems.map((entry, idx) => {
               const open = openJourneyIdx === idx;
-              const unlocked = entry.state === 'Unlocked';
+              const unlocked =
+                entry.state === 'Unlocked' || entry.state === 'Completed';
               return (
                 <div key={entry.id} className="cx-hairline-b">
                   <button
@@ -555,11 +573,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* QUIET TRIAL STRIP */}
         {trialActive && trialDaysLeft !== null && (
           <div className="cx-hairline-t pt-6 flex flex-wrap items-center justify-between gap-4">
             <p className="text-xs text-[#586579]">
-              {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in free trial · Full year access ₹999
+              {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in free
+              trial · Full year access ₹999
             </p>
             <button
               type="button"

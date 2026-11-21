@@ -11,43 +11,43 @@ import {
 import { isDevMode } from '../auth/devMode';
 import { triggerDialTick, triggerSoftConfirm } from '../lib/tactileFeedback';
 
-export type SheetSubject =
-  | 'Science'
-  | 'History'
-  | 'Geography'
-  | 'Extra Curricular';
-
 export interface SheetQuestion {
   id: string;
+  title: string;
+  skillCode: 'A1' | 'A2' | 'B1' | 'B2' | 'B3' | 'C1' | 'C2' | 'C3';
   twistPrompt: string;
   catchPrompt: string;
-  viewpoints: [string, string];
+  viewpoints: string[];
+  tellFriendPrompt: string;
 }
 
 export interface ThinkingSheetChapter {
   id: string;
   board: EducationBoard | 'ALL';
   classLevel: number | 'ALL';
-  subject: SheetSubject;
+  subject: string;
+  chapterNumber: number;
   topicName: string;
   hook: string;
-  /** Flexible bank: add 12, 15, or 20+ questions per chapter */
   questions: SheetQuestion[];
 }
 
-const SUBJECTS: SheetSubject[] = [
-  'Science',
-  'History',
-  'Geography',
-  'Extra Curricular',
-];
+// Auto-loads every chapter JSON dropped into src/data/thinking-sheets/**
+const chapterModules = import.meta.glob<ThinkingSheetChapter>(
+  '../../data/thinking-sheets/**/*.json',
+  { eager: true, import: 'default' }
+);
 
-const STUDENT_NAME_PAIRS: Array<[string, string]> = [
-  ['Rohan', 'Ananya'],
-  ['Kabir', 'Meera'],
-  ['Aarav', 'Diya'],
-  ['Vihaan', 'Saanvi'],
-  ['Aditya', 'Kavya'],
+const ALL_CHAPTERS: ThinkingSheetChapter[] = Object.values(chapterModules).sort(
+  (a, b) => a.chapterNumber - b.chapterNumber
+);
+
+const STUDENT_NAME_SETS: Array<[string, string, string, string]> = [
+  ['Rohan', 'Ananya', 'Kabir', 'Meera'],
+  ['Aarav', 'Diya', 'Vihaan', 'Saanvi'],
+  ['Aditya', 'Kavya', 'Arjun', 'Riya'],
+  ['Om', 'Tanvi', 'Pranav', 'Ira'],
+  ['Dev', 'Neha', 'Siddharth', 'Gauri'],
 ];
 
 function hashString(input: string): number {
@@ -71,61 +71,14 @@ function deterministicShuffle<T>(items: T[], seedKey: string): T[] {
 }
 
 function applyStudentNames(text: string, seedKey: string): string {
-  const pair = STUDENT_NAME_PAIRS[hashString(seedKey) % STUDENT_NAME_PAIRS.length];
-  return text.replace(/\{S1\}/g, pair[0]).replace(/\{S2\}/g, pair[1]);
+  const names =
+    STUDENT_NAME_SETS[hashString(seedKey) % STUDENT_NAME_SETS.length];
+  return text
+    .replace(/\{S1\}/g, names[0])
+    .replace(/\{S2\}/g, names[1])
+    .replace(/\{S3\}/g, names[2])
+    .replace(/\{S4\}/g, names[3]);
 }
-
-function buildFlexibleQuestions(prefix: string, count = 12): SheetQuestion[] {
-  return Array.from({ length: count }, (_, idx) => ({
-    id: `${prefix}-q${idx + 1}`,
-    twistPrompt: `[Add chapter "What if?" situation #${idx + 1} here — use {S1} and {S2} for auto-swapped names]`,
-    catchPrompt:
-      'Compare {S1} and {S2}. Which viewpoint has a hidden gap in reasoning?',
-    viewpoints: [
-      `{S1}: [Add viewpoint 1 for question #${idx + 1}]`,
-      `{S2}: [Add viewpoint 2 for question #${idx + 1}]`,
-    ],
-  }));
-}
-
-const CHAPTER_BANK: ThinkingSheetChapter[] = [
-  {
-    id: 'tpl-science',
-    board: 'ALL',
-    classLevel: 'ALL',
-    subject: 'Science',
-    topicName: '[Add Science chapter / syllabus topic name]',
-    hook: '[Add one-line hook]',
-    questions: buildFlexibleQuestions('sci', 12),
-  },
-  {
-    id: 'tpl-history',
-    board: 'ALL',
-    classLevel: 'ALL',
-    subject: 'History',
-    topicName: '[Add History chapter / syllabus topic name]',
-    hook: '[Add one-line hook]',
-    questions: buildFlexibleQuestions('his', 12),
-  },
-  {
-    id: 'tpl-geography',
-    board: 'ALL',
-    classLevel: 'ALL',
-    subject: 'Geography',
-    topicName: '[Add Geography chapter / syllabus topic name]',
-    hook: '[Add one-line hook]',
-    questions: buildFlexibleQuestions('geo', 12),
-  },
-  {
-    id: 'tpl-extra',
-    board: 'ALL',
-    classLevel: 'ALL',
-    subject: 'Extra Curricular',
-    topicName: '[Add Extra Curricular topic name]',
-    hook: '[Add one-line hook]',
-    questions: buildFlexibleQuestions('ext', 12),
-  },
-];
 
 export default function ThinkingSheets() {
   const { activeChild } = useChild();
@@ -133,40 +86,52 @@ export default function ThinkingSheets() {
   const responses = useApp((s) => s.responses);
   const saveResponse = useApp((s) => s.saveResponse);
 
-  const childId = activeChild?.id || user?.childId || 'student';
-  const classLevel = activeChild?.class_level ?? user?.grade ?? 6;
-  const board: EducationBoard =
-    (activeChild as { board?: EducationBoard | null } | null)?.board || 'CBSE';
-
   const dev = isDevMode();
   const [devPaidPreview, setDevPaidPreview] = useState(false);
+  const [devBoardOverride, setDevBoardOverride] = useState<EducationBoard | null>(null);
+  const [devClassOverride, setDevClassOverride] = useState<number | null>(null);
+
+  const childId = activeChild?.id || user?.childId || 'student';
+  const classLevel = devClassOverride ?? activeChild?.class_level ?? user?.grade ?? 5;
+  const board: EducationBoard =
+    devBoardOverride ??
+    (activeChild as { board?: EducationBoard | null } | null)?.board ??
+    'Maharashtra State Board';
+
   const isPaid =
     devPaidPreview ||
     (typeof window !== 'undefined' &&
       localStorage.getItem('cubitx-plan') === 'paid');
 
-  const [subject, setSubject] = useState<SheetSubject>('Science');
+  // Auto-filter chapters for this student's Board and Class
+  const classChapters = useMemo(() => {
+    return ALL_CHAPTERS.filter(
+      (c) =>
+        (c.board === board || c.board === 'ALL') &&
+        (c.classLevel === classLevel || c.classLevel === 'ALL')
+    ).sort((a, b) => a.chapterNumber - b.chapterNumber);
+  }, [board, classLevel]);
+
+  // Auto-build Subject tabs from whatever JSON files exist
+  const availableSubjects = useMemo(() => {
+    const seen = new Set<string>();
+    for (const c of classChapters) {
+      seen.add(c.subject);
+    }
+    return Array.from(seen);
+  }, [classChapters]);
+
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const activeSubject = availableSubjects.includes(selectedSubject)
+    ? selectedSubject
+    : availableSubjects[0] ?? '';
+
+  const visibleChapters = useMemo(
+    () => classChapters.filter((c) => c.subject === activeSubject),
+    [classChapters, activeSubject]
+  );
+
   const [selectedChapterId, setSelectedChapterId] = useState<string>('');
-  const [questionIdx, setQuestionIdx] = useState<number>(0);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [twistNote, setTwistNote] = useState('');
-  const [pickedViewpoint, setPickedViewpoint] = useState<number | null>(null);
-  const [reasonNote, setReasonNote] = useState('');
-  const [savedNotice, setSavedNotice] = useState(false);
-
-  const visibleChapters = useMemo(() => {
-    const exact = CHAPTER_BANK.filter(
-      (item) =>
-        item.subject === subject &&
-        (item.board === board || item.board === 'ALL') &&
-        (item.classLevel === classLevel || item.classLevel === 'ALL')
-    );
-    const specific = exact.filter(
-      (item) => item.board !== 'ALL' && item.classLevel !== 'ALL'
-    );
-    return specific.length > 0 ? specific : exact;
-  }, [subject, board, classLevel]);
-
   const activeChapter = useMemo(
     () =>
       visibleChapters.find((c) => c.id === selectedChapterId) ??
@@ -174,7 +139,13 @@ export default function ThinkingSheets() {
     [visibleChapters, selectedChapterId]
   );
 
-  // Per-student tailored order so classmates do not get identical question numbers
+  const [questionIdx, setQuestionIdx] = useState<number>(0);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [twistNote, setTwistNote] = useState('');
+  const [pickedViewpoint, setPickedViewpoint] = useState<number | null>(null);
+  const [reasonNote, setReasonNote] = useState('');
+  const [savedNotice, setSavedNotice] = useState(false);
+
   const tailoredQuestions = useMemo(() => {
     if (!activeChapter) return [];
     return deterministicShuffle(
@@ -197,7 +168,7 @@ export default function ThinkingSheets() {
       text: applyStudentNames(raw, seed),
       origIdx,
     }));
-    return hashString(seed) % 2 === 1 ? [...list].reverse() : list;
+    return deterministicShuffle(list, `${seed}:vp`);
   }, [childId, activeQuestion]);
 
   const responseKey =
@@ -206,14 +177,28 @@ export default function ThinkingSheets() {
       : '';
   const isDone = Boolean(responseKey && responses[responseKey]);
 
+  const isYoungerTier = classLevel <= 7;
+  const step1Heading = isYoungerTier ? "Let's Wonder" : 'The Twist';
+  const step2Heading = isYoungerTier
+    ? 'What is really happening here?'
+    : 'Spot the Catch';
+  const step3Heading = isYoungerTier ? 'Tell a Friend' : 'Your Reason';
+
   const handleSave = async () => {
-    if (!activeQuestion || !responseKey || isQuestionLocked) return;
+    if (!activeQuestion || !activeChapter || !responseKey || isQuestionLocked) return;
     triggerSoftConfirm(true);
     await saveResponse(responseKey, {
       engine: 'thinking-sheet',
       text: reasonNote.trim() || twistNote.trim(),
       picked: pickedViewpoint ?? undefined,
-    });
+      skillCode: activeQuestion.skillCode,
+      chapterId: activeChapter.id,
+      topicName: activeChapter.topicName,
+      subject: activeChapter.subject,
+      questionTitle: activeQuestion.title,
+      twistText: twistNote.trim(),
+      completedAt: new Date().toISOString(),
+    } as any);
     setSavedNotice(true);
   };
 
@@ -229,7 +214,6 @@ export default function ThinkingSheets() {
   return (
     <div className="min-h-screen bg-[#F7F6F1] pb-20 pt-4 text-[#142033]">
       <div className="mx-auto max-w-5xl space-y-8 px-2 sm:px-4">
-        {/* HEADER & SUBJECT TABS */}
         <header className="cx-hairline-b pb-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -237,7 +221,7 @@ export default function ThinkingSheets() {
                 Thinking Sheets
               </h1>
               <p className="mt-1 text-sm sm:text-base text-[#586579]">
-                Solve each topic on your own after class.
+                Solve each chapter on your own after class.
               </p>
             </div>
 
@@ -246,51 +230,74 @@ export default function ThinkingSheets() {
                 Class {classLevel} · {board}
               </span>
               {dev && (
-                <button
-                  type="button"
-                  onClick={() => setDevPaidPreview((p) => !p)}
-                  className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-3 py-1.5 font-mono-tech text-[10px] font-bold text-[#087F80] cursor-pointer"
-                >
-                  DEV: {isPaid ? 'Paid (12+)' : `Free (${FREE_THINKING_SHEET_LIMIT})`}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setDevPaidPreview((p) => !p)}
+                    className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-3 py-1.5 font-mono-tech text-[10px] font-bold text-[#087F80] cursor-pointer"
+                  >
+                    DEV: {isPaid ? 'Paid (All)' : `Free (${FREE_THINKING_SHEET_LIMIT})`}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDevBoardOverride('Maharashtra State Board');
+                      setDevClassOverride(5);
+                      resetInputsForQuestion(0);
+                    }}
+                    className="rounded-full border border-[#142033]/20 bg-white px-3 py-1.5 font-mono-tech text-[10px] font-bold text-[#142033] cursor-pointer"
+                  >
+                    DEV: Std 5 MH
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          <div
-            className="flex flex-wrap gap-2"
-            role="tablist"
-            aria-label="Subjects"
-          >
-            {SUBJECTS.map((tab) => {
-              const active = subject === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => {
-                    triggerDialTick(false);
-                    setSubject(tab);
-                    setSelectedChapterId('');
-                    resetInputsForQuestion(0);
-                  }}
-                  className={`rounded-full px-4 py-2 text-xs font-extrabold transition cursor-pointer ${
-                    active
-                      ? 'bg-[#142033] text-white'
-                      : 'border border-[#142033]/12 bg-white text-[#586579] hover:text-[#142033]'
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
+          {availableSubjects.length > 0 && (
+            <div
+              className="flex flex-wrap gap-2"
+              role="tablist"
+              aria-label="Subjects"
+            >
+              {availableSubjects.map((tab) => {
+                const active = activeSubject === tab;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={active}
+                    onClick={() => {
+                      triggerDialTick(false);
+                      setSelectedSubject(tab);
+                      setSelectedChapterId('');
+                      resetInputsForQuestion(0);
+                    }}
+                    className={`rounded-full px-4 py-2 text-xs font-extrabold transition cursor-pointer ${
+                      active
+                        ? 'bg-[#142033] text-white'
+                        : 'border border-[#142033]/12 bg-white text-[#586579] hover:text-[#142033]'
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </header>
 
-        {/* TOPIC LIST + 3-STEP CONSOLE */}
-        {activeChapter && activeQuestion && (
+        {!activeChapter || !activeQuestion ? (
+          <div className="rounded-3xl border border-[#142033]/12 bg-white p-8 text-center space-y-2">
+            <h2 className="font-display text-xl font-extrabold text-[#142033]">
+              Chapters for Class {classLevel} ({board}) are coming soon
+            </h2>
+            <p className="text-sm text-[#586579]">
+              New chapter Thinking Sheets appear here automatically as they are added.
+            </p>
+          </div>
+        ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.82fr_1.18fr] items-start">
             <div className="space-y-3">
               {visibleChapters.map((chapter) => {
@@ -333,15 +340,15 @@ export default function ThinkingSheets() {
                 );
               })}
 
-              {!isPaid && (
+              {!isPaid && tailoredQuestions.length > FREE_THINKING_SHEET_LIMIT && (
                 <div className="rounded-2xl border border-[#142033]/12 bg-white p-4 space-y-2">
                   <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#087F80]">
                     Free Plan · {FREE_THINKING_SHEET_LIMIT} of{' '}
                     {tailoredQuestions.length} Open
                   </div>
                   <p className="text-xs text-[#586579] leading-relaxed">
-                    Unlock all {tailoredQuestions.length}+ tailored questions
-                    per chapter for ₹{TRIAL_PRICE_INR} ({TRIAL_DAYS} days).
+                    Unlock all {tailoredQuestions.length} tailored questions in
+                    this chapter for ₹{TRIAL_PRICE_INR} ({TRIAL_DAYS} days).
                   </p>
                   <button
                     type="button"
@@ -360,12 +367,11 @@ export default function ThinkingSheets() {
               )}
             </div>
 
-            {/* 3-STEP THINKING SHEET CONSOLE */}
             <section className="rounded-[28px] bg-[#142033] p-6 sm:p-8 text-white shadow-[var(--shadow-device)] space-y-6">
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
                 <div>
                   <span className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#55E2CE]">
-                    {activeChapter.subject} · Tailored Set
+                    {activeChapter.subject} · {activeQuestion.title}
                   </span>
                   <h2 className="font-display text-xl font-extrabold text-white mt-0.5">
                     {activeChapter.topicName}
@@ -395,7 +401,6 @@ export default function ThinkingSheets() {
                 )}
               </div>
 
-              {/* QUESTION STRIP (4 OPEN ON FREE, 12+ ON PAID) */}
               <div className="flex flex-wrap gap-1.5">
                 {tailoredQuestions.map((q, idx) => {
                   const locked = !isPaid && idx >= FREE_THINKING_SHEET_LIMIT;
@@ -437,7 +442,7 @@ export default function ThinkingSheets() {
                     Question {questionIdx + 1} of {tailoredQuestions.length}
                   </div>
                   <h3 className="font-display text-2xl font-extrabold text-white">
-                    Unlock all {tailoredQuestions.length}+ questions in this chapter
+                    Unlock all {tailoredQuestions.length} questions in this chapter
                   </h3>
                   <p className="mx-auto max-w-md text-xs sm:text-sm text-white/75 leading-relaxed">
                     Free plan includes {FREE_THINKING_SHEET_LIMIT} thinking
@@ -463,9 +468,9 @@ export default function ThinkingSheets() {
                   {step === 1 && (
                     <div className="space-y-4">
                       <h3 className="font-display text-2xl font-extrabold text-white">
-                        The Twist
+                        {step1Heading}
                       </h3>
-                      <p className="text-sm text-white/85 leading-relaxed">
+                      <p className="text-sm text-white/90 leading-relaxed">
                         {applyStudentNames(
                           activeQuestion.twistPrompt,
                           `${childId}:${activeQuestion.id}`
@@ -475,7 +480,7 @@ export default function ThinkingSheets() {
                         rows={3}
                         value={twistNote}
                         onChange={(e) => setTwistNote(e.target.value)}
-                        placeholder="Write what you notice..."
+                        placeholder="Write what you think first..."
                         className="w-full rounded-2xl border border-white/15 bg-[#1B2A42] p-4 text-sm text-white outline-none focus:border-[#55E2CE]"
                       />
                       <button
@@ -494,14 +499,8 @@ export default function ThinkingSheets() {
                   {step === 2 && (
                     <div className="space-y-4">
                       <h3 className="font-display text-2xl font-extrabold text-white">
-                        Spot the Catch
+                        {step2Heading}
                       </h3>
-                      <p className="text-sm text-white/85 leading-relaxed">
-                        {applyStudentNames(
-                          activeQuestion.catchPrompt,
-                          `${childId}:${activeQuestion.id}`
-                        )}
-                      </p>
                       <div className="space-y-2.5">
                         {shuffledViewpoints.map((vp) => (
                           <button
@@ -546,11 +545,13 @@ export default function ThinkingSheets() {
                   {step === 3 && (
                     <div className="space-y-4">
                       <h3 className="font-display text-2xl font-extrabold text-white">
-                        Your Reason
+                        {step3Heading}
                       </h3>
-                      <p className="text-sm text-white/85">
-                        Why do you think that? Write a short line in your own
-                        words.
+                      <p className="text-sm text-white/90 leading-relaxed">
+                        {applyStudentNames(
+                          activeQuestion.tellFriendPrompt,
+                          `${childId}:${activeQuestion.id}`
+                        )}
                       </p>
                       <textarea
                         rows={3}
@@ -559,7 +560,7 @@ export default function ThinkingSheets() {
                           setReasonNote(e.target.value);
                           setSavedNotice(false);
                         }}
-                        placeholder="Write a short line in your own words..."
+                        placeholder="Write one short line in your own words..."
                         className="w-full rounded-2xl border border-white/15 bg-[#1B2A42] p-4 text-sm text-white outline-none focus:border-[#55E2CE]"
                       />
                       <div className="flex flex-wrap items-center gap-3">

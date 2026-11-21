@@ -18,13 +18,17 @@ import {
   TRIAL_PRICE_INR,
 } from '../config';
 import { isDevMode } from '../auth/devMode';
+import {
+  summarizeThinkingSheets,
+  type SkillCode,
+} from '../analytics/thinkingSheetBridge';
 
 type TimeWindow = '7d' | '30d' | '90d' | 'all';
 type CoverageStatus = 'observed' | 'early' | 'review' | 'upcoming';
 
 interface ThinkingSkill {
-  id: string;
-  code: string;
+  id: SkillCode;
+  code: SkillCode;
   shortName: string;
   name: string;
   summary: string;
@@ -57,7 +61,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child isolates an unknown variable before making a choice.',
     growthSeries: [28, 42, 58, 72],
     politeProgressNote:
-      'Showing steady, thoughtful growth—moving from broad guesses toward asking focused questions that test one idea at a time.',
+      'Showing steady, thoughtful growth, moving from broad guesses toward asking focused questions that test one idea at a time.',
     webScore: 72,
   },
   {
@@ -77,7 +81,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child identifies an omitted fact or hidden assumption.',
     growthSeries: [20, 26, 35, 48],
     politeProgressNote:
-      'Making a warm, encouraging start—beginning to pause and notice when an important clue has been left out.',
+      'Making a warm, encouraging start, beginning to pause and notice when an important clue has been left out.',
     webScore: 48,
   },
   {
@@ -97,7 +101,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child links their choice directly to an observed cause or rule.',
     growthSeries: [32, 46, 60, 74],
     politeProgressNote:
-      'Developing a clear voice—increasingly comfortable explaining the “why” behind choices in their own words.',
+      'Developing a clear voice, increasingly comfortable explaining the “why” behind choices in their own words.',
     webScore: 74,
   },
   {
@@ -117,7 +121,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child runs verification probes to rule out competing ideas.',
     growthSeries: [35, 52, 68, 82],
     politeProgressNote:
-      'A wonderful area of strength right now—patiently checking extra clues before settling on a conclusion.',
+      'A wonderful area of strength right now, patiently checking extra clues before settling on a conclusion.',
     webScore: 82,
   },
   {
@@ -128,7 +132,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     summary: 'Spots leaps in logic, small sample sizes, or unfair comparisons.',
     noticeAtHome: [
       'Notices when someone generalizes from just one or two examples.',
-      'Questions bold claims that don’t have a fair comparison.',
+      'Questions bold claims that do not have a fair comparison.',
     ],
     whatWeSaw: 'Recent activity is currently being reviewed.',
     stillExploring: 'Will update once review is complete.',
@@ -137,7 +141,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child flags unsupported generalizations or weak claims.',
     growthSeries: [18, 25, 32, 42],
     politeProgressNote:
-      'Early signs are very promising—starting to look past confident headlines to check whether the logic holds up.',
+      'Early signs are very promising, starting to look past confident headlines to check whether the logic holds up.',
     webScore: 42,
   },
   {
@@ -157,7 +161,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child balances competing constraints across viable choices.',
     growthSeries: [15, 18, 22, 28],
     politeProgressNote:
-      'Just ahead on the journey—upcoming missions will gently introduce balancing competing choices and limits.',
+      'Just ahead on the journey. Upcoming missions will gently introduce balancing competing choices and limits.',
     webScore: 28,
   },
   {
@@ -168,7 +172,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     summary: 'Willing to revise a first hunch when new information disagrees.',
     noticeAtHome: [
       'Changes their mind calmly when shown a new fact.',
-      'Doesn’t stay stuck on a first guess just to be right.',
+      'Does not stay stuck on a first guess just to be right.',
     ],
     whatWeSaw: 'Revised a candidate rule after a second test contradicted the first guess.',
     stillExploring: 'How readily this happens across longer, multi-step puzzles.',
@@ -177,7 +181,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child updates or refines a prior guess after new feedback.',
     growthSeries: [24, 38, 52, 66],
     politeProgressNote:
-      'Showing lovely flexibility—willing to let go of a first guess when a new clue tells a clearer story.',
+      'Showing lovely flexibility, willing to let go of a first guess when a new clue tells a clearer story.',
     webScore: 66,
   },
   {
@@ -197,7 +201,7 @@ const THINKING_SKILLS: ThinkingSkill[] = [
     howWeObserve: 'Tracked when your child evaluates their own problem-solving strategy.',
     growthSeries: [16, 20, 26, 34],
     politeProgressNote:
-      'Ready to blossom next—as more missions are completed, we will invite your child to look back on what strategies helped most.',
+      'Ready to blossom next. As more missions are completed, we will invite your child to look back on what strategies helped most.',
     webScore: 34,
   },
 ];
@@ -214,8 +218,8 @@ function getAnnualTierProgress(count: number) {
   return { tier: current.tier, target: current.target, pct };
 }
 
-function withinWindow(dateStr: string, win: TimeWindow): boolean {
-  if (win === 'all') return true;
+function withinWindow(dateStr: string | undefined, win: TimeWindow): boolean {
+  if (win === 'all' || !dateStr) return true;
   const days = win === '7d' ? 7 : win === '30d' ? 30 : 90;
   const d =
     dateStr.length === 10 ? new Date(`${dateStr}T00:00:00`) : new Date(dateStr);
@@ -357,8 +361,8 @@ export default function ParentView() {
       localStorage.getItem('cubitx-plan') === 'paid');
 
   const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
-  const [selectedSkillId, setSelectedSkillId] = useState<string>('B2');
-  const [growthSkillId, setGrowthSkillId] = useState<string>('B2');
+  const [selectedSkillId, setSelectedSkillId] = useState<SkillCode>('B2');
+  const [growthSkillId, setGrowthSkillId] = useState<SkillCode>('B2');
   const [inspectorTab, setInspectorTab] = useState<'home' | 'how'>('home');
   const [trailFilter, setTrailFilter] = useState<string>('ALL');
   const [replayStepIdx, setReplayStepIdx] = useState(0);
@@ -388,7 +392,13 @@ export default function ParentView() {
     return { sessions: [], responses: {} };
   }, [activeChild, childBuckets, activeChildIdInStore, storeSessions, storeResponses]);
 
-  const { moments, studentSummary } = useMemo(() => {
+  const {
+    moments,
+    studentSummary,
+    sheetSummary,
+    missionsSolvedCount,
+    activeDaysCount,
+  } = useMemo(() => {
     const filteredSessions = record.sessions.filter((s) =>
       withinWindow(s.date, timeWindow)
     );
@@ -406,7 +416,23 @@ export default function ParentView() {
       filteredResponses,
       firstName
     );
-    return { moments: built, studentSummary: analyzed.studentSummary };
+    const sheets = summarizeThinkingSheets(filteredResponses);
+
+    const uniqueDates = new Set<string>();
+    for (const s of filteredSessions) {
+      if (s.date) uniqueDates.add(s.date.slice(0, 10));
+    }
+    for (const entry of sheets.entries) {
+      if (entry.completedAt) uniqueDates.add(entry.completedAt.slice(0, 10));
+    }
+
+    return {
+      moments: built,
+      studentSummary: analyzed.studentSummary,
+      sheetSummary: sheets,
+      missionsSolvedCount: filteredSessions.length,
+      activeDaysCount: uniqueDates.size,
+    };
   }, [record, timeWindow, firstName]);
 
   const skills = useMemo(() => {
@@ -415,28 +441,54 @@ export default function ParentView() {
     const hasWritten = studentSummary.writtenReflections > 0;
 
     return THINKING_SKILLS.map((skill) => {
+      let obsCount = skill.obsCount;
+      let status: CoverageStatus = skill.status;
+      let whatWeSaw = skill.whatWeSaw;
+      let webScore = skill.webScore;
+      let growthSeries = [...skill.growthSeries];
+
       if (skill.id === 'B2' && hasChecks) {
-        return {
-          ...skill,
-          obsCount: Math.max(skill.obsCount, studentSummary.totalChecksTried),
-        };
+        obsCount = Math.max(obsCount, studentSummary.totalChecksTried);
       }
       if (skill.id === 'C2' && hasRecheck) {
-        return {
-          ...skill,
-          status: 'observed' as CoverageStatus,
-          obsCount: Math.max(2, studentSummary.recheckMoments),
-        };
+        status = 'observed';
+        obsCount = Math.max(2, studentSummary.recheckMoments);
       }
       if (skill.id === 'B1' && hasWritten) {
-        return {
-          ...skill,
-          obsCount: Math.max(skill.obsCount, studentSummary.writtenReflections),
-        };
+        obsCount = Math.max(obsCount, studentSummary.writtenReflections);
       }
-      return skill;
+
+      const sheetEntries = sheetSummary.bySkill[skill.id];
+      if (sheetEntries.length > 0) {
+        obsCount += sheetEntries.length;
+        if (status === 'upcoming' || status === 'review') {
+          status = sheetEntries.length >= 2 ? 'observed' : 'early';
+        } else if (status === 'early' && sheetEntries.length >= 2) {
+          status = 'observed';
+        }
+        const latest = sheetEntries[0];
+        whatWeSaw = latest.text
+          ? `In Thinking Sheet (${latest.topicName} · ${latest.questionTitle}): “${latest.text}”`
+          : `Completed Thinking Sheet activity: ${latest.topicName} · ${latest.questionTitle}.`;
+
+        const boost = Math.min(20, sheetEntries.length * 8);
+        webScore = Math.min(96, webScore + boost);
+        growthSeries[growthSeries.length - 1] = Math.min(
+          96,
+          growthSeries[growthSeries.length - 1] + boost
+        );
+      }
+
+      return {
+        ...skill,
+        obsCount,
+        status,
+        whatWeSaw,
+        webScore,
+        growthSeries,
+      };
     });
-  }, [studentSummary]);
+  }, [studentSummary, sheetSummary]);
 
   const selectedSkill = useMemo(
     () => skills.find((s) => s.id === selectedSkillId) ?? skills[3],
@@ -451,9 +503,18 @@ export default function ParentView() {
   const observedSkillsCount = skills.filter(
     (s) => s.status === 'observed' || s.status === 'early'
   ).length;
-  const totalProbes = Math.max(studentSummary.totalChecksTried, 6);
+
+  const sheetWrittenCount = sheetSummary.entries.filter(
+    (e) => e.text.trim().length > 0
+  ).length;
+  const ownWordNotesCount =
+    studentSummary.writtenReflections + sheetWrittenCount;
+
+  const totalProbes =
+    Math.max(studentSummary.totalChecksTried, 6) + sheetSummary.totalCompleted;
   const totalRechecks = Math.max(studentSummary.recheckMoments, 3);
-  const totalNotes = Math.max(studentSummary.writtenReflections, 3);
+  const totalNotes =
+    Math.max(studentSummary.writtenReflections, 3) + sheetWrittenCount;
 
   const probeTier = getAnnualTierProgress(totalProbes);
   const recheckTier = getAnnualTierProgress(totalRechecks);
@@ -480,7 +541,7 @@ export default function ParentView() {
         label: 'Step 2 · Second Clue',
         input: '5',
         output: '15',
-        thought: 'Revised idea: “5 + 6 would be 11, not 15 — it must be ×3.”',
+        thought: 'Revised idea: “5 + 6 would be 11, not 15. It must be ×3.”',
         detail: `${firstName} compared the new output against the first guess and updated the rule.`,
       },
       {
@@ -496,41 +557,72 @@ export default function ParentView() {
 
   const currentStep = replaySteps[replayStepIdx] ?? replaySteps[0];
 
-  const observationFeed = [
-    {
-      id: 'm1',
-      skillCode: 'B2',
-      skillName: 'Using evidence',
-      headline: 'Tested a second input before locking in a rule',
-      summary: `${firstName} didn’t stop at the first coincidence—they ran a second probe, saw it contradict +6, and switched to ×3.`,
-      hasReplay: true,
-    },
-    {
-      id: 'm2',
-      skillCode: 'A1',
-      skillName: 'Asking good questions',
-      headline: 'Questioned a confident AI claim with a tiny sample',
-      summary: `${firstName} paused before trusting a bold percentage and asked who was actually tested.`,
+  const skillNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const s of THINKING_SKILLS) {
+      map[s.code] = s.name;
+    }
+    return map;
+  }, []);
+
+  const observationFeed = useMemo(() => {
+    const sheetObservations = sheetSummary.entries.slice(0, 6).map((entry) => ({
+      id: entry.key,
+      skillCode: entry.skillCode,
+      skillName: skillNameMap[entry.skillCode] || 'Thinking Sheet',
+      headline: `${entry.topicName} · ${entry.questionTitle}`,
+      summary: entry.text
+        ? `${firstName} wrote: “${entry.text}”`
+        : `${firstName} completed this ${entry.subject} Thinking Sheet question.`,
       hasReplay: false,
-    },
-    {
-      id: 'm3',
-      skillCode: 'A2',
-      skillName: 'Spotting missing info',
-      headline: 'Checked time of day before explaining a shadow',
-      summary: `${firstName} looked for missing variables instead of jumping to a quick assumption.`,
-      hasReplay: false,
-    },
-  ].filter((item) => trailFilter === 'ALL' || item.skillCode === trailFilter);
+    }));
+
+    const baseObservations = [
+      {
+        id: 'm1',
+        skillCode: 'B2',
+        skillName: 'Using evidence',
+        headline: 'Tested a second input before locking in a rule',
+        summary: `${firstName} did not stop at the first coincidence. They ran a second probe, saw it contradict +6, and switched to ×3.`,
+        hasReplay: true,
+      },
+      {
+        id: 'm2',
+        skillCode: 'A1',
+        skillName: 'Asking good questions',
+        headline: 'Questioned a confident AI claim with a tiny sample',
+        summary: `${firstName} paused before trusting a bold percentage and asked who was actually tested.`,
+        hasReplay: false,
+      },
+      {
+        id: 'm3',
+        skillCode: 'A2',
+        skillName: 'Spotting missing info',
+        headline: 'Checked time of day before explaining a shadow',
+        summary: `${firstName} looked for missing variables instead of jumping to a quick assumption.`,
+        hasReplay: false,
+      },
+    ];
+
+    return [...sheetObservations, ...baseObservations].filter(
+      (item) => trailFilter === 'ALL' || item.skillCode === trailFilter
+    );
+  }, [sheetSummary.entries, skillNameMap, firstName, trailFilter]);
 
   const verbatimQuote = useMemo(() => {
+    const sheetWithText = sheetSummary.entries.find(
+      (e) => e.text && e.text.trim().length >= 6
+    );
+    if (sheetWithText) {
+      return `“${sheetWithText.text.trim()}”`;
+    }
     const withText = moments.find(
       (m) => m.verbatimText && m.verbatimText.trim().length >= 8
     );
     return withText?.verbatimText?.trim()
       ? `“${withText.verbatimText.trim()}”`
-      : '“Wait — if it gives 9 for 3, how do we know it isn’t just adding 6 until we test another number?”';
-  }, [moments]);
+      : '“Wait, if it gives 9 for 3, how do we know it is not just adding 6 until we test another number?”';
+  }, [sheetSummary.entries, moments]);
 
   const webPoints = useMemo(() => {
     const cx = 160;
@@ -580,7 +672,7 @@ export default function ParentView() {
               </h1>
               <p className="text-sm sm:text-base text-[#586579] max-w-2xl">
                 Visual snapshots of how {firstName} checks clues, questions
-                claims, and updates ideas—without marks or IQ labels.
+                claims, and updates ideas without marks or IQ labels.
               </p>
             </div>
 
@@ -639,7 +731,57 @@ export default function ParentView() {
             </div>
           </div>
 
-          {/* CURIOSITY SIGNAL BANNER (SHOWN ON FREE TO HOOK INTEREST) */}
+          {/* CLEAR ACTIVITY NUMBERS (ALWAYS FREE & UNBLURRED FOR ALL PLANS) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="rounded-2xl border border-[#142033]/10 bg-white p-5 shadow-[var(--shadow-artifact)]">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
+                Missions Solved
+              </div>
+              <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
+                {missionsSolvedCount}
+              </div>
+              <p className="mt-1 text-xs text-[#586579]">
+                Daily investigation missions
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#087F80]/25 bg-white p-5 shadow-[var(--shadow-artifact)]">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#087F80]">
+                Thinking Sheets
+              </div>
+              <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#087F80]">
+                {sheetSummary.totalCompleted}
+              </div>
+              <p className="mt-1 text-xs text-[#586579]">
+                Chapter questions completed
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#142033]/10 bg-white p-5 shadow-[var(--shadow-artifact)]">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
+                Own-Word Notes
+              </div>
+              <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
+                {ownWordNotesCount}
+              </div>
+              <p className="mt-1 text-xs text-[#586579]">
+                Written in {firstName}’s words
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-[#142033]/10 bg-white p-5 shadow-[var(--shadow-artifact)]">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
+                Active Days
+              </div>
+              <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
+                {activeDaysCount}
+              </div>
+              <p className="mt-1 text-xs text-[#586579]">
+                Days practised in this period
+              </p>
+            </div>
+          </div>
+
           {!isPaid && (
             <div className="rounded-3xl border border-[#087F80]/25 bg-white p-5 sm:p-6 shadow-[var(--shadow-artifact)] flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1 max-w-2xl">
@@ -647,8 +789,11 @@ export default function ParentView() {
                   New Signal Observed
                 </span>
                 <p className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
-                  {firstName} paused to test a second clue before changing their
-                  first answer—and wrote a note in their own words.
+                  {sheetSummary.totalCompleted > 0
+                    ? `${firstName} completed ${sheetSummary.totalCompleted} Thinking Sheet${
+                        sheetSummary.totalCompleted === 1 ? '' : 's'
+                      } and wrote a note in their own words.`
+                    : `${firstName} paused to test a second clue before changing their first answer and wrote a note in their own words.`}
                 </p>
                 <p className="text-xs text-[#586579]">
                   Unlock the full step-by-step replay, verbatim quote, and
@@ -666,7 +811,7 @@ export default function ParentView() {
             </div>
           )}
 
-          {/* 4 VISUAL WINDOWS (WINDOWS 1 & 2 OPEN; WINDOWS 3 & 4 BLURRED ON FREE) */}
+          {/* 4 VISUAL WINDOWS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
             <div className="rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
               <div className="flex items-center justify-between">
@@ -702,7 +847,8 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-[#586579]">
-                Clue checks and reflections logged across sessions.
+                Missions, Thinking Sheets ({sheetSummary.totalCompleted}), and
+                clue checks logged.
               </p>
             </div>
 
@@ -761,11 +907,10 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-white/75">
-                Thinking skills practised so far across the year.
+                Thinking skills practised across Missions and Thinking Sheets.
               </p>
             </div>
 
-            {/* WINDOW 3: BLURRED ON FREE */}
             <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
               <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-4' : 'space-y-4'}>
                 <div className="flex items-center justify-between">
@@ -810,7 +955,6 @@ export default function ParentView() {
               )}
             </div>
 
-            {/* WINDOW 4: BLURRED ON FREE */}
             <div className="relative overflow-hidden rounded-3xl bg-white border border-[#142033]/10 p-6 shadow-[var(--shadow-artifact)] flex flex-col justify-between gap-4">
               <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-4' : 'space-y-4'}>
                 <div className="flex items-center justify-between">
@@ -874,7 +1018,7 @@ export default function ParentView() {
           </div>
         </section>
 
-        {/* SECTION 2: EIGHT THINKING SKILLS (WHEEL VISIBLE; DEEP NOTES LOCKED ON FREE) */}
+        {/* SECTION 2: EIGHT THINKING SKILLS */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
             Eight Thinking Skills
@@ -1099,13 +1243,14 @@ export default function ParentView() {
                 Real Thinking Moments
               </h2>
               <p className="text-xs sm:text-sm text-[#586579] mt-0.5">
-                Recent moments where {firstName} tested clues or updated an idea.
+                Recent moments from Missions and Thinking Sheets where {firstName} tested clues or explained an idea.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {[
                 { code: 'ALL', label: 'All' },
+                { code: 'B1', label: 'Giving reasons' },
                 { code: 'B2', label: 'Using evidence' },
                 { code: 'A1', label: 'Asking questions' },
                 { code: 'A2', label: 'Spotting missing info' },
@@ -1241,7 +1386,7 @@ export default function ParentView() {
           </div>
         </section>
 
-        {/* SECTION 4: CRITICAL THINKING GROWTH (BLURRED ON FREE) */}
+        {/* SECTION 4: CRITICAL THINKING GROWTH */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <div className="space-y-1">
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
@@ -1423,7 +1568,7 @@ export default function ParentView() {
                 </div>
 
                 <p className="text-xs text-white/75 leading-relaxed">
-                  Every child’s web has its own shape—smaller areas are simply
+                  Every child’s web has its own shape. Smaller areas are simply
                   new skills to explore next.
                 </p>
               </div>
@@ -1487,7 +1632,7 @@ export default function ParentView() {
               {!isPaid && (
                 <LockedOverlay
                   headline={`Read what ${firstName} wrote in their own words`}
-                  sub="Real verbatim quotes captured during missions."
+                  sub="Real verbatim quotes captured during missions and Thinking Sheets."
                   onUnlock={openUnlockCheckout}
                 />
               )}

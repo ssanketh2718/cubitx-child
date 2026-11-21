@@ -1,0 +1,179 @@
+{
+  "id": "mh-c5-evs1-ch01",
+  "board": "Maharashtra State Board",
+  "classLevel": 5,
+  "subject": "EVS Part 1",
+  "chapterNumber": 1,
+  "topicName": "1. Our Earth and Our Solar System",
+  "hook": "Look up at the sky. Almost everything up there has a little secret.",
+  "questions": [
+    {
+      "id": "mh5-ch1-q1",
+      "title": "Jumping in Your Room",
+      "skillCode": "B1",
+      "twistPrompt": "Our earth moves around the sun. If you jump straight up in your room, why do you land in the exact same spot and not in the next room?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Earth moves very slowly, so it does not move much while we are in the air.\"",
+        "{S2}: \"The walls of our room stop us from moving to the next room.\"",
+        "{S3}: \"We are already moving along with the earth.\"",
+        "{S4}: \"Earth's gravity stops the earth from moving while we jump.\""
+      ],
+      "tellFriendPrompt": "Imagine you are sitting in a moving train and you toss a coin straight up. Will it fall back into your hand or fall behind you? Tell me in one short line."
+    },
+    {
+      "id": "mh5-ch1-q2",
+      "title": "The Morning Moon",
+      "skillCode": "A2",
+      "twistPrompt": "Sometimes, while walking to school at 8 in the morning, you can see the moon in the bright blue sky. Why can we see the moon in the morning, when we cannot see any stars?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"The moon is much bigger than all the stars in the sky.\"",
+        "{S2}: \"The moon is very close to the earth, so the sunlight falling on it looks bright enough to see.\"",
+        "{S3}: \"The moon has its own bright white light, so the sun cannot hide it.\"",
+        "{S4}: \"Stars go to the other side of the earth during the day, but the moon stays here.\""
+      ],
+      "tellFriendPrompt": "If you turn on a bright tube light in a dark room, can you still see a tiny firefly? How is this like the stars at 12 noon?"
+    },
+    {
+      "id": "mh5-ch1-q3",
+      "title": "Does the Moon Have Its Own Light?",
+      "skillCode": "B2",
+      "twistPrompt": "Your friend says the moon has its own light. You cannot go to the moon to check. How can you prove from your terrace that the moon does not have its own light?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Wait for a cloudy night. If clouds hide the moon, it has no light of its own.\"",
+        "{S2}: \"Look at the moon in the morning. If it looks pale, its light is getting weak.\"",
+        "{S3}: \"Watch the moon for a week. The lighted part of the moon keeps changing shape every night.\"",
+        "{S4}: \"Wait for a night with no moon. That proves the moon switched itself off to rest.\""
+      ],
+      "tellFriendPrompt": "Think of a round white bulb in your room. Does a bulb ever look half-lit when it is ON? Explain to your friend why the moon is different."
+    },
+    {
+      "id": "mh5-ch1-q4",
+      "title": "Star or Planet?",
+      "skillCode": "B2",
+      "twistPrompt": "On a clear night, you see two bright dots in the sky. One dot is very bright and shines steadily. The other dot is smaller and twinkles. Which one is a star?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"The brighter dot is a star, because stars are always the brightest objects in the night sky.\"",
+        "{S2}: \"Both dots are stars, and the steady one is just closer to us.\"",
+        "{S3}: \"The twinkling dot is a star, and the steady dot that does not twinkle is a planet.\"",
+        "{S4}: \"The steady dot is a star, because planets are too small to see with our eyes.\""
+      ],
+      "tellFriendPrompt": "If you look at the night sky again after one week, what else will you notice about that planet's place in the sky?"
+    },
+    {
+      "id": "mh5-ch1-q5",
+      "title": "Why Does the Sun Look So Big?",
+      "skillCode": "B3",
+      "twistPrompt": "The sun is a star, just like the tiny stars we see at night. Then why does the sun look huge while other stars look like tiny dots?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"The sun is the biggest star in the whole sky.\"",
+        "{S2}: \"The sun is much closer to the earth than any other star.\"",
+        "{S3}: \"Other stars are hidden behind thick clouds in space.\"",
+        "{S4}: \"Other stars have very little light compared to the sun.\""
+      ],
+      "tellFriendPrompt": "Look at a street lamp right outside your house and another street lamp far down the road. Which one looks bigger, and how is this like the sun and other stars?"
+    },
+    {
+      "id": "mh5-ch1-q6",
+      "title": "The Sun and the Moon Look Equal",
+      "skillCode": "B3",
+      "twistPrompt": "When we look at the sky, the full moon and the sun look almost the same round size. Are they really the same size?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Yes, our eyes can see both clearly, so they are almost the same size.\"",
+        "{S2}: \"No, the moon is bigger than the sun, because we see it clearly at night.\"",
+        "{S3}: \"No, the moon is much smaller than the sun, and it only looks big because it is closest to the earth.\"",
+        "{S4}: \"Yes, they are equal in size, only the sun is hotter.\""
+      ],
+      "tellFriendPrompt": "Hold a 1-rupee coin close to one eye. It can hide a big mango tree far away. Tell your friend how the moon is like that coin."
+    },
+    {
+      "id": "mh5-ch1-q7",
+      "title": "Satellite or Dwarf Planet?",
+      "skillCode": "A1",
+      "twistPrompt": "Scientists find a new small round body in our solar system. How do they decide whether to call it a satellite or a dwarf planet?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"They check its size. If it is very small, it is a satellite.\"",
+        "{S2}: \"They check its brightness. If it shines, it is a dwarf planet.\"",
+        "{S3}: \"They check what it revolves around. A satellite revolves around a planet, while a dwarf planet revolves around the sun.\"",
+        "{S4}: \"They check how far it is from Earth.\""
+      ],
+      "tellFriendPrompt": "Pluto is very small, yet we call it a dwarf planet and not a satellite. Tell a friend why in one short line."
+    },
+    {
+      "id": "mh5-ch1-q8",
+      "title": "Flying From Mars to Jupiter",
+      "skillCode": "A2",
+      "twistPrompt": "Imagine you are guiding a spaceship straight from Mars to Jupiter. Is the space between them completely empty?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Yes, there is only empty space between all planets.\"",
+        "{S2}: \"No, there is a band of many small heavenly bodies called asteroids between Mars and Jupiter.\"",
+        "{S3}: \"No, Earth's moon travels between Mars and Jupiter.\"",
+        "{S4}: \"No, the sun lies between Mars and Jupiter.\""
+      ],
+      "tellFriendPrompt": "Imagine riding your bicycle on a road covered with small stones. Why should a spaceship pilot check a space map before flying past Mars?"
+    },
+    {
+      "id": "mh5-ch1-q9",
+      "title": "Why Does Earth Not Fall Into the Sun?",
+      "skillCode": "C1",
+      "twistPrompt": "The sun pulls our earth towards itself with a strong force of gravity. Then why does Earth not get pulled straight into the sun?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"The sun's gravity stops working once Earth reaches a safe distance.\"",
+        "{S2}: \"Air in space pushes Earth away from the sun.\"",
+        "{S3}: \"The sun pulls Earth in, and Earth also has a tendency to move away, which keeps it in a fixed orbit.\"",
+        "{S4}: \"Earth is too heavy for the sun's gravity to pull.\""
+      ],
+      "tellFriendPrompt": "Tie a small stone to a string and spin it in a circle. What happens to the stone if you suddenly let go of the string?"
+    },
+    {
+      "id": "mh5-ch1-q10",
+      "title": "The Upside-Down Kid",
+      "skillCode": "C2",
+      "twistPrompt": "Our earth is round like a ball. Imagine a child standing on the exact opposite side of the earth from India. If she drops a flower, where will it fall?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"It will fall away into space because she is on the bottom side of the earth.\"",
+        "{S2}: \"It will float in the air near her hand.\"",
+        "{S3}: \"It will fall onto the ground near her feet because Earth's gravity pulls everything on it towards the earth.\"",
+        "{S4}: \"It will fall only if the flower is heavy.\""
+      ],
+      "tellFriendPrompt": "Leaves from a tree, loose rocks on a hill, and rain from the sky all fall down to the ground. What would happen to your lunch plate if Earth's gravity stopped for one minute?"
+    },
+    {
+      "id": "mh5-ch1-q11",
+      "title": "Why Rockets and Not Airplanes?",
+      "skillCode": "B1",
+      "twistPrompt": "Airplanes fly very high and carry many people. Why do we need huge rockets burning a lot of fuel to send a spacecraft into space?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Space is far away, so airplanes just need bigger fuel tanks.\"",
+        "{S2}: \"Airplanes cannot fly straight up because their wings are too wide.\"",
+        "{S3}: \"A spacecraft needs huge power to push against Earth's force of gravity, which requires rocket technology.\"",
+        "{S4}: \"Rockets are only used because they can fly faster than sound.\""
+      ],
+      "tellFriendPrompt": "Think of a Diwali rocket. What pushes it upwards so fast when you light it?"
+    },
+    {
+      "id": "mh5-ch1-q12",
+      "title": "The Day Man-Made Satellites Stopped",
+      "skillCode": "C3",
+      "twistPrompt": "Suppose every man-made satellite orbiting the earth stopped working for one whole day. Who would face a problem?",
+      "catchPrompt": "What is really happening here?",
+      "viewpoints": [
+        "{S1}: \"Only space scientists at ISRO would notice.\"",
+        "{S2}: \"Only astronauts living in space would notice.\"",
+        "{S3}: \"Everyday life would be affected, including weather forecasts, maps, agriculture, and phone calls.\"",
+        "{S4}: \"Nobody on Earth would notice, because satellites stay far away in space.\""
+      ],
+      "tellFriendPrompt": "Pick one person: a farmer checking rain news, or a driver using a map on a phone. Tell me one way a man-made satellite helps them."
+    }
+  ]
+}
