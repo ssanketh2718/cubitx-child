@@ -20,6 +20,10 @@ export default function TopBar() {
   const initialLetter = firstName.charAt(0).toUpperCase();
   const currentPath = location.pathname;
 
+  const brainMapLabel = activeChild?.name?.trim()
+    ? `${firstName}'s Brain Mapping`
+    : "Your Kid's Brain Map";
+
   const openParentRoute = (target: ParentRoute) => {
     triggerDialTick(true);
     if (currentPath === target) return;
@@ -34,7 +38,7 @@ export default function TopBar() {
 
   const navItems = [
     {
-      label: 'Missions',
+      label: 'Thinking Missions',
       active: currentPath === '/home' || currentPath.startsWith('/play'),
       onClick: () => {
         triggerDialTick(false);
@@ -43,7 +47,7 @@ export default function TopBar() {
       locked: false,
     },
     {
-      label: 'Thinking Sheets',
+      label: 'Chapter Challenges',
       active: currentPath === '/sheets',
       onClick: () => {
         triggerDialTick(false);
@@ -52,13 +56,13 @@ export default function TopBar() {
       locked: false,
     },
     {
-      label: 'Parent View',
+      label: brainMapLabel,
       active: currentPath === '/parent',
       onClick: () => openParentRoute('/parent'),
       locked: true,
     },
     {
-      label: 'Try at Home',
+      label: 'For Parents',
       active: currentPath === '/try-at-home',
       onClick: () => openParentRoute('/try-at-home'),
       locked: true,
@@ -76,21 +80,20 @@ export default function TopBar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-[#142033]/10 bg-[#F7F6F1]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#030917]/95 backdrop-blur-xl">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex h-16 items-center justify-between gap-4">
-            {/* BRAND */}
+            {/* EXACT CUBITX LOGO */}
             <button
               type="button"
               onClick={() => navigate('/home')}
-              className="flex items-center gap-2.5 text-left cursor-pointer"
+              className="flex items-center text-left cursor-pointer shrink-0"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#142033] font-display text-xs font-extrabold text-white">
-                CX
-              </span>
-              <span className="font-display text-base font-extrabold tracking-tight text-[#142033]">
-                CubitX
-              </span>
+              <img
+                src="/cubitx-logo.jpg"
+                alt="CubitX"
+                className="h-8 sm:h-9 w-auto object-contain"
+              />
             </button>
 
             {/* UNIFIED CENTER NAV (DESKTOP) */}
@@ -106,8 +109,8 @@ export default function TopBar() {
                     onClick={item.onClick}
                     className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                       item.active
-                        ? 'bg-[#142033] text-white'
-                        : 'text-[#586579] hover:bg-[#142033]/5 hover:text-[#142033]'
+                        ? 'bg-[#8FA8FF] text-[#030917] font-extrabold'
+                        : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`}
                   >
                     {item.label}
@@ -123,12 +126,12 @@ export default function TopBar() {
                   type="button"
                   onClick={() => navigate('/switch')}
                   title="Switch child"
-                  className="flex items-center gap-2 rounded-full border border-[#142033]/12 bg-white py-1 pl-1.5 pr-3 hover:border-[#142033]/30 transition cursor-pointer"
+                  className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 py-1 pl-1.5 pr-3 hover:border-white/35 transition cursor-pointer"
                 >
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#142033] font-display text-[11px] font-extrabold text-white">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#8FA8FF] font-display text-[11px] font-extrabold text-[#030917]">
                     {initialLetter}
                   </span>
-                  <span className="text-xs font-semibold text-[#142033]">
+                  <span className="text-xs font-semibold text-white">
                     {firstName}
                   </span>
                 </button>
@@ -138,7 +141,7 @@ export default function TopBar() {
                 <button
                   type="button"
                   onClick={() => void signOut()}
-                  className="px-2.5 py-1.5 text-xs font-medium text-[#586579] hover:text-[#142033] transition cursor-pointer"
+                  className="px-2.5 py-1.5 text-xs font-medium text-slate-300 hover:text-white transition cursor-pointer"
                 >
                   Sign out
                 </button>
@@ -146,7 +149,7 @@ export default function TopBar() {
                 <button
                   type="button"
                   onClick={() => navigate('/signin')}
-                  className="cx-action-pill bg-[#142033] px-4 py-2 text-xs text-white hover:bg-[#087F80] cursor-pointer"
+                  className="cx-action-pill bg-[#8FA8FF] px-4 py-2 text-xs font-extrabold text-[#030917] hover:bg-white cursor-pointer"
                 >
                   Sign in
                 </button>
@@ -154,7 +157,7 @@ export default function TopBar() {
             </div>
           </div>
 
-          {/* CLEAN TOP SUB-BAR ON MOBILE / TABLET (ZERO BOTTOM OVERLAP) */}
+          {/* CLEAN TOP SUB-BAR ON MOBILE / TABLET */}
           {session && (
             <nav
               aria-label="Mobile navigation"
@@ -167,8 +170,8 @@ export default function TopBar() {
                   onClick={item.onClick}
                   className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
                     item.active
-                      ? 'bg-[#142033] text-white'
-                      : 'border border-[#142033]/10 bg-white text-[#586579]'
+                      ? 'bg-[#8FA8FF] text-[#030917] font-extrabold'
+                      : 'border border-white/15 bg-white/10 text-slate-200'
                   }`}
                 >
                   {item.label}

@@ -12,10 +12,8 @@ import {
   triggerSoftConfirm,
 } from '../lib/tactileFeedback';
 import {
+  PAYMENT_LINK,
   PRICE_INR,
-  TRIAL_DAYS,
-  TRIAL_PAYMENT_LINK,
-  TRIAL_PRICE_INR,
 } from '../config';
 import { isDevMode } from '../auth/devMode';
 import {
@@ -295,11 +293,13 @@ function LockedOverlay({
   headline,
   sub,
   dark = false,
+  childTitle,
   onUnlock,
 }: {
   headline: string;
   sub: string;
   dark?: boolean;
+  childTitle: string;
   onUnlock: () => void;
 }) {
   return (
@@ -315,7 +315,7 @@ function LockedOverlay({
             : 'bg-[#142033] text-[#55E2CE]'
         }`}
       >
-        🔒 Full Parent View
+        Full {childTitle}
       </span>
       <p className="max-w-xs font-display text-sm sm:text-base font-extrabold leading-snug">
         {headline}
@@ -336,7 +336,7 @@ function LockedOverlay({
             : 'bg-[#142033] text-white hover:bg-[#087F80]'
         }`}
       >
-        Unlock · ₹{TRIAL_PRICE_INR} for {TRIAL_DAYS} days →
+        Unlock Full Brain Map · From ₹{PRICE_INR}/yr →
       </button>
     </div>
   );
@@ -372,10 +372,11 @@ export default function ParentView() {
     storeUser?.name?.trim().split(/\s+/)[0] ||
     'Explorer';
   const classLevel = activeChild?.class_level ?? storeUser?.grade ?? 7;
+  const brainMappingTitle = `${firstName}'s Brain Mapping`;
 
   const openUnlockCheckout = () => {
     triggerSoftConfirm(true);
-    window.open(TRIAL_PAYMENT_LINK, '_blank', 'noopener,noreferrer');
+    window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer');
   };
 
   const record = useMemo(() => {
@@ -468,8 +469,8 @@ export default function ParentView() {
         }
         const latest = sheetEntries[0];
         whatWeSaw = latest.text
-          ? `In Thinking Sheet (${latest.topicName} · ${latest.questionTitle}): “${latest.text}”`
-          : `Completed Thinking Sheet activity: ${latest.topicName} · ${latest.questionTitle}.`;
+          ? `In Chapter Challenge (${latest.topicName} · ${latest.questionTitle}): “${latest.text}”`
+          : `Completed Chapter Challenge: ${latest.topicName} · ${latest.questionTitle}.`;
 
         const boost = Math.min(20, sheetEntries.length * 8);
         webScore = Math.min(96, webScore + boost);
@@ -569,11 +570,11 @@ export default function ParentView() {
     const sheetObservations = sheetSummary.entries.slice(0, 6).map((entry) => ({
       id: entry.key,
       skillCode: entry.skillCode,
-      skillName: skillNameMap[entry.skillCode] || 'Thinking Sheet',
+      skillName: skillNameMap[entry.skillCode] || 'Chapter Challenge',
       headline: `${entry.topicName} · ${entry.questionTitle}`,
       summary: entry.text
         ? `${firstName} wrote: “${entry.text}”`
-        : `${firstName} completed this ${entry.subject} Thinking Sheet question.`,
+        : `${firstName} completed this ${entry.subject} Chapter Challenge question.`,
       hasReplay: false,
     }));
 
@@ -590,7 +591,7 @@ export default function ParentView() {
         id: 'm2',
         skillCode: 'A1',
         skillName: 'Asking good questions',
-        headline: 'Questioned a confident AI claim with a tiny sample',
+        headline: 'Questioned a bold claim with a tiny sample',
         summary: `${firstName} paused before trusting a bold percentage and asked who was actually tested.`,
         hasReplay: false,
       },
@@ -665,14 +666,14 @@ export default function ParentView() {
           <div className="flex flex-wrap items-end justify-between gap-4 cx-hairline-b pb-6">
             <div className="space-y-1.5">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                Class {classLevel} · {isPaid ? 'Full Parent View' : 'Free Snapshot'}
+                Class {classLevel} · {isPaid ? 'Full Brain Mapping' : 'Free Brain Map Summary'}
               </div>
               <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033]">
-                How {firstName} is thinking
+                {brainMappingTitle}
               </h1>
               <p className="text-sm sm:text-base text-[#586579] max-w-2xl">
-                Visual snapshots of how {firstName} checks clues, questions
-                claims, and updates ideas without marks or IQ labels.
+                Step-by-step view of how {firstName} checks clues, spots traps,
+                and fixes mistakes—without marks or exam pressure.
               </p>
             </div>
 
@@ -716,7 +717,7 @@ export default function ParentView() {
                 onClick={() => navigate('/try-at-home')}
                 className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-4 py-1.5 text-xs font-bold text-[#087F80] hover:bg-[#087F80] hover:text-white transition cursor-pointer"
               >
-                Try at Home →
+                5-Min Parent Guide →
               </button>
 
               {dev && (
@@ -725,35 +726,35 @@ export default function ParentView() {
                   onClick={() => setDevPaidPreview((p) => !p)}
                   className="rounded-full border border-[#142033]/20 bg-white px-3 py-1.5 font-mono-tech text-[10px] font-bold text-[#142033] cursor-pointer"
                 >
-                  DEV: {isPaid ? 'Paid View' : 'Free Blurred'}
+                  DEV: {isPaid ? 'Paid View' : 'Free View'}
                 </button>
               )}
             </div>
           </div>
 
-          {/* CLEAR ACTIVITY NUMBERS (ALWAYS FREE & UNBLURRED FOR ALL PLANS) */}
+          {/* CLEAR ACTIVITY NUMBERS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-[#142033]/10 bg-white p-5 shadow-[var(--shadow-artifact)]">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
-                Missions Solved
+                Thinking Missions
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
                 {missionsSolvedCount}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
-                Daily investigation missions
+                Puzzles explored
               </p>
             </div>
 
             <div className="rounded-2xl border border-[#087F80]/25 bg-white p-5 shadow-[var(--shadow-artifact)]">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#087F80]">
-                Thinking Sheets
+                Chapter Challenges
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#087F80]">
                 {sheetSummary.totalCompleted}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
-                Chapter questions completed
+                Board-linked challenges done
               </p>
             </div>
 
@@ -786,19 +787,18 @@ export default function ParentView() {
             <div className="rounded-3xl border border-[#087F80]/25 bg-white p-5 sm:p-6 shadow-[var(--shadow-artifact)] flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1 max-w-2xl">
                 <span className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                  New Signal Observed
+                  New Signal in {brainMappingTitle}
                 </span>
                 <p className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
                   {sheetSummary.totalCompleted > 0
-                    ? `${firstName} completed ${sheetSummary.totalCompleted} Thinking Sheet${
+                    ? `${firstName} completed ${sheetSummary.totalCompleted} Chapter Challenge${
                         sheetSummary.totalCompleted === 1 ? '' : 's'
                       } and wrote a note in their own words.`
                     : `${firstName} paused to test a second clue before changing their first answer and wrote a note in their own words.`}
                 </p>
                 <p className="text-xs text-[#586579]">
-                  Unlock the full step-by-step replay, verbatim quote, and
-                  8-area growth web for ₹{TRIAL_PRICE_INR} ({TRIAL_DAYS} days)
-                  or ₹{PRICE_INR}/year.
+                  Unlock full step-by-step replays, verbatim quotes, and the
+                  A1–C3 Brain Map (Explorer ₹{PRICE_INR}/yr · Thinker Pro ₹1,499/yr · Scholar Elite ₹2,499/yr — one-time payment, zero auto-debit).
                 </p>
               </div>
               <button
@@ -806,7 +806,7 @@ export default function ParentView() {
                 onClick={openUnlockCheckout}
                 className="cx-action-pill bg-[#142033] px-5 py-3 text-xs text-white hover:bg-[#087F80] cursor-pointer"
               >
-                Unlock Full Report · ₹{TRIAL_PRICE_INR} →
+                Unlock Full Brain Mapping →
               </button>
             </div>
           )}
@@ -847,7 +847,7 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-[#586579]">
-                Missions, Thinking Sheets ({sheetSummary.totalCompleted}), and
+                Missions, Chapter Challenges ({sheetSummary.totalCompleted}), and
                 clue checks logged.
               </p>
             </div>
@@ -907,7 +907,7 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-white/75">
-                Thinking skills practised across Missions and Thinking Sheets.
+                Thinking skills practised across Missions and Chapter Challenges.
               </p>
             </div>
 
@@ -948,7 +948,8 @@ export default function ParentView() {
 
               {!isPaid && (
                 <LockedOverlay
-                  headline="Clue-Testing Habit"
+                  childTitle={brainMappingTitle}
+                  headline="Guessing vs. Thinking Habit"
                   sub={`See how often ${firstName} verifies vs. guesses.`}
                   onUnlock={openUnlockCheckout}
                 />
@@ -974,7 +975,7 @@ export default function ParentView() {
                       pct: probeTier.pct,
                     },
                     {
-                      label: 'Mind shifts',
+                      label: 'Mind shifts (Sisu)',
                       val: `${totalRechecks} / ${recheckTier.target}`,
                       color: 'bg-[#5267E8]',
                       pct: recheckTier.pct,
@@ -1009,6 +1010,7 @@ export default function ParentView() {
 
               {!isPaid && (
                 <LockedOverlay
+                  childTitle={brainMappingTitle}
                   headline="Key Thinking Moves"
                   sub="Track mind shifts and own-word notes over time."
                   onUnlock={openUnlockCheckout}
@@ -1021,7 +1023,7 @@ export default function ParentView() {
         {/* SECTION 2: EIGHT THINKING SKILLS */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
-            Eight Thinking Skills
+            Eight Thinking Skills (A1–C3)
           </h2>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-8 items-start">
@@ -1225,6 +1227,7 @@ export default function ParentView() {
 
                 {!isPaid && (
                   <LockedOverlay
+                    childTitle={brainMappingTitle}
                     headline={`See what we observed for ${selectedSkill.name}`}
                     sub="Unlock specific observations and what to notice at home."
                     onUnlock={openUnlockCheckout}
@@ -1243,7 +1246,7 @@ export default function ParentView() {
                 Real Thinking Moments
               </h2>
               <p className="text-xs sm:text-sm text-[#586579] mt-0.5">
-                Recent moments from Missions and Thinking Sheets where {firstName} tested clues or explained an idea.
+                Recent moments from Thinking Missions and Chapter Challenges where {firstName} tested clues or explained an idea.
               </p>
             </div>
 
@@ -1307,7 +1310,7 @@ export default function ParentView() {
                       }}
                       className="mt-1 rounded-full bg-[#087F80] px-4 py-2 text-xs font-bold text-white hover:bg-[#142033] transition cursor-pointer"
                     >
-                      {isPaid ? 'Replay this moment →' : '🔒 Unlock Step-by-Step Replay'}
+                      {isPaid ? 'Replay this moment →' : 'Unlock Step-by-Step Replay →'}
                     </button>
                   )}
                 </article>
@@ -1377,6 +1380,7 @@ export default function ParentView() {
               {!isPaid && (
                 <LockedOverlay
                   dark
+                  childTitle={brainMappingTitle}
                   headline={`Replay the 3 steps where ${firstName} updated their idea`}
                   sub="See every input tested and how their reasoning shifted."
                   onUnlock={openUnlockCheckout}
@@ -1492,6 +1496,7 @@ export default function ParentView() {
 
               {!isPaid && (
                 <LockedOverlay
+                  childTitle={brainMappingTitle}
                   headline={`See ${firstName}’s month-by-month growth curve`}
                   sub="Inspect progress across all 8 critical thinking skills."
                   onUnlock={openUnlockCheckout}
@@ -1503,7 +1508,7 @@ export default function ParentView() {
               <div className={!isPaid ? 'blur-[5px] select-none pointer-events-none flex flex-col justify-between gap-4' : 'flex flex-col justify-between gap-4'}>
                 <div>
                   <h3 className="font-display text-lg font-extrabold text-white">
-                    All 8 Areas · Progress Web
+                    All 8 Areas · Brain Map Web
                   </h3>
                   <p className="text-xs text-white/70 mt-0.5">
                     A view of {firstName}’s thinking balance across all eight areas.
@@ -1576,7 +1581,8 @@ export default function ParentView() {
               {!isPaid && (
                 <LockedOverlay
                   dark
-                  headline={`Unlock ${firstName}’s 8-Area Thinking Web`}
+                  childTitle={brainMappingTitle}
+                  headline={`Unlock ${firstName}’s 8-Area Brain Map Web`}
                   sub="See strengths and next focus areas at a glance."
                   onUnlock={openUnlockCheckout}
                 />
@@ -1612,6 +1618,7 @@ export default function ParentView() {
 
               {!isPaid && (
                 <LockedOverlay
+                  childTitle={brainMappingTitle}
                   headline="See how their reasoning shifted"
                   sub="Compare earlier habits with recent breakthroughs."
                   onUnlock={openUnlockCheckout}
@@ -1631,8 +1638,9 @@ export default function ParentView() {
 
               {!isPaid && (
                 <LockedOverlay
+                  childTitle={brainMappingTitle}
                   headline={`Read what ${firstName} wrote in their own words`}
-                  sub="Real verbatim quotes captured during missions and Thinking Sheets."
+                  sub="Real verbatim quotes captured during Thinking Missions and Chapter Challenges."
                   onUnlock={openUnlockCheckout}
                 />
               )}

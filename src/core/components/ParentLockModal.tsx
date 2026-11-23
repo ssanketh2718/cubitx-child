@@ -197,7 +197,6 @@ export default function ParentLockModal({
       return;
     }
 
-    // step === 'enter'
     const storedHash = localStorage.getItem(PIN_HASH_KEY);
     const enteredHash = await hashPin(next);
     if (storedHash && enteredHash === storedHash) {
@@ -242,7 +241,7 @@ export default function ParentLockModal({
 
   const subtitle =
     step === 'create'
-      ? 'Keeps Parent View and Try at Home separate from your child’s space.'
+      ? 'Keeps Brain Mapping and Parent Guides separate from your child’s play screen.'
       : step === 'confirm'
       ? 'Enter the same 4 digits once more to save.'
       : 'Enter your 4-digit PIN or use fingerprint / Face ID.';

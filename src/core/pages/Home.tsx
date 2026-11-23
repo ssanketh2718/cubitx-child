@@ -68,7 +68,7 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     statusLabel: 'Ready to solve',
     statusTone: 'ink',
     headline: 'Explain why your idea holds up',
-    readoutLabel: 'Thinking Log · Verified',
+    readoutLabel: 'Brain Mapping · Verified',
     readoutLeftTitle: 'Clues checked',
     readoutLeftValue: '2 probes',
     readoutRightTitle: 'Mind shift',
@@ -160,7 +160,7 @@ export default function Home() {
   const childName =
     activeChild?.name?.trim().split(/\s+/)[0] ||
     user.name?.trim().split(/\s+/)[0] ||
-    'Neeta';
+    'Explorer';
   const classLevel = activeChild?.class_level ?? user.grade ?? 6;
   const board = activeChild?.board || 'CBSE';
   const curriculumTier = curriculumTierFrom(user.tier);
@@ -177,6 +177,16 @@ export default function Home() {
     dateSlots[dateSlots.length - 1];
   const selectedDateDone = completedDates.has(selectedSlot.iso);
   const currentFrame = MOVING_SCREEN_FRAMES[activeFrameIdx];
+
+  const selectedDayConfig = useMemo(
+    () => loadDayConfig(curriculumTier, selectedSlot.mappedDay),
+    [curriculumTier, selectedSlot.mappedDay]
+  );
+
+  const missionCount = selectedDayConfig?.items?.length ?? 2;
+  const upNextTitle = `Day ${selectedSlot.mappedDay} · Clue & Variable Investigation (${missionCount} Missions)`;
+  const upNextHook =
+    'Test your first hunch against a second clue before locking in your answer.';
 
   const launchMission = (mappedDay: number) => {
     triggerSoftConfirm(true);
@@ -208,23 +218,23 @@ export default function Home() {
       {
         id: 'j-1',
         code: '01',
-        title: '[Add mission title]',
+        title: 'Day 1 · The Secret Machine (Testing Two Clues)',
         state: completedCount > 0 ? 'Unlocked' : 'Next',
-        note: '[Add one-line reminder of what was figured out]',
+        note: 'One input can match two rules—testing a second number reveals which rule actually holds.',
       },
       {
         id: 'j-2',
         code: '02',
-        title: '[Add mission title]',
+        title: 'Day 2 · Fair Comparison Check (Variables)',
         state: completedCount > 1 ? 'Unlocked' : 'Next',
-        note: '[Add one-line reminder of what was figured out]',
+        note: 'Change only one variable at a time so you know what actually caused the difference.',
       },
       {
         id: 'j-3',
         code: '03',
-        title: '[Add mission title]',
+        title: 'Day 3 · Spotting Missing Information',
         state: 'Next',
-        note: '[Add one-line reminder of what was figured out]',
+        note: 'Ask what facts were left out before accepting a bold claim or headline.',
       },
     ];
   }, [sheetSummary.entries, completedCount]);
@@ -249,7 +259,7 @@ export default function Home() {
             </div>
 
             <h1 className="font-display text-4xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.06] text-[#142033]">
-              {childName}, are you ready for today’s missions?
+              {childName}, are you ready for today’s Thinking Missions?
             </h1>
 
             <div className="space-y-1.5 pt-1">
@@ -257,10 +267,10 @@ export default function Home() {
                 Up Next · {selectedDateDone ? 'Done' : 'Open'}
               </div>
               <p className="font-display text-xl font-bold text-[#142033]">
-                [Add mission title here]
+                {upNextTitle}
               </p>
               <p className="text-sm sm:text-base text-[#586579] max-w-lg leading-relaxed">
-                [Add one-line hook here]
+                {upNextHook}
               </p>
             </div>
 
@@ -283,7 +293,7 @@ export default function Home() {
                 }}
                 className="inline-flex items-center gap-2 rounded-full border border-[#142033]/15 bg-white px-5 py-3.5 text-sm font-semibold text-[#142033] hover:border-[#142033]/40 transition cursor-pointer"
               >
-                <span>Thinking Sheets</span>
+                <span>Chapter Challenges</span>
                 {sheetSummary.totalCompleted > 0 && (
                   <span className="rounded-full bg-[#087F80]/12 px-2 py-0.5 font-mono-tech text-[11px] font-bold text-[#087F80]">
                     {sheetSummary.totalCompleted} done
@@ -293,7 +303,7 @@ export default function Home() {
             </div>
 
             <p className="text-xs text-[#586579]">
-              No timers, no marks, no pressure. Just figure it out at your own pace.
+              2 free Thinking Missions daily + 4 free Chapter Challenges per chapter. No timers, no marks.
             </p>
           </div>
 
@@ -520,7 +530,7 @@ export default function Home() {
             </h2>
             <span className="text-xs text-[#586579]">
               {sheetSummary.totalCompleted > 0
-                ? `${sheetSummary.totalCompleted} Thinking Sheet${
+                ? `${sheetSummary.totalCompleted} Chapter Challenge${
                     sheetSummary.totalCompleted === 1 ? '' : 's'
                   } completed. Tap any row to read your note.`
                 : 'Tap any row to see what you figured out'}
@@ -576,8 +586,7 @@ export default function Home() {
         {trialActive && trialDaysLeft !== null && (
           <div className="cx-hairline-t pt-6 flex flex-wrap items-center justify-between gap-4">
             <p className="text-xs text-[#586579]">
-              {trialDaysLeft} day{trialDaysLeft === 1 ? '' : 's'} left in free
-              trial · Full year access ₹999
+              Free Forever includes 2 daily missions + 4 free challenges/chapter · Full access starts at ₹999/year (One-Time)
             </p>
             <button
               type="button"
@@ -586,7 +595,7 @@ export default function Home() {
               }
               className="text-xs font-bold text-[#142033] underline underline-offset-4 hover:text-[#087F80] cursor-pointer"
             >
-              Upgrade access →
+              Unlock unlimited access →
             </button>
           </div>
         )}
