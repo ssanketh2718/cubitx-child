@@ -27,7 +27,6 @@ export interface SavedResponse {
   picked?: number;
   behaviours?: SavedBehaviouralSignals;
   submittedAt: string;
-  // v9.0 Assessment & Socratic metadata
   question?: string;
   sceneKeywords?: string[];
   causalKeywords?: string[];
@@ -63,7 +62,6 @@ interface AppState {
   activeChildId: string | null;
   childBuckets: Record<string, ChildLocalData>;
 
-  // Active child mirrored slices (preserved for backwards compatibility)
   user: CubitXUser | null;
   days: Record<number, DayProgress>;
   events: MissionEvent[];
@@ -73,14 +71,12 @@ interface AppState {
   devDayOverride: number | null;
   setDevDayOverride: (day: number | null) => void;
 
-  /** Preferred: isolate local progress per immutable child ID (365-day annual horizon) */
   setActiveChildProfile: (
-    child: { id: string; name: string; grade: number },
+    child: { id: string; name: string; grade: number; createdAt?: string },
     planDays?: number
   ) => void;
   getChildBucket: (childId: string) => ChildLocalData | null;
 
-  /** Legacy guest/onboarding helper (uses a transient 'guest-local' bucket) */
   setUser: (user: { name: string; grade: number }, planDays?: number) => void;
   setSupabaseId: (id: string) => void;
 
@@ -94,6 +90,9 @@ interface AppState {
   ) => Promise<void>;
   getResponse: (itemKey: string) => SavedResponse | null;
 
+  /** Returns which annual day (1..365) today's calendar date corresponds to since joining */
+  getCalendarDaySinceJoining: () => number;
+  /** Returns the current playable Day (starts at Day 1 on joining date, advances sequentially) */
   getActiveDay: () => number;
   getActiveDayProgress: () => DayProgress | null;
   isDayComplete: (day: number) => boolean;
@@ -102,7 +101,6 @@ interface AppState {
 
   isTrialActive: () => boolean;
   getTrialDaysLeft: () => number | null;
-  /** @deprecated V1.2 prohibits streak pressure. Retained only for legacy callers. */
   getStreak: () => number;
   addEvent: (event: MissionEvent) => void;
   reset: () => void;
@@ -125,13 +123,15 @@ const daysBetweenMidnights = (
   to: Date = new Date()
 ): number => {
   const from = new Date(fromIso);
+  if (Number.isNaN(from.getTime())) return 0;
   from.setHours(0, 0, 0, 0);
 
   const target = new Date(to);
   target.setHours(0, 0, 0, 0);
 
-  return Math.floor(
-    (target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)
+  return Math.max(
+    0,
+    Math.floor((target.getTime() - from.getTime()) / (1000 * 60 * 60 * 24))
   );
 };
 
@@ -160,10 +160,12 @@ function createFreshBucket(
   name: string,
   grade: number,
   planDays: number,
-  parentSupabaseId: string | null
+  parentSupabaseId: string | null,
+  joinedAtIso?: string
 ): ChildLocalData {
-  const now = new Date();
-  const planEnds = new Date();
+  const joined = joinedAtIso ? new Date(joinedAtIso) : new Date();
+  const validJoined = Number.isNaN(joined.getTime()) ? new Date() : joined;
+  const planEnds = new Date(validJoined);
   planEnds.setDate(planEnds.getDate() + planDays);
 
   const tier: Tier = sdkTierForClass(grade);
@@ -175,14 +177,14 @@ function createFreshBucket(
       name: name.trim(),
       grade,
       tier,
-      createdAt: now.toISOString(),
-      registeredAt: now.toISOString(),
+      createdAt: validJoined.toISOString(),
+      registeredAt: validJoined.toISOString(),
       trialEndsAt: planEnds.toISOString(),
       supabaseId: parentSupabaseId ?? undefined,
     },
     days: {
       1: {
-        unlockedAt: now.toISOString(),
+        unlockedAt: validJoined.toISOString(),
         completedAt: null,
         itemsCompleted: [],
       },
@@ -223,7 +225,6 @@ export const useApp = create<AppState>()(
         const state = get();
         const buckets = { ...state.childBuckets };
 
-        // Persist any live state for the previously active child before switching
         if (state.activeChildId && state.user) {
           buckets[state.activeChildId] = {
             childId: state.activeChildId,
@@ -238,6 +239,12 @@ export const useApp = create<AppState>()(
         const existingBucket = buckets[child.id];
         const nextTier: Tier = sdkTierForClass(child.grade);
 
+        // Anchor joining date: preserve earliest recorded joining date
+        const anchorJoinedAt =
+          existingBucket?.user?.registeredAt ||
+          child.createdAt ||
+          new Date().toISOString();
+
         const targetBucket: ChildLocalData = existingBucket
           ? {
               ...existingBucket,
@@ -247,8 +254,17 @@ export const useApp = create<AppState>()(
                 name: child.name.trim(),
                 grade: child.grade,
                 tier: nextTier,
+                registeredAt: anchorJoinedAt,
                 supabaseId:
                   state.parentSupabaseId ?? existingBucket.user.supabaseId,
+              },
+              days: {
+                1: {
+                  unlockedAt: anchorJoinedAt,
+                  completedAt: null,
+                  itemsCompleted: [],
+                },
+                ...existingBucket.days,
               },
             }
           : createFreshBucket(
@@ -256,7 +272,8 @@ export const useApp = create<AppState>()(
               child.name,
               child.grade,
               planDays,
-              state.parentSupabaseId
+              state.parentSupabaseId,
+              anchorJoinedAt
             );
 
         buckets[child.id] = targetBucket;
@@ -325,7 +342,7 @@ export const useApp = create<AppState>()(
         const dayJustCompleted =
           requiredCount > 0 && updatedItems.length >= requiredCount;
 
-        const updatedDays = {
+        const updatedDays: Record<number, DayProgress> = {
           ...state.days,
           [activeDay]: {
             ...existing,
@@ -335,6 +352,15 @@ export const useApp = create<AppState>()(
               : existing.completedAt,
           },
         };
+
+        // Pre-seed next day entry when current day completes
+        if (dayJustCompleted && activeDay + 1 <= MAX_DAYS && !updatedDays[activeDay + 1]) {
+          updatedDays[activeDay + 1] = {
+            unlockedAt: new Date().toISOString(),
+            completedAt: null,
+            itemsCompleted: [],
+          };
+        }
 
         const today = todayKey();
         const sessions = state.sessions.map((s) => ({
@@ -421,6 +447,13 @@ export const useApp = create<AppState>()(
 
       getResponse: (itemKey) => get().responses[itemKey] ?? null,
 
+      getCalendarDaySinceJoining: () => {
+        const user = get().user;
+        if (!user) return 1;
+        const elapsed = daysBetweenMidnights(user.registeredAt);
+        return Math.min(MAX_DAYS, Math.max(1, elapsed + 1));
+      },
+
       getActiveDay: () => {
         const state = get();
         if (!state.user) return 1;
@@ -430,10 +463,11 @@ export const useApp = create<AppState>()(
           if (override !== null) return override;
         }
 
+        // Joining date = Day 1. Child plays sequentially starting from Day 1,
+        // never skipping an uncompleted day even if multiple calendar days elapsed.
         for (let n = 1; n <= MAX_DAYS; n++) {
-          const day = state.days[n];
-          if (day && day.completedAt) continue;
-          if (state.isDayCalendarUnlocked(n)) return n;
+          const dayRecord = state.days[n];
+          if (dayRecord && dayRecord.completedAt) continue;
           return n;
         }
 
@@ -447,19 +481,42 @@ export const useApp = create<AppState>()(
         !!(get().days[day] && get().days[day].completedAt),
 
       isDayCalendarUnlocked: (day) => {
-        const user = get().user;
+        const state = get();
+        const user = state.user;
         if (!user) return false;
+        if (day <= 1) return true;
         if (isDevMode()) return true;
 
-        return daysBetweenMidnights(user.registeredAt) >= day - 1;
+        // Edge case 1: Calendar days since joining must have reached `day`
+        const calendarReached =
+          daysBetweenMidnights(user.registeredAt) >= day - 1;
+        if (!calendarReached) return false;
+
+        // Edge case 2: Previous day must be completed so child never skips Day 1
+        return state.isDayComplete(day - 1);
       },
 
-      refreshDayUnlocks: () => {},
+      refreshDayUnlocks: () => {
+        const state = get();
+        if (!state.user) return;
+        const activeDay = state.getActiveDay();
+        if (!state.days[activeDay]) {
+          set({
+            days: {
+              ...state.days,
+              [activeDay]: {
+                unlockedAt: new Date().toISOString(),
+                completedAt: null,
+                itemsCompleted: [],
+              },
+            },
+          });
+        }
+      },
 
       isTrialActive: () => {
         const user = get().user;
         if (!user) return false;
-
         return new Date() < new Date(user.trialEndsAt);
       },
 
