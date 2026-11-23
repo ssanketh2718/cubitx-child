@@ -16,6 +16,7 @@ interface DateSlot {
   dateLabel: string;
   isToday: boolean;
   mappedDay: number;
+  isUnlocked: boolean;
 }
 
 interface LiveScreenFrame {
@@ -36,46 +37,48 @@ interface LiveScreenFrame {
 const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
   {
     id: 'frame-1',
-    stepTag: 'Step 1 · Spot the clue',
-    statusLabel: 'Live signal',
+    stepTag: 'Mission 01 · Check Clues',
+    statusLabel: 'Free today',
     statusTone: 'teal',
-    headline: 'Test one input before guessing the rule',
-    readoutLabel: 'Secret Machine · Probe 01',
-    readoutLeftTitle: 'Input tried',
-    readoutLeftValue: '3',
-    readoutRightTitle: 'Machine output',
-    readoutRightValue: '9',
-    liveNote: '3 → 9 could be "+6" or "×3". One clue is never enough yet.',
-    actionPreview: 'Try another number',
+    headline: 'The Missing Tiffin',
+    readoutLabel: '3 Clues · 1 New Twist',
+    readoutLeftTitle: 'Door locked',
+    readoutLeftValue: '10–12 PM',
+    readoutRightTitle: 'Bench at 12:30',
+    readoutRightValue: 'Kabir',
+    liveNote:
+      'Wait—check the new clue before locking your answer. Did Kabir actually eat the mangoes?',
+    actionPreview: 'Play Mission 01',
   },
   {
     id: 'frame-2',
-    stepTag: 'Step 2 · Run a second test',
-    statusLabel: 'Checking again',
+    stepTag: 'Mission 02 · Two Causes',
+    statusLabel: 'Free today',
     statusTone: 'amber',
-    headline: 'Watch what breaks your first guess',
-    readoutLabel: 'Secret Machine · Probe 02',
-    readoutLeftTitle: 'Input tried',
-    readoutLeftValue: '5',
-    readoutRightTitle: 'Machine output',
-    readoutRightValue: '15',
-    liveNote: '5 + 6 would be 11, not 15. The first guess just fell apart.',
-    actionPreview: 'Update rule to ×3',
+    headline: 'The Wet Shoes',
+    readoutLabel: '3 Clues · Spot the Real Cause',
+    readoutLeftTitle: 'Road outside',
+    readoutLeftValue: 'Dry',
+    readoutRightTitle: '7 AM wash',
+    readoutRightValue: 'Bicycle',
+    liveNote:
+      'Meera thinks it rained at night. Check the road outside to test her guess.',
+    actionPreview: 'Play Mission 02',
   },
   {
     id: 'frame-3',
-    stepTag: 'Step 3 · Your own words',
-    statusLabel: 'Ready to solve',
+    stepTag: 'Missions 03–05 · Full Year',
+    statusLabel: '3 more missions',
     statusTone: 'ink',
-    headline: 'Explain why your idea holds up',
-    readoutLabel: 'Brain Mapping · Verified',
-    readoutLeftTitle: 'Clues checked',
-    readoutLeftValue: '2 probes',
-    readoutRightTitle: 'Mind shift',
-    readoutRightValue: 'Updated',
+    headline: 'School Route, Flower Pot & Juice Shops',
+    readoutLabel: '5 Daily Missions · Full Year',
+    readoutLeftTitle: 'Free daily',
+    readoutLeftValue: '2 open',
+    readoutRightTitle: 'Annual pass',
+    readoutRightValue: 'All 5',
     liveNote:
-      '“Because 5 gave 15, it could not be adding 6. Multiplying by 3 fits both.”',
-    actionPreview: 'Save & unlock next',
+      'Unlock all 5 daily missions and unlimited chapter questions across the full year.',
+    actionPreview: 'Explore Day 1',
   },
 ];
 
@@ -85,15 +88,45 @@ function formatIso(d: Date): string {
   ).padStart(2, '0')}`;
 }
 
-function buildDateStrip(activeDay: number): DateSlot[] {
+/**
+ * Anchors Day 1 to the child's joining date (`registeredAt`), while ensuring:
+ * - Today always opens the child's current active uncompleted day (e.g. Day 1 if they joined Nov 17 and haven't played yet).
+ * - Past dates since joining map sequentially starting at Day 1.
+ */
+function buildAnchoredDateStrip(
+  registeredAtIso: string,
+  activeDay: number
+): DateSlot[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  const joined = new Date(registeredAtIso);
+  if (!Number.isNaN(joined.getTime())) {
+    joined.setHours(0, 0, 0, 0);
+  }
 
   return Array.from({ length: 7 }, (_, i) => {
     const offset = i - 6;
     const d = new Date(today);
     d.setDate(today.getDate() + offset);
-    const mappedDay = Math.max(1, Math.min(30, activeDay + offset));
+    const isToday = offset === 0;
+
+    // Today always points to the child's current playable activeDay (e.g., Day 1)
+    // Earlier dates back to joining date map starting from Day 1
+    let mappedDay = activeDay;
+    if (!isToday) {
+      if (!Number.isNaN(joined.getTime()) && d >= joined) {
+        const daysFromJoin = Math.floor(
+          (d.getTime() - joined.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        mappedDay = Math.max(1, Math.min(activeDay, daysFromJoin + 1));
+      } else {
+        mappedDay = 1;
+      }
+    }
+
+    const isUnlocked =
+      isToday || (!Number.isNaN(joined.getTime()) && d >= joined);
 
     return {
       iso: formatIso(d),
@@ -103,8 +136,9 @@ function buildDateStrip(activeDay: number): DateSlot[] {
         day: 'numeric',
         month: 'short',
       }),
-      isToday: offset === 0,
+      isToday,
       mappedDay,
+      isUnlocked,
     };
   });
 }
@@ -120,10 +154,17 @@ export default function Home() {
   const isTrialActive = useApp((s) => s.isTrialActive);
   const getTrialDaysLeft = useApp((s) => s.getTrialDaysLeft);
   const getActiveDay = useApp((s) => s.getActiveDay);
+  const isDayComplete = useApp((s) => s.isDayComplete);
   const refreshDayUnlocks = useApp((s) => s.refreshDayUnlocks);
 
   const activeDay = getActiveDay();
-  const dateSlots = useMemo(() => buildDateStrip(activeDay), [activeDay]);
+  const registeredAt = user?.registeredAt ?? new Date().toISOString();
+
+  const dateSlots = useMemo(
+    () => buildAnchoredDateStrip(registeredAt, activeDay),
+    [registeredAt, activeDay]
+  );
+
   const [selectedIso, setSelectedIso] = useState<string>(
     () => dateSlots[dateSlots.length - 1]?.iso ?? formatIso(new Date())
   );
@@ -175,7 +216,10 @@ export default function Home() {
   const selectedSlot =
     dateSlots.find((s) => s.iso === selectedIso) ??
     dateSlots[dateSlots.length - 1];
-  const selectedDateDone = completedDates.has(selectedSlot.iso);
+
+  const selectedDayDone =
+    isDayComplete(selectedSlot.mappedDay) ||
+    completedDates.has(selectedSlot.iso);
   const currentFrame = MOVING_SCREEN_FRAMES[activeFrameIdx];
 
   const selectedDayConfig = useMemo(
@@ -183,61 +227,63 @@ export default function Home() {
     [curriculumTier, selectedSlot.mappedDay]
   );
 
-  const missionCount = selectedDayConfig?.items?.length ?? 2;
-  const upNextTitle = `Day ${selectedSlot.mappedDay} · Clue & Variable Investigation (${missionCount} Missions)`;
+  const dayItems = selectedDayConfig?.items ?? [];
+  const missionCount = dayItems.length || 5;
+  const upNextTitle = `Day ${selectedSlot.mappedDay} · ${
+    selectedDayConfig?.title || 'Detective Lab'
+  } (${missionCount} Missions)`;
   const upNextHook =
-    'Test your first hunch against a second clue before locking in your answer.';
+    dayItems[0]?.hookPrompt ||
+    'Tap clues, check what happened, and answer in your own words.';
 
   const launchMission = (mappedDay: number) => {
     triggerSoftConfirm(true);
-    const cfg = loadDayConfig(curriculumTier, mappedDay);
-    if (cfg && cfg.items.length > 0) {
-      navigate(`/play/${curriculumTier}/${mappedDay}/0`);
-    } else {
+    if (mappedDay === 1) {
       navigate('/baseline');
+    } else {
+      navigate(`/play/${curriculumTier}/${mappedDay}/0`);
     }
   };
 
-  const completedCount = Object.keys(responses).length;
-
   const journeyItems = useMemo(() => {
-    if (sheetSummary.entries.length > 0) {
-      return sheetSummary.entries.slice(0, 6).map((entry, idx) => ({
-        id: entry.key,
-        code: String(idx + 1).padStart(2, '0'),
-        title: `${entry.topicName} · ${entry.questionTitle}`,
-        state: 'Completed',
-        note:
-          entry.text ||
-          entry.twistText ||
-          `Completed in ${entry.subject} (${entry.skillCode}).`,
-      }));
+    if (dayItems.length > 0) {
+      return dayItems.map((item, idx) => {
+        const itemKey = `t${curriculumTier}:d${selectedSlot.mappedDay}:i${idx}`;
+        const saved = responses[itemKey];
+        const isFree = idx < 2;
+        return {
+          id: item.id,
+          code: String(idx + 1).padStart(2, '0'),
+          title: item.title,
+          state: saved
+            ? 'Done'
+            : isFree
+            ? 'Free · Open'
+            : 'Annual Pass',
+          note: saved?.text
+            ? `Your answer: “${saved.text}”`
+            : item.hookPrompt,
+        };
+      });
     }
 
     return [
       {
         id: 'j-1',
         code: '01',
-        title: 'Day 1 · The Secret Machine (Testing Two Clues)',
-        state: completedCount > 0 ? 'Unlocked' : 'Next',
-        note: 'One input can match two rules—testing a second number reveals which rule actually holds.',
+        title: 'The Missing Tiffin',
+        state: 'Free · Open',
+        note: 'Rohan kept his mango tiffin on the classroom bench at 10 AM. At 1 PM, the tiffin was empty.',
       },
       {
         id: 'j-2',
         code: '02',
-        title: 'Day 2 · Fair Comparison Check (Variables)',
-        state: completedCount > 1 ? 'Unlocked' : 'Next',
-        note: 'Change only one variable at a time so you know what actually caused the difference.',
-      },
-      {
-        id: 'j-3',
-        code: '03',
-        title: 'Day 3 · Spotting Missing Information',
-        state: 'Next',
-        note: 'Ask what facts were left out before accepting a bold claim or headline.',
+        title: 'The Wet Shoes',
+        state: 'Free · Open',
+        note: 'Meera’s school shoes were totally wet at 8 AM. She says: “It rained at night!”',
       },
     ];
-  }, [sheetSummary.entries, completedCount]);
+  }, [dayItems, curriculumTier, selectedSlot.mappedDay, responses]);
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] text-[#142033]">
@@ -249,8 +295,8 @@ export default function Home() {
               <span className="h-2 w-2 rounded-full bg-[#087F80]" />
               <span>
                 {selectedSlot.isToday
-                  ? `Today · ${selectedSlot.dateLabel}`
-                  : selectedSlot.dateLabel}
+                  ? `Today · Day ${selectedSlot.mappedDay}`
+                  : `${selectedSlot.dateLabel} · Day ${selectedSlot.mappedDay}`}
               </span>
               <span className="text-[#142033]/25">·</span>
               <span className="text-[#142033] font-semibold">
@@ -264,7 +310,7 @@ export default function Home() {
 
             <div className="space-y-1.5 pt-1">
               <div className="font-mono-tech text-[11px] font-bold uppercase tracking-[0.14em] text-[#087F80]">
-                Up Next · {selectedDateDone ? 'Done' : 'Open'}
+                Up Next · {selectedDayDone ? 'Done' : '2 Free Missions Open'}
               </div>
               <p className="font-display text-xl font-bold text-[#142033]">
                 {upNextTitle}
@@ -277,11 +323,10 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="button"
-                disabled={!trialActive && !selectedDateDone}
                 onClick={() => launchMission(selectedSlot.mappedDay)}
-                className="cx-action-pill bg-[#142033] px-7 py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer disabled:opacity-50"
+                className="cx-action-pill bg-[#142033] px-7 py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
               >
-                <span>{selectedDateDone ? 'Replay mission' : 'Play'}</span>
+                <span>{selectedDayDone ? 'Play Again' : 'Start Day 1 Missions'}</span>
                 <span aria-hidden="true">→</span>
               </button>
 
@@ -320,7 +365,7 @@ export default function Home() {
                   </span>
                   <div>
                     <div className="text-xs font-bold text-[#142033]">
-                      {childName} · Live Mission Preview
+                      {childName} · Day {selectedSlot.mappedDay} Missions
                     </div>
                     <div className="font-mono-tech text-[10px] text-[#586579]">
                       {currentFrame.readoutLabel}
@@ -449,7 +494,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 02 · PICK A DATE */}
+        {/* 02 · PICK A DATE (ANCHORED TO JOINING DATE = DAY 1) */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -461,14 +506,15 @@ export default function Home() {
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-[#586579]">
-              Tap today or any earlier date to start or replay.
+              Your joining date starts Day 1—nothing is skipped if you miss a day.
             </p>
           </div>
 
           <div className="grid grid-cols-4 sm:grid-cols-7 gap-2.5">
             {dateSlots.map((slot) => {
               const isSelected = slot.iso === selectedSlot.iso;
-              const isDone = completedDates.has(slot.iso);
+              const isDone =
+                isDayComplete(slot.mappedDay) || completedDates.has(slot.iso);
 
               return (
                 <button
@@ -514,7 +560,7 @@ export default function Home() {
                           : 'bg-[#142033]/25'
                       }`}
                     />
-                    {isDone ? 'Done' : 'Open'}
+                    {isDone ? 'Done' : `Day ${slot.mappedDay}`}
                   </div>
                 </button>
               );
@@ -522,18 +568,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 03 · YOUR JOURNEY */}
+        {/* 03 · TODAY'S 5 MISSIONS LIST */}
         <section className="cx-hairline-t pt-10 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <h2 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
-              Your journey
+              Day {selectedSlot.mappedDay} Missions
             </h2>
             <span className="text-xs text-[#586579]">
-              {sheetSummary.totalCompleted > 0
-                ? `${sheetSummary.totalCompleted} Chapter Challenge${
-                    sheetSummary.totalCompleted === 1 ? '' : 's'
-                  } completed. Tap any row to read your note.`
-                : 'Tap any row to see what you figured out'}
+              Tap any mission to preview or press Play above
             </span>
           </div>
 
@@ -541,7 +583,7 @@ export default function Home() {
             {journeyItems.map((entry, idx) => {
               const open = openJourneyIdx === idx;
               const unlocked =
-                entry.state === 'Unlocked' || entry.state === 'Completed';
+                entry.state === 'Done' || entry.state === 'Free · Open';
               return (
                 <div key={entry.id} className="cx-hairline-b">
                   <button
@@ -573,9 +615,18 @@ export default function Home() {
                   </button>
 
                   {open && (
-                    <p className="pb-4 pl-10 pr-4 text-xs sm:text-sm text-[#586579] leading-relaxed">
-                      {entry.note}
-                    </p>
+                    <div className="pb-4 pl-10 pr-4 flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-xs sm:text-sm text-[#586579] leading-relaxed">
+                        {entry.note}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => launchMission(selectedSlot.mappedDay)}
+                        className="rounded-full bg-[#087F80] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#142033] transition cursor-pointer"
+                      >
+                        Open Mission →
+                      </button>
+                    </div>
                   )}
                 </div>
               );

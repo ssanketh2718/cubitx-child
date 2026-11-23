@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth, type EducationBoard } from './AuthContext';
-import { useApp } from '../store';
+import { useApp, ANNUAL_SUBSCRIPTION_DAYS } from '../store';
 
 export interface Child {
   id: string;
@@ -9,6 +9,7 @@ export interface Child {
   class_level: number;
   avatar: string;
   board?: EducationBoard | null;
+  created_at?: string;
 }
 
 interface ChildContextType {
@@ -82,8 +83,9 @@ export function ChildProvider({ children }: { children: ReactNode }) {
           id: activeChild.id,
           name: activeChild.name,
           grade: activeChild.class_level,
+          createdAt: activeChild.created_at,
         },
-        30
+        ANNUAL_SUBSCRIPTION_DAYS
       );
     }
   }, [activeChild]);
