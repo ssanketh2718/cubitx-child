@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../../core/store';
 import { curriculumTierFrom } from '../../../missions/tiers';
+import { loadDayConfig } from '../../../missions/curriculum';
 import { isDevMode } from '../../../core/auth/devMode';
 import { PAYMENT_LINK, PRICE_INR } from '../../../core/config';
 import {
@@ -13,58 +14,53 @@ import day01Tier1, {
   FREE_MISSIONS_PER_DAY,
 } from '../../../missions/tier1/day-01/config';
 
-const FACT_CARD_STYLES = [
-  {
-    bg: 'bg-[#E9F7F6]',
-    border: 'border-[#087F80]/30',
-    tagColor: 'text-[#087F80]',
-    dot: 'bg-[#087F80]',
-  },
-  {
-    bg: 'bg-[#FFF6E0]',
-    border: 'border-[#F5B942]/45',
-    tagColor: 'text-[#9A6300]',
-    dot: 'bg-[#F5B942]',
-  },
-  {
-    bg: 'bg-[#EEF2FF]',
-    border: 'border-[#5267E8]/30',
-    tagColor: 'text-[#3B4CCA]',
-    dot: 'bg-[#5267E8]',
-  },
-] as const;
-
 export default function BaselineDiscoveryMission() {
   const navigate = useNavigate();
+  const params = useParams<{ day?: string; idx?: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
+
   const user = useApp((s) => s.user);
   const responses = useApp((s) => s.responses);
   const saveResponse = useApp((s) => s.saveResponse);
   const completeItem = useApp((s) => s.completeItem);
 
   const curriculumTier = curriculumTierFrom(user?.tier ?? 'foundation');
-  const missions = day01Tier1.items;
+
+  const resolvedDay = useMemo(() => {
+    const fromRoute = Number(params.day);
+    if (Number.isInteger(fromRoute) && fromRoute >= 1) return fromRoute;
+    const fromQuery = Number(searchParams.get('d'));
+    if (Number.isInteger(fromQuery) && fromQuery >= 1) return fromQuery;
+    return 1;
+  }, [params.day, searchParams]);
+
+  const dayConfig = useMemo(
+    () => loadDayConfig(curriculumTier, resolvedDay) ?? day01Tier1,
+    [curriculumTier, resolvedDay]
+  );
+
+  const missions = dayConfig.items;
 
   const isPaid =
     isDevMode() ||
     (typeof window !== 'undefined' &&
       localStorage.getItem('cubitx-plan') === 'paid');
 
-  // Resolve starting mission: explicit ?m=idx query param OR first uncompleted mission
+  // Resolve starting mission: explicit ?m=idx or route :idx OR first uncompleted mission
   const initialIdx = useMemo(() => {
-    const param = searchParams.get('m');
-    if (param !== null) {
-      const parsed = Number(param);
+    const raw = params.idx ?? searchParams.get('m');
+    if (raw !== null && raw !== undefined) {
+      const parsed = Number(raw);
       if (Number.isInteger(parsed) && parsed >= 0 && parsed < missions.length) {
         return parsed;
       }
     }
     for (let i = 0; i < missions.length; i++) {
-      const key = `t${curriculumTier}:d1:i${i}`;
+      const key = `t${curriculumTier}:d${resolvedDay}:i${i}`;
       if (!responses[key]) return i;
     }
     return 0;
-  }, [searchParams, missions.length, curriculumTier, responses]);
+  }, [params.idx, searchParams, missions.length, curriculumTier, resolvedDay, responses]);
 
   const [missionIdx, setMissionIdx] = useState<number>(initialIdx);
   const [finishedAll, setFinishedAll] = useState(false);
@@ -93,7 +89,7 @@ export default function BaselineDiscoveryMission() {
     }
   }, [searchParams, missions.length, missionIdx]);
 
-  const current = missions[missionIdx];
+  const current = missions[missionIdx] ?? missions[0];
   const isLockedByPlan = !isPaid && missionIdx >= FREE_MISSIONS_PER_DAY;
 
   useEffect(() => {
@@ -103,7 +99,7 @@ export default function BaselineDiscoveryMission() {
     setSocraticQuestion('');
     setHintLevel(0);
 
-    const itemKey = `t${curriculumTier}:d1:i${missionIdx}`;
+    const itemKey = `t${curriculumTier}:d${resolvedDay}:i${missionIdx}`;
     const existing = useApp.getState().responses[itemKey];
     if (
       existing &&
@@ -119,11 +115,13 @@ export default function BaselineDiscoveryMission() {
       setFinalPickId('');
       setNoteText('');
     }
-  }, [missionIdx, curriculumTier, current]);
+  }, [missionIdx, curriculumTier, resolvedDay, current]);
 
   const switchMission = (nextIdx: number) => {
     setMissionIdx(nextIdx);
-    setSearchParams({ m: String(nextIdx) }, { replace: true });
+    const nextParams: Record<string, string> = { m: String(nextIdx) };
+    if (resolvedDay > 1) nextParams.d = String(resolvedDay);
+    setSearchParams(nextParams, { replace: true });
   };
 
   const recordFirstTap = () => {
@@ -183,10 +181,10 @@ export default function BaselineDiscoveryMission() {
     const decoyCaught =
       current.challengeCard?.strength === 'decoy' ? isCorrect : undefined;
 
-    const itemKey = `t${curriculumTier}:d1:i${missionIdx}`;
+    const itemKey = `t${curriculumTier}:d${resolvedDay}:i${missionIdx}`;
 
     await saveResponse(itemKey, {
-      engine: `day1-mission-${missionIdx + 1}`,
+      engine: `day${resolvedDay}-mission-${missionIdx + 1}`,
       text: noteText.trim() || finalOpt?.label,
       picked: current.options.findIndex((o) => o.id === chosenId),
       question: current.question,
@@ -222,15 +220,15 @@ export default function BaselineDiscoveryMission() {
       <div className="min-h-screen cx-paper-canvas text-[#142033] flex items-center justify-center p-4">
         <div className="max-w-lg w-full rounded-[32px] bg-white border border-[#142033]/12 p-8 shadow-[var(--shadow-artifact)] text-center space-y-5">
           <h1 className="font-display text-3xl font-extrabold text-[#142033]">
-            Great work today!
+            Day {resolvedDay} complete!
           </h1>
           <p className="text-sm text-[#586579]">
-            All 5 answers are saved to your Brain Map.
+            All {missions.length} answers are saved to your Brain Map.
           </p>
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="cx-action-pill w-full bg-[#142033] py-4 text-xs font-extrabold uppercase tracking-wider text-white hover:bg-[#087F80] cursor-pointer"
+            className="cx-action-pill w-full bg-[#142033] py-4 text-xs font-extrabold uppercase tracking-wider text-white hover:bg-[#24344D] cursor-pointer"
           >
             Back to Home →
           </button>
@@ -249,14 +247,16 @@ export default function BaselineDiscoveryMission() {
           <button
             type="button"
             onClick={() => navigate('/home')}
-            className="rounded-full border border-[#142033]/15 bg-white px-3.5 py-1.5 text-xs font-bold text-[#142033] hover:border-[#087F80] cursor-pointer"
+            className="rounded-full border border-[#142033]/15 bg-white px-3.5 py-1.5 text-xs font-bold text-[#142033] hover:border-[#142033] cursor-pointer"
           >
             ← Back
           </button>
 
           <div className="flex items-center gap-1.5">
             {missions.map((m, idx) => {
-              const done = Boolean(responses[`t${curriculumTier}:d1:i${idx}`]);
+              const done = Boolean(
+                responses[`t${curriculumTier}:d${resolvedDay}:i${idx}`]
+              );
               return (
                 <button
                   key={m.id}
@@ -264,9 +264,9 @@ export default function BaselineDiscoveryMission() {
                   onClick={() => switchMission(idx)}
                   className={`h-2.5 rounded-full transition-all cursor-pointer ${
                     idx === missionIdx
-                      ? 'w-8 bg-[#087F80]'
+                      ? 'w-8 bg-[#142033]'
                       : done
-                      ? 'w-4 bg-[#142033]'
+                      ? 'w-4 bg-[#142033]/55'
                       : 'w-4 bg-[#142033]/15'
                   }`}
                   aria-label={`Mission ${idx + 1}`}
@@ -280,14 +280,14 @@ export default function BaselineDiscoveryMission() {
             onClick={() =>
               setHintLevel((h) => (h < 3 ? ((h + 1) as 1 | 2 | 3) : 3))
             }
-            className="rounded-full border border-[#087F80]/30 bg-[#087F80]/10 px-3.5 py-1.5 text-xs font-extrabold text-[#087F80] hover:bg-[#087F80] hover:text-white transition cursor-pointer"
+            className="rounded-full border border-[#142033]/20 bg-white px-3.5 py-1.5 text-xs font-extrabold text-[#142033] hover:bg-[#142033] hover:text-white transition cursor-pointer"
           >
             {hintLevel === 0 ? '? Help' : `Help ${hintLevel}/3`}
           </button>
         </div>
       </header>
 
-      {/* SINGLE-FRAME CONSOLE */}
+      {/* SINGLE-FRAME CONSOLE — UNIFORM COLORS, NO GREEN/RED, NO TICKS */}
       <main className="mx-auto max-w-3xl px-4 py-5 pb-16">
         {isLockedByPlan ? (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-8 text-center shadow-[var(--shadow-artifact)] space-y-4">
@@ -304,7 +304,7 @@ export default function BaselineDiscoveryMission() {
                 onClick={() =>
                   window.open(PAYMENT_LINK, '_blank', 'noopener,noreferrer')
                 }
-                className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold text-white hover:bg-[#087F80] cursor-pointer"
+                className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold text-white hover:bg-[#24344D] cursor-pointer"
               >
                 Unlock Full Year · ₹{PRICE_INR}/yr →
               </button>
@@ -326,30 +326,24 @@ export default function BaselineDiscoveryMission() {
               </p>
             </div>
 
-            {/* 2. COLOR-CODED DETAIL CARDS WITH SUBJECT HEADER ONLY (NO SECTION HEADERS) */}
+            {/* 2. UNIFORM DETAIL CARDS — BIGGER TITLE ABOVE SMALLER EXPLANATION */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {current.clues.map((clue, idx) => {
-                const style = FACT_CARD_STYLES[idx % FACT_CARD_STYLES.length];
-                return (
-                  <div
-                    key={clue.id}
-                    className={`rounded-2xl border ${style.border} ${style.bg} p-4 text-left space-y-1.5`}
-                  >
-                    <div
-                      className={`flex items-center gap-1.5 text-xs font-extrabold ${style.tagColor}`}
-                    >
-                      <span className={`h-2 w-2 rounded-full shrink-0 ${style.dot}`} />
-                      <span>{clue.label}</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-bold text-[#142033] leading-snug">
-                      {clue.detail}
-                    </p>
+              {current.clues.map((clue) => (
+                <div
+                  key={clue.id}
+                  className="rounded-2xl border border-[#142033]/12 bg-[#F7F6F1] p-4 text-left space-y-1.5"
+                >
+                  <div className="font-display text-sm sm:text-base font-extrabold text-[#142033] leading-snug">
+                    {clue.label}
                   </div>
-                );
-              })}
+                  <p className="text-xs sm:text-sm font-medium text-[#586579] leading-snug">
+                    {clue.detail}
+                  </p>
+                </div>
+              ))}
             </div>
 
-            {/* 3. QUESTION & OPTIONS WITH INLINE FOLLOW-UP DIRECTLY BELOW SELECTED OPTION */}
+            {/* 3. QUESTION & OPTIONS — UNIFORM BASE COLOR, SOLID INK HIGHLIGHT WHEN SELECTED, NO TICKS */}
             <div className="space-y-2.5">
               <h2 className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
                 {current.question}
@@ -371,31 +365,18 @@ export default function BaselineDiscoveryMission() {
                       <button
                         type="button"
                         onClick={() => handleOptionTap(opt.id)}
-                        className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3.5 text-left text-sm font-extrabold transition cursor-pointer ${
+                        className={`w-full rounded-2xl border px-4 py-3.5 text-left text-sm font-extrabold transition cursor-pointer ${
                           isSelected
-                            ? inlineCounter
-                              ? 'border-[#E07A5F] bg-[#FFF5F2] text-[#142033]'
-                              : 'border-[#087F80] bg-[#E9F7F6] text-[#142033]'
-                            : 'border-[#142033]/12 bg-white hover:border-[#142033]'
+                            ? 'border-[#142033] bg-[#142033] text-white'
+                            : 'border-[#142033]/14 bg-white text-[#142033] hover:border-[#142033]/45'
                         }`}
                       >
-                        <span>{opt.label}</span>
-                        {isSelected && (
-                          <span
-                            className={`text-xs font-extrabold ${
-                              inlineCounter
-                                ? 'text-[#C2412D]'
-                                : 'text-[#087F80]'
-                            }`}
-                          >
-                            ✓
-                          </span>
-                        )}
+                        {opt.label}
                       </button>
 
-                      {/* QUICK INLINE EXTRA INFO DIRECTLY BELOW OPTION (NO WRAPPER LABEL) */}
+                      {/* QUICK INLINE FOLLOW-UP DIRECTLY BELOW SELECTED OPTION (NEUTRAL WARM CARD, NO RED/GREEN) */}
                       {inlineCounter && (
-                        <div className="ml-3 border-l-4 border-[#E07A5F] bg-[#FFF5F2] px-4 py-3 rounded-r-xl">
+                        <div className="ml-3 border-l-4 border-[#142033]/40 bg-[#F7F6F1] px-4 py-3 rounded-r-xl">
                           <p className="text-xs sm:text-sm font-bold text-[#142033]">
                             {inlineCounter}
                           </p>
@@ -403,7 +384,7 @@ export default function BaselineDiscoveryMission() {
                       )}
 
                       {showNewDetailRightHere && current.challengeCard && (
-                        <div className="ml-3 border-l-4 border-[#F5B942] bg-[#FFF9E6] px-4 py-3 rounded-r-xl">
+                        <div className="ml-3 border-l-4 border-[#142033]/40 bg-[#F7F6F1] px-4 py-3 rounded-r-xl">
                           <p className="text-xs sm:text-sm font-bold text-[#142033]">
                             {current.challengeCard.prompt}
                           </p>
@@ -417,7 +398,7 @@ export default function BaselineDiscoveryMission() {
 
             {/* 4. PROGRESSIVE HINT */}
             {hintLevel > 0 && (
-              <div className="rounded-xl bg-[#EEF2FF] border border-[#5267E8]/25 p-3.5 text-xs sm:text-sm font-semibold text-[#142033]">
+              <div className="rounded-xl bg-[#F7F6F1] border border-[#142033]/15 p-3.5 text-xs sm:text-sm font-semibold text-[#142033]">
                 {current.hints[hintLevel - 1]}
               </div>
             )}
@@ -430,17 +411,17 @@ export default function BaselineDiscoveryMission() {
                 value={noteText}
                 onChange={(e) => handleNoteChange(e.target.value)}
                 placeholder="Why? Write 1 short line in your own words..."
-                className="flex-1 rounded-xl border border-[#142033]/15 bg-[#F7F6F1] px-4 py-3 text-xs sm:text-sm text-[#142033] outline-none focus:border-[#087F80]"
+                className="flex-1 rounded-xl border border-[#142033]/15 bg-[#F7F6F1] px-4 py-3 text-xs sm:text-sm text-[#142033] outline-none focus:border-[#142033]"
               />
               <button
                 type="button"
                 disabled={!firstPickId}
                 onClick={() => void handleSaveAndNext()}
-                className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white hover:bg-[#087F80] disabled:opacity-40 cursor-pointer shrink-0"
+                className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white hover:bg-[#24344D] disabled:opacity-40 cursor-pointer shrink-0"
               >
                 {missionIdx + 1 < missions.length
                   ? 'Save & Next →'
-                  : 'Finish Day 1 →'}
+                  : `Finish Day ${resolvedDay} →`}
               </button>
             </div>
           </div>

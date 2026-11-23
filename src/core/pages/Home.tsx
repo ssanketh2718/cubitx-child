@@ -42,13 +42,13 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     statusLabel: 'Free today',
     statusTone: 'teal',
     headline: 'The Missing Tiffin',
-    readoutLabel: '3 Clues · 1 New Twist',
+    readoutLabel: '3 Details · 1 Follow-up',
     readoutLeftTitle: 'Door locked',
     readoutLeftValue: '10–12 PM',
     readoutRightTitle: 'Bench at 12:30',
     readoutRightValue: 'Kabir',
     liveNote:
-      'Wait—check the new clue before locking your answer. Did Kabir actually eat the mangoes?',
+      'Wait—check the new detail before locking your answer. Did Kabir actually eat the mangoes?',
     actionPreview: 'Play Mission 01',
     targetIdx: 0,
   },
@@ -58,7 +58,7 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     statusLabel: 'Free today',
     statusTone: 'amber',
     headline: 'The Wet Shoes',
-    readoutLabel: '3 Clues · Spot the Real Cause',
+    readoutLabel: '3 Details · Spot the Real Cause',
     readoutLeftTitle: 'Road outside',
     readoutLeftValue: 'Dry',
     readoutRightTitle: '7 AM wash',
@@ -227,7 +227,6 @@ export default function Home() {
   const dayItems = selectedDayConfig?.items ?? [];
   const missionCount = dayItems.length || 5;
 
-  // Find first unfinished mission index for this day
   const firstUnfinishedIdx = useMemo(() => {
     for (let i = 0; i < missionCount; i++) {
       const key = `t${curriculumTier}:d${selectedSlot.mappedDay}:i${i}`;
@@ -251,16 +250,12 @@ export default function Home() {
   const upNextHook =
     dayItems[firstUnfinishedIdx]?.hookPrompt ||
     dayItems[0]?.hookPrompt ||
-    'Tap clues, check what happened, and answer in your own words.';
+    'Check the details, pick your answer, and write 1 short line in your own words.';
 
   const launchMission = (mappedDay: number, missionIdx?: number) => {
     triggerSoftConfirm(true);
     const target = missionIdx ?? firstUnfinishedIdx;
-    if (mappedDay === 1) {
-      navigate(`/baseline?m=${target}`);
-    } else {
-      navigate(`/play/${curriculumTier}/${mappedDay}/${target}`);
-    }
+    navigate(`/baseline?d=${mappedDay}&m=${target}`);
   };
 
   const journeyItems = useMemo(() => {
@@ -331,7 +326,12 @@ export default function Home() {
 
             <div className="space-y-1.5 pt-1">
               <div className="font-mono-tech text-[11px] font-bold uppercase tracking-[0.14em] text-[#087F80]">
-                Up Next · {completedInDayCount > 0 && completedInDayCount < missionCount ? `Mission 0${firstUnfinishedIdx + 1}` : selectedDayDone ? 'Done' : '2 Free Missions Open'}
+                Up Next ·{' '}
+                {completedInDayCount > 0 && completedInDayCount < missionCount
+                  ? `Mission 0${firstUnfinishedIdx + 1}`
+                  : selectedDayDone
+                  ? 'Done'
+                  : '2 Free Missions Open'}
               </div>
               <p className="font-display text-xl font-bold text-[#142033]">
                 {upNextTitle}
@@ -352,7 +352,7 @@ export default function Home() {
                     ? `Continue Mission 0${firstUnfinishedIdx + 1}`
                     : selectedDayDone
                     ? 'Play Again'
-                    : 'Start Day 1 Missions'}
+                    : `Start Day ${selectedSlot.mappedDay} Missions`}
                 </span>
                 <span aria-hidden="true">→</span>
               </button>
