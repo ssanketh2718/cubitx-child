@@ -32,6 +32,7 @@ interface LiveScreenFrame {
   readoutRightValue: string;
   liveNote: string;
   actionPreview: string;
+  targetIdx: number;
 }
 
 const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
@@ -49,6 +50,7 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     liveNote:
       'Wait—check the new clue before locking your answer. Did Kabir actually eat the mangoes?',
     actionPreview: 'Play Mission 01',
+    targetIdx: 0,
   },
   {
     id: 'frame-2',
@@ -64,6 +66,7 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     liveNote:
       'Meera thinks it rained at night. Check the road outside to test her guess.',
     actionPreview: 'Play Mission 02',
+    targetIdx: 1,
   },
   {
     id: 'frame-3',
@@ -78,7 +81,8 @@ const MOVING_SCREEN_FRAMES: LiveScreenFrame[] = [
     readoutRightValue: 'All 5',
     liveNote:
       'Unlock all 5 daily missions and unlimited chapter questions across the full year.',
-    actionPreview: 'Explore Day 1',
+    actionPreview: 'Open Mission 03',
+    targetIdx: 2,
   },
 ];
 
@@ -88,11 +92,6 @@ function formatIso(d: Date): string {
   ).padStart(2, '0')}`;
 }
 
-/**
- * Anchors Day 1 to the child's joining date (`registeredAt`), while ensuring:
- * - Today always opens the child's current active uncompleted day (e.g. Day 1 if they joined Nov 17 and haven't played yet).
- * - Past dates since joining map sequentially starting at Day 1.
- */
 function buildAnchoredDateStrip(
   registeredAtIso: string,
   activeDay: number
@@ -111,8 +110,6 @@ function buildAnchoredDateStrip(
     d.setDate(today.getDate() + offset);
     const isToday = offset === 0;
 
-    // Today always points to the child's current playable activeDay (e.g., Day 1)
-    // Earlier dates back to joining date map starting from Day 1
     let mappedDay = activeDay;
     if (!isToday) {
       if (!Number.isNaN(joined.getTime()) && d >= joined) {
@@ -229,19 +226,40 @@ export default function Home() {
 
   const dayItems = selectedDayConfig?.items ?? [];
   const missionCount = dayItems.length || 5;
+
+  // Find first unfinished mission index for this day
+  const firstUnfinishedIdx = useMemo(() => {
+    for (let i = 0; i < missionCount; i++) {
+      const key = `t${curriculumTier}:d${selectedSlot.mappedDay}:i${i}`;
+      if (!responses[key]) return i;
+    }
+    return 0;
+  }, [missionCount, curriculumTier, selectedSlot.mappedDay, responses]);
+
+  const completedInDayCount = useMemo(() => {
+    let count = 0;
+    for (let i = 0; i < missionCount; i++) {
+      const key = `t${curriculumTier}:d${selectedSlot.mappedDay}:i${i}`;
+      if (responses[key]) count++;
+    }
+    return count;
+  }, [missionCount, curriculumTier, selectedSlot.mappedDay, responses]);
+
   const upNextTitle = `Day ${selectedSlot.mappedDay} · ${
     selectedDayConfig?.title || 'Detective Lab'
-  } (${missionCount} Missions)`;
+  } (${completedInDayCount}/${missionCount} Done)`;
   const upNextHook =
+    dayItems[firstUnfinishedIdx]?.hookPrompt ||
     dayItems[0]?.hookPrompt ||
     'Tap clues, check what happened, and answer in your own words.';
 
-  const launchMission = (mappedDay: number) => {
+  const launchMission = (mappedDay: number, missionIdx?: number) => {
     triggerSoftConfirm(true);
+    const target = missionIdx ?? firstUnfinishedIdx;
     if (mappedDay === 1) {
-      navigate('/baseline');
+      navigate(`/baseline?m=${target}`);
     } else {
-      navigate(`/play/${curriculumTier}/${mappedDay}/0`);
+      navigate(`/play/${curriculumTier}/${mappedDay}/${target}`);
     }
   };
 
@@ -252,6 +270,7 @@ export default function Home() {
         const saved = responses[itemKey];
         const isFree = idx < 2;
         return {
+          idx,
           id: item.id,
           code: String(idx + 1).padStart(2, '0'),
           title: item.title,
@@ -269,6 +288,7 @@ export default function Home() {
 
     return [
       {
+        idx: 0,
         id: 'j-1',
         code: '01',
         title: 'The Missing Tiffin',
@@ -276,6 +296,7 @@ export default function Home() {
         note: 'Rohan kept his mango tiffin on the classroom bench at 10 AM. At 1 PM, the tiffin was empty.',
       },
       {
+        idx: 1,
         id: 'j-2',
         code: '02',
         title: 'The Wet Shoes',
@@ -310,7 +331,7 @@ export default function Home() {
 
             <div className="space-y-1.5 pt-1">
               <div className="font-mono-tech text-[11px] font-bold uppercase tracking-[0.14em] text-[#087F80]">
-                Up Next · {selectedDayDone ? 'Done' : '2 Free Missions Open'}
+                Up Next · {completedInDayCount > 0 && completedInDayCount < missionCount ? `Mission 0${firstUnfinishedIdx + 1}` : selectedDayDone ? 'Done' : '2 Free Missions Open'}
               </div>
               <p className="font-display text-xl font-bold text-[#142033]">
                 {upNextTitle}
@@ -326,7 +347,13 @@ export default function Home() {
                 onClick={() => launchMission(selectedSlot.mappedDay)}
                 className="cx-action-pill bg-[#142033] px-7 py-3.5 text-sm text-white hover:bg-[#087F80] cursor-pointer"
               >
-                <span>{selectedDayDone ? 'Play Again' : 'Start Day 1 Missions'}</span>
+                <span>
+                  {completedInDayCount > 0 && completedInDayCount < missionCount
+                    ? `Continue Mission 0${firstUnfinishedIdx + 1}`
+                    : selectedDayDone
+                    ? 'Play Again'
+                    : 'Start Day 1 Missions'}
+                </span>
                 <span aria-hidden="true">→</span>
               </button>
 
@@ -431,7 +458,12 @@ export default function Home() {
                 <div className="flex items-center justify-between pt-1">
                   <button
                     type="button"
-                    onClick={() => launchMission(selectedSlot.mappedDay)}
+                    onClick={() =>
+                      launchMission(
+                        selectedSlot.mappedDay,
+                        currentFrame.targetIdx
+                      )
+                    }
                     className="text-xs font-bold text-[#087F80] hover:underline cursor-pointer"
                   >
                     {currentFrame.actionPreview} →
@@ -494,7 +526,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* 02 · PICK A DATE (ANCHORED TO JOINING DATE = DAY 1) */}
+        {/* 02 · PICK A DATE */}
         <section className="cx-hairline-t pt-10 space-y-6">
           <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -575,7 +607,7 @@ export default function Home() {
               Day {selectedSlot.mappedDay} Missions
             </h2>
             <span className="text-xs text-[#586579]">
-              Tap any mission to preview or press Play above
+              Tap any mission to open it directly
             </span>
           </div>
 
@@ -621,10 +653,14 @@ export default function Home() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => launchMission(selectedSlot.mappedDay)}
+                        onClick={() =>
+                          launchMission(selectedSlot.mappedDay, entry.idx)
+                        }
                         className="rounded-full bg-[#087F80] px-4 py-1.5 text-xs font-bold text-white hover:bg-[#142033] transition cursor-pointer"
                       >
-                        Open Mission →
+                        {entry.state === 'Done'
+                          ? 'Review Mission →'
+                          : 'Open Mission →'}
                       </button>
                     </div>
                   )}

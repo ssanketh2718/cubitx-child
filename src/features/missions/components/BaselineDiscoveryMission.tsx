@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '../../../core/store';
 import { curriculumTierFrom } from '../../../missions/tiers';
 import { isDevMode } from '../../../core/auth/devMode';
@@ -30,7 +30,9 @@ const FACT_CARD_STYLES = [
 
 export default function BaselineDiscoveryMission() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useApp((s) => s.user);
+  const responses = useApp((s) => s.responses);
   const saveResponse = useApp((s) => s.saveResponse);
   const completeItem = useApp((s) => s.completeItem);
 
@@ -42,7 +44,23 @@ export default function BaselineDiscoveryMission() {
     (typeof window !== 'undefined' &&
       localStorage.getItem('cubitx-plan') === 'paid');
 
-  const [missionIdx, setMissionIdx] = useState(0);
+  // Resolve starting mission: explicit ?m=idx query param OR first uncompleted mission
+  const initialIdx = useMemo(() => {
+    const param = searchParams.get('m');
+    if (param !== null) {
+      const parsed = Number(param);
+      if (Number.isInteger(parsed) && parsed >= 0 && parsed < missions.length) {
+        return parsed;
+      }
+    }
+    for (let i = 0; i < missions.length; i++) {
+      const key = `t${curriculumTier}:d1:i${i}`;
+      if (!responses[key]) return i;
+    }
+    return 0;
+  }, [searchParams, missions.length, curriculumTier, responses]);
+
+  const [missionIdx, setMissionIdx] = useState<number>(initialIdx);
   const [finishedAll, setFinishedAll] = useState(false);
 
   const [firstPickId, setFirstPickId] = useState<string>('');
@@ -54,6 +72,22 @@ export default function BaselineDiscoveryMission() {
   const startedAtRef = useRef<number>(Date.now());
   const firstTapMsRef = useRef<number | undefined>(undefined);
 
+  // Sync if URL ?m= changes externally
+  useEffect(() => {
+    const param = searchParams.get('m');
+    if (param !== null) {
+      const parsed = Number(param);
+      if (
+        Number.isInteger(parsed) &&
+        parsed >= 0 &&
+        parsed < missions.length &&
+        parsed !== missionIdx
+      ) {
+        setMissionIdx(parsed);
+      }
+    }
+  }, [searchParams, missions.length, missionIdx]);
+
   const current = missions[missionIdx];
   const isLockedByPlan = !isPaid && missionIdx >= FREE_MISSIONS_PER_DAY;
 
@@ -61,12 +95,28 @@ export default function BaselineDiscoveryMission() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     startedAtRef.current = Date.now();
     firstTapMsRef.current = undefined;
-    setFirstPickId('');
-    setFinalPickId('');
-    setNoteText('');
     setSocraticQuestion('');
     setHintLevel(0);
-  }, [missionIdx]);
+
+    // Pre-fill if returning to an already-solved mission
+    const itemKey = `t${curriculumTier}:d1:i${missionIdx}`;
+    const existing = useApp.getState().responses[itemKey];
+    if (existing && typeof existing.picked === 'number' && current.options[existing.picked]) {
+      const savedOptId = current.options[existing.picked].id;
+      setFirstPickId(savedOptId);
+      setFinalPickId(savedOptId);
+      setNoteText(existing.text ?? '');
+    } else {
+      setFirstPickId('');
+      setFinalPickId('');
+      setNoteText('');
+    }
+  }, [missionIdx, curriculumTier, current]);
+
+  const switchMission = (nextIdx: number) => {
+    setMissionIdx(nextIdx);
+    setSearchParams({ m: String(nextIdx) }, { replace: true });
+  };
 
   const recordFirstTap = () => {
     if (firstTapMsRef.current === undefined) {
@@ -153,7 +203,7 @@ export default function BaselineDiscoveryMission() {
     await completeItem(itemKey, missions.length);
 
     if (missionIdx + 1 < missions.length) {
-      setMissionIdx((i) => i + 1);
+      switchMission(missionIdx + 1);
     } else {
       setFinishedAll(true);
     }
@@ -197,21 +247,24 @@ export default function BaselineDiscoveryMission() {
           </button>
 
           <div className="flex items-center gap-1.5">
-            {missions.map((m, idx) => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setMissionIdx(idx)}
-                className={`h-2.5 rounded-full transition-all cursor-pointer ${
-                  idx === missionIdx
-                    ? 'w-8 bg-[#087F80]'
-                    : idx < missionIdx
-                    ? 'w-4 bg-[#142033]'
-                    : 'w-4 bg-[#142033]/15'
-                }`}
-                aria-label={`Mission ${idx + 1}`}
-              />
-            ))}
+            {missions.map((m, idx) => {
+              const done = Boolean(responses[`t${curriculumTier}:d1:i${idx}`]);
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => switchMission(idx)}
+                  className={`h-2.5 rounded-full transition-all cursor-pointer ${
+                    idx === missionIdx
+                      ? 'w-8 bg-[#087F80]'
+                      : done
+                      ? 'w-4 bg-[#142033]'
+                      : 'w-4 bg-[#142033]/15'
+                  }`}
+                  aria-label={`Mission ${idx + 1}`}
+                />
+              );
+            })}
           </div>
 
           <button
