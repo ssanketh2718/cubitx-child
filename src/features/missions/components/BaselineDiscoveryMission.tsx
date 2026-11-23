@@ -17,14 +17,20 @@ const FACT_CARD_STYLES = [
   {
     bg: 'bg-[#E9F7F6]',
     border: 'border-[#087F80]/30',
+    tagColor: 'text-[#087F80]',
+    dot: 'bg-[#087F80]',
   },
   {
     bg: 'bg-[#FFF6E0]',
     border: 'border-[#F5B942]/45',
+    tagColor: 'text-[#9A6300]',
+    dot: 'bg-[#F5B942]',
   },
   {
     bg: 'bg-[#EEF2FF]',
     border: 'border-[#5267E8]/30',
+    tagColor: 'text-[#3B4CCA]',
+    dot: 'bg-[#5267E8]',
   },
 ] as const;
 
@@ -72,7 +78,6 @@ export default function BaselineDiscoveryMission() {
   const startedAtRef = useRef<number>(Date.now());
   const firstTapMsRef = useRef<number | undefined>(undefined);
 
-  // Sync if URL ?m= changes externally
   useEffect(() => {
     const param = searchParams.get('m');
     if (param !== null) {
@@ -98,10 +103,13 @@ export default function BaselineDiscoveryMission() {
     setSocraticQuestion('');
     setHintLevel(0);
 
-    // Pre-fill if returning to an already-solved mission
     const itemKey = `t${curriculumTier}:d1:i${missionIdx}`;
     const existing = useApp.getState().responses[itemKey];
-    if (existing && typeof existing.picked === 'number' && current.options[existing.picked]) {
+    if (
+      existing &&
+      typeof existing.picked === 'number' &&
+      current.options[existing.picked]
+    ) {
       const savedOptId = current.options[existing.picked].id;
       setFirstPickId(savedOptId);
       setFinalPickId(savedOptId);
@@ -279,7 +287,7 @@ export default function BaselineDiscoveryMission() {
         </div>
       </header>
 
-      {/* SINGLE-FRAME CONSOLE — ZERO SECTION OR CARD TITLES */}
+      {/* SINGLE-FRAME CONSOLE */}
       <main className="mx-auto max-w-3xl px-4 py-5 pb-16">
         {isLockedByPlan ? (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-8 text-center shadow-[var(--shadow-artifact)] space-y-4">
@@ -311,22 +319,28 @@ export default function BaselineDiscoveryMission() {
           </div>
         ) : (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-5 sm:p-7 shadow-[var(--shadow-artifact)] space-y-5">
-            {/* 1. STORY STATEMENT (NO TITLE) */}
+            {/* 1. STORY STATEMENT */}
             <div className="rounded-2xl bg-[#142033] p-5 text-white">
               <p className="font-display text-lg sm:text-xl font-extrabold leading-snug">
                 {current.hookPrompt}
               </p>
             </div>
 
-            {/* 2. COLOR-CODED DETAIL CARDS (NO SECTION OR CARD TITLES) */}
+            {/* 2. COLOR-CODED DETAIL CARDS WITH SUBJECT HEADER ONLY (NO SECTION HEADERS) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {current.clues.map((clue, idx) => {
                 const style = FACT_CARD_STYLES[idx % FACT_CARD_STYLES.length];
                 return (
                   <div
                     key={clue.id}
-                    className={`rounded-2xl border ${style.border} ${style.bg} p-4 text-left flex items-center`}
+                    className={`rounded-2xl border ${style.border} ${style.bg} p-4 text-left space-y-1.5`}
                   >
+                    <div
+                      className={`flex items-center gap-1.5 text-xs font-extrabold ${style.tagColor}`}
+                    >
+                      <span className={`h-2 w-2 rounded-full shrink-0 ${style.dot}`} />
+                      <span>{clue.label}</span>
+                    </div>
                     <p className="text-xs sm:text-sm font-bold text-[#142033] leading-snug">
                       {clue.detail}
                     </p>
@@ -335,7 +349,7 @@ export default function BaselineDiscoveryMission() {
               })}
             </div>
 
-            {/* 3. QUESTION & OPTIONS WITH TITLE-FREE INLINE FOLLOW-UP */}
+            {/* 3. QUESTION & OPTIONS WITH INLINE FOLLOW-UP DIRECTLY BELOW SELECTED OPTION */}
             <div className="space-y-2.5">
               <h2 className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
                 {current.question}
@@ -379,7 +393,7 @@ export default function BaselineDiscoveryMission() {
                         )}
                       </button>
 
-                      {/* QUICK INLINE EXTRA INFO DIRECTLY BELOW OPTION (NO TITLE) */}
+                      {/* QUICK INLINE EXTRA INFO DIRECTLY BELOW OPTION (NO WRAPPER LABEL) */}
                       {inlineCounter && (
                         <div className="ml-3 border-l-4 border-[#E07A5F] bg-[#FFF5F2] px-4 py-3 rounded-r-xl">
                           <p className="text-xs sm:text-sm font-bold text-[#142033]">
