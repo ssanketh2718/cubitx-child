@@ -13,6 +13,27 @@ import day01Tier1, {
   FREE_MISSIONS_PER_DAY,
 } from '../../../missions/tier1/day-01/config';
 
+const FACT_CARD_STYLES = [
+  {
+    bg: 'bg-[#E9F7F6]',
+    border: 'border-[#087F80]/30',
+    tagColor: 'text-[#087F80]',
+    dot: 'bg-[#087F80]',
+  },
+  {
+    bg: 'bg-[#FFF6E0]',
+    border: 'border-[#F5B942]/45',
+    tagColor: 'text-[#9A6300]',
+    dot: 'bg-[#F5B942]',
+  },
+  {
+    bg: 'bg-[#EEF2FF]',
+    border: 'border-[#5267E8]/30',
+    tagColor: 'text-[#3B4CCA]',
+    dot: 'bg-[#5267E8]',
+  },
+] as const;
+
 export default function BaselineDiscoveryMission() {
   const navigate = useNavigate();
   const user = useApp((s) => s.user);
@@ -31,7 +52,6 @@ export default function BaselineDiscoveryMission() {
   const [finishedAll, setFinishedAll] = useState(false);
 
   // Single-frame interactive state for current mission
-  const [openedClues, setOpenedClues] = useState<string[]>([]);
   const [firstPickId, setFirstPickId] = useState<string>('');
   const [finalPickId, setFinalPickId] = useState<string>('');
   const [noteText, setNoteText] = useState('');
@@ -48,7 +68,6 @@ export default function BaselineDiscoveryMission() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     startedAtRef.current = Date.now();
     firstTapMsRef.current = undefined;
-    setOpenedClues([]);
     setFirstPickId('');
     setFinalPickId('');
     setNoteText('');
@@ -71,14 +90,6 @@ export default function BaselineDiscoveryMission() {
     }
     return map;
   }, [current]);
-
-  const handleClueToggle = (clueId: string) => {
-    recordFirstTap();
-    triggerDialTick(true);
-    setOpenedClues((prev) =>
-      prev.includes(clueId) ? prev : [...prev, clueId]
-    );
-  };
 
   const handleOptionTap = (optId: string) => {
     recordFirstTap();
@@ -137,8 +148,8 @@ export default function BaselineDiscoveryMission() {
       challengeStrength: current.challengeCard?.strength,
       revisedFromText: revised ? firstOpt?.label : undefined,
       behaviours: {
-        testsBeforeGuess: Math.max(1, openedClues.length),
-        wentBackToTest: revised || openedClues.length >= 2,
+        testsBeforeGuess: current.clues.length,
+        wentBackToTest: revised,
         changedAnswerCount: revised ? 1 : 0,
         hintsUsed: hintLevel,
         timeToFirstTapMs: firstTapMsRef.current,
@@ -179,6 +190,8 @@ export default function BaselineDiscoveryMission() {
       </div>
     );
   }
+
+  const activePickId = finalPickId || firstPickId;
 
   return (
     <div className="min-h-screen cx-paper-canvas text-[#142033]">
@@ -258,7 +271,7 @@ export default function BaselineDiscoveryMission() {
           </div>
         ) : (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-5 sm:p-7 shadow-[var(--shadow-artifact)] space-y-5">
-            {/* 1. STORY STATEMENT (NO ARTIFICIAL TITLE) */}
+            {/* 1. STORY STATEMENT */}
             <div className="rounded-2xl bg-[#142033] p-5 text-white space-y-1.5">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#55E2CE]">
                 MISSION 0{missionIdx + 1} OF 0{missions.length}
@@ -268,103 +281,117 @@ export default function BaselineDiscoveryMission() {
               </p>
             </div>
 
-            {/* 2. TAP TO CHECK 3 CLUES */}
+            {/* 2. ALL EXTRA DETAILS OPEN & COLOR-CODED */}
             <div className="space-y-2">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
-                TAP TO CHECK CLUES ({openedClues.length}/{current.clues.length})
+                READ THESE DETAILS
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {current.clues.map((clue) => {
-                  const isOpen = openedClues.includes(clue.id);
+                {current.clues.map((clue, idx) => {
+                  const style = FACT_CARD_STYLES[idx % FACT_CARD_STYLES.length];
                   return (
-                    <button
+                    <div
                       key={clue.id}
-                      type="button"
-                      onClick={() => handleClueToggle(clue.id)}
-                      className={`rounded-2xl border p-3.5 text-left transition cursor-pointer ${
-                        isOpen
-                          ? 'border-[#087F80] bg-[#087F80]/8 text-[#142033]'
-                          : 'border-[#142033]/12 bg-[#F7F6F1] hover:border-[#142033]'
-                      }`}
+                      className={`rounded-2xl border ${style.border} ${style.bg} p-3.5 text-left`}
                     >
-                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#087F80]">
-                        {isOpen ? `✓ ${clue.label}` : `Tap: ${clue.label}`}
+                      <div
+                        className={`flex items-center gap-1.5 font-mono-tech text-[10px] font-bold uppercase ${style.tagColor}`}
+                      >
+                        <span className={`h-2 w-2 rounded-full ${style.dot}`} />
+                        <span>{clue.label}</span>
                       </div>
-                      <p className="mt-1 text-xs font-bold text-[#142033] leading-snug">
-                        {isOpen ? clue.detail : 'Tap to see this clue'}
+                      <p className="mt-1.5 text-xs sm:text-sm font-bold text-[#142033] leading-snug">
+                        {clue.detail}
                       </p>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* 3. QUESTION & CHOICES */}
+            {/* 3. QUESTION & OPTIONS WITH INLINE EXTRA INFO RIGHT BELOW SELECTED OPTION */}
             <div className="space-y-2.5">
               <h2 className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
                 {current.question}
               </h2>
-              <div className="grid gap-2">
+              <div className="grid gap-2.5">
                 {current.options.map((opt) => {
-                  const active = (finalPickId || firstPickId) === opt.id;
+                  const isSelected = activePickId === opt.id;
+                  const inlineCounter =
+                    isSelected && (opt.socraticCounter || socraticQuestion)
+                      ? opt.socraticCounter || socraticQuestion
+                      : '';
+                  const showNewDetailRightHere =
+                    isSelected &&
+                    !inlineCounter &&
+                    Boolean(current.challengeCard);
+
                   return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => handleOptionTap(opt.id)}
-                      className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm font-extrabold transition cursor-pointer ${
-                        active
-                          ? 'border-[#087F80] bg-[#087F80]/12 text-[#142033]'
-                          : 'border-[#142033]/12 bg-white hover:border-[#142033]'
-                      }`}
-                    >
-                      <span>{opt.label}</span>
-                      {active && (
-                        <span className="text-xs font-extrabold text-[#087F80]">
-                          Selected ✓
-                        </span>
+                    <div key={opt.id} className="space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleOptionTap(opt.id)}
+                        className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3.5 text-left text-sm font-extrabold transition cursor-pointer ${
+                          isSelected
+                            ? inlineCounter
+                              ? 'border-[#E07A5F] bg-[#FFF5F2] text-[#142033]'
+                              : 'border-[#087F80] bg-[#E9F7F6] text-[#142033]'
+                            : 'border-[#142033]/12 bg-white hover:border-[#142033]'
+                        }`}
+                      >
+                        <span>{opt.label}</span>
+                        {isSelected && (
+                          <span
+                            className={`text-xs font-extrabold ${
+                              inlineCounter
+                                ? 'text-[#C2412D]'
+                                : 'text-[#087F80]'
+                            }`}
+                          >
+                            {inlineCounter ? 'Check again ↓' : 'Selected ✓'}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* QUICK INLINE INFO DIRECTLY UNDER THIS OPTION */}
+                      {inlineCounter && (
+                        <div className="ml-3 border-l-4 border-[#E07A5F] bg-[#FFF5F2] px-4 py-3 rounded-r-xl space-y-0.5">
+                          <div className="font-mono-tech text-[10px] font-bold uppercase text-[#C2412D]">
+                            WAIT — CHECK THIS
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-[#142033]">
+                            {inlineCounter}
+                          </p>
+                        </div>
                       )}
-                    </button>
+
+                      {showNewDetailRightHere && current.challengeCard && (
+                        <div className="ml-3 border-l-4 border-[#F5B942] bg-[#FFF9E6] px-4 py-3 rounded-r-xl space-y-0.5">
+                          <div className="font-mono-tech text-[10px] font-bold uppercase text-[#9A6300]">
+                            {current.challengeCard.headline}
+                          </div>
+                          <p className="text-xs sm:text-sm font-bold text-[#142033]">
+                            {current.challengeCard.prompt}
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
             </div>
 
-            {/* 4. INLINE FOLLOW-UP QUESTION (IF TRAP PICKED) */}
-            {socraticQuestion && (
-              <div className="border-l-4 border-[#087F80] bg-[#087F80]/8 p-4 rounded-r-xl space-y-1">
-                <div className="font-mono-tech text-[10px] font-bold uppercase text-[#087F80]">
-                  THINK AGAIN
-                </div>
-                <p className="text-xs sm:text-sm font-bold text-[#142033]">
-                  {socraticQuestion}
-                </p>
-              </div>
-            )}
-
-            {/* 5. INLINE NEW CLUE / UPDATE (APPEARS RIGHT HERE ONCE PICKED) */}
-            {firstPickId && current.challengeCard && (
-              <div className="border-l-4 border-[#F5B942] bg-[#FFFDF7] p-4 rounded-r-xl space-y-1">
-                <div className="font-mono-tech text-[10px] font-bold uppercase text-[#8A5A00]">
-                  {current.challengeCard.headline}
-                </div>
-                <p className="text-xs sm:text-sm font-bold text-[#142033]">
-                  {current.challengeCard.prompt}
-                </p>
-              </div>
-            )}
-
-            {/* 6. PROGRESSIVE HINT (IF REQUESTED) */}
+            {/* 4. PROGRESSIVE HINT (IF REQUESTED) */}
             {hintLevel > 0 && (
-              <div className="rounded-xl bg-[#F7F6F1] border border-[#142033]/10 p-3.5 text-xs font-semibold text-[#142033]">
-                <span className="font-extrabold text-[#087F80]">
+              <div className="rounded-xl bg-[#EEF2FF] border border-[#5267E8]/25 p-3.5 text-xs sm:text-sm font-semibold text-[#142033]">
+                <span className="font-extrabold text-[#3B4CCA]">
                   Hint {hintLevel}:{' '}
                 </span>
                 {current.hints[hintLevel - 1]}
               </div>
             )}
 
-            {/* 7. 1-LINE OWN-WORDS BOX + SAVE BUTTON */}
+            {/* 5. 1-LINE OWN-WORDS BOX + SAVE BUTTON */}
             <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
               <input
                 type="text"
@@ -380,7 +407,9 @@ export default function BaselineDiscoveryMission() {
                 onClick={() => void handleSaveAndNext()}
                 className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold uppercase tracking-wider text-white hover:bg-[#087F80] disabled:opacity-40 cursor-pointer shrink-0"
               >
-                {missionIdx + 1 < missions.length ? 'Save & Next →' : 'Finish Day 1 →'}
+                {missionIdx + 1 < missions.length
+                  ? 'Save & Next →'
+                  : 'Finish Day 1 →'}
               </button>
             </div>
           </div>
