@@ -1,0 +1,16 @@
+# CubitX
+
+> Critical thinking platform for Classes 5 to 10 students in India (CBSE & Maharashtra State Board), combining Thinking Missions, Chapter Challenges, and step-by-step Brain Mapping for parents.
+
+CubitX trains students in Classes 5 to 10 to test ideas, verify clues, and solve unfamiliar application questions instead of memorizing textbook answers.
+
+## Core Pages
+- [Home](https://www.cubitx.in/): Overview of Thinking Missions, Chapter Challenges, Your Kid's Brain Map, and plans.
+- [Free Critical Thinking Test](https://www.cubitx.in/signin): 10-minute baseline thinking assessment with auto-saved progress and 2 free daily Thinking Missions.
+- [Your Kid's Brain Map](https://www.cubitx.in/#brain-map): Interactive step-by-step reasoning replay, guessing vs. thinking habits, and 8-skill growth tracking.
+- [For Parents](https://www.cubitx.in/#for-parents): Family thinking conversations and dinner-table prompts.
+- [For Schools](https://www.cubitx.in/#schools): NEP 2020 weekly Critical Thinking Labs with a 14-day pilot for Classes 5 to 10.
+- [Plans](https://www.cubitx.in/#access): Free Forever (₹0), Explorer (₹999/year), Thinker Pro (₹1,499/year), and Scholar Elite (₹2,499/year) — one-time payment with zero auto-debit.
+
+## Optional
+- [Privacy Policy](https://www.cubitx.in/privacy.html): Data protection and child privacy policy.

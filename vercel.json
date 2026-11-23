@@ -1,7 +1,10 @@
 {
   "rewrites": [
     { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/((?!llms\\.txt|\\.well-known/.*|assets/.*|cubitx-logo\\.jpg|favicon\\.svg|icons\\.svg|privacy\\.html|robots\\.txt|sitemap\\.xml).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {

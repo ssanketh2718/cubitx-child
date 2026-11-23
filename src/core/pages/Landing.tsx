@@ -301,10 +301,10 @@ function sampleStatusMeta(status: SampleStatus) {
     case 'observed':
       return {
         label: 'Observed',
-        fill: '#087F80',
+        fill: '#066869',
         textOnWheel: '#FFFFFF',
-        dot: 'bg-[#087F80]',
-        badge: 'bg-[#087F80]/12 text-[#087F80] border-[#087F80]/30',
+        dot: 'bg-[#066869]',
+        badge: 'bg-[#066869]/12 text-[#066869] border-[#066869]/30',
       };
     case 'early':
       return {
@@ -312,23 +312,23 @@ function sampleStatusMeta(status: SampleStatus) {
         fill: '#F5B942',
         textOnWheel: '#142033',
         dot: 'bg-[#F5B942]',
-        badge: 'bg-[#F5B942]/20 text-[#8A5A00] border-[#F5B942]/45',
+        badge: 'bg-[#F5B942]/25 text-[#5C3B00] border-[#F5B942]/45',
       };
     case 'review':
       return {
         label: 'In review',
-        fill: '#5267E8',
+        fill: '#3B4FD4',
         textOnWheel: '#FFFFFF',
-        dot: 'bg-[#5267E8]',
-        badge: 'bg-[#5267E8]/12 text-[#5267E8] border-[#5267E8]/30',
+        dot: 'bg-[#3B4FD4]',
+        badge: 'bg-[#3B4FD4]/12 text-[#2E3FB8] border-[#3B4FD4]/30',
       };
     default:
       return {
         label: 'Coming up',
         fill: '#DCE2E7',
         textOnWheel: '#142033',
-        dot: 'bg-[#94A3B8]',
-        badge: 'bg-[#F0EFE9] text-[#586579] border-[#DCE2E7]',
+        dot: 'bg-[#64748B]',
+        badge: 'bg-[#F0EFE9] text-[#3E4B5E] border-[#DCE2E7]',
       };
   }
 }
@@ -510,20 +510,22 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-[#F7F6F1] text-[#142033] font-sans">
-      {/* SINGLE TOP BAR — Seamless Logo Blend */}
+      {/* SINGLE TOP BAR — Seamless Logo Blend + Explicit Dimensions */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030A18]">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <a href="#top" className="flex items-center shrink-0">
             <img
               src="/cubitx-logo.jpg"
               alt="CubitX"
+              width={181}
+              height={63}
               className="h-9 sm:h-10 w-auto object-contain mix-blend-lighten"
             />
           </a>
 
           <nav
             aria-label="Primary sections"
-            className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-300"
+            className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-200"
           >
             <a href="#why-cubitx" className="hover:text-white transition">
               Why CubitX
@@ -549,7 +551,7 @@ export default function Landing() {
             <button
               type="button"
               onClick={() => navigate('/signin')}
-              className="rounded-full px-3 py-2 text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
+              className="rounded-full px-3 py-2 text-xs font-semibold text-slate-200 hover:text-white transition cursor-pointer"
             >
               Sign in
             </button>
@@ -570,7 +572,7 @@ export default function Landing() {
             ================================================================= */}
         <section className="grid grid-cols-1 items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.04fr_0.96fr] lg:py-24">
           <div className="space-y-6">
-            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-[#142033]/12 bg-white px-3.5 py-1.5 text-xs font-medium text-[#424F63]">
+            <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-[#142033]/12 bg-white px-3.5 py-1.5 text-xs font-medium text-[#374354]">
               <span className="h-2 w-2 rounded-full bg-[#066869]" />
               <span>Classes 5 to 10</span>
               <span className="text-[#142033]/30">·</span>
@@ -585,7 +587,7 @@ export default function Landing() {
               AI gives answers in seconds. Who is teaching your child to think?
             </h1>
 
-            <p className="max-w-xl text-base leading-relaxed text-[#424F63] sm:text-lg">
+            <p className="max-w-xl text-base leading-relaxed text-[#374354] sm:text-lg">
               Don&apos;t just build critical thinking—
               <strong className="font-semibold text-[#142033]">
                 see how your child actually thinks.
@@ -606,7 +608,7 @@ export default function Landing() {
                 Chapter Challenges
               </span>
               <span className="text-[#066869] font-extrabold">+</span>
-              <span className="rounded-xl border border-[#066869]/30 bg-[#066869]/[0.07] px-3 py-1.5 text-[#066869]">
+              <span className="rounded-xl border border-[#066869]/30 bg-[#066869]/[0.08] px-3 py-1.5 text-[#066869]">
                 Your Kid&apos;s Brain Map
               </span>
             </div>
@@ -629,7 +631,7 @@ export default function Landing() {
               </a>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-xs font-medium text-[#424F63]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1 text-xs font-medium text-[#374354]">
               <span>
                 ✓ {FREE_DAILY_MISSIONS} Free Missions Daily + {FREE_THINKING_SHEET_LIMIT} Free Challenges/Chapter
               </span>
@@ -653,6 +655,8 @@ export default function Landing() {
                     <img
                       src="/cubitx-logo.jpg"
                       alt="CubitX"
+                      width={80}
+                      height={28}
                       className="h-4 w-auto object-contain mix-blend-lighten"
                     />
                   </span>
@@ -660,7 +664,7 @@ export default function Landing() {
                     <div className="truncate text-xs font-bold text-[#142033]">
                       {activeFrame.contextLine}
                     </div>
-                    <div className="font-mono-tech text-[10px] text-[#424F63]">
+                    <div className="font-mono-tech text-[10px] text-[#374354]">
                       {activeFrame.footnote}
                     </div>
                   </div>
@@ -671,7 +675,7 @@ export default function Landing() {
                     activeFrame.statusTone === 'teal'
                       ? 'bg-[#066869]/10 text-[#066869]'
                       : activeFrame.statusTone === 'amber'
-                      ? 'bg-[#F5B942]/25 text-[#6E4700]'
+                      ? 'bg-[#F5B942]/25 text-[#5C3B00]'
                       : 'bg-[#142033]/10 text-[#142033]'
                   }`}
                 >
@@ -695,7 +699,7 @@ export default function Landing() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-[#142033]/10 bg-[#F7F6F1] p-4">
-                    <div className="text-[11px] font-semibold text-[#424F63]">
+                    <div className="text-[11px] font-semibold text-[#374354]">
                       {activeFrame.leftLabel}
                     </div>
                     <div className="mt-1 font-display text-2xl font-extrabold tabular-nums text-[#142033]">
@@ -753,7 +757,7 @@ export default function Landing() {
                           className={`block truncate font-mono-tech text-[10px] font-semibold ${
                             isCurrent
                               ? 'text-[#142033]'
-                              : 'text-[#424F63] group-hover:text-[#142033]'
+                              : 'text-[#374354] group-hover:text-[#142033]'
                           }`}
                         >
                           {frame.tabLabel}
@@ -767,7 +771,7 @@ export default function Landing() {
                   <button
                     type="button"
                     onClick={() => setHeroPaused((p) => !p)}
-                    className="rounded px-1.5 py-0.5 font-mono-tech text-[10px] font-semibold text-[#424F63] hover:text-[#142033] cursor-pointer"
+                    className="rounded px-1.5 py-0.5 font-mono-tech text-[10px] font-semibold text-[#374354] hover:text-[#142033] cursor-pointer"
                   >
                     {heroPaused ? 'Resume live preview' : 'Pause preview'}
                   </button>
@@ -788,14 +792,14 @@ export default function Landing() {
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
               AI is weakening kids&apos; thinking—and changing the jobs they will compete for.
             </h2>
-            <p className="text-sm sm:text-base text-[#424F63] leading-relaxed">
+            <p className="text-sm sm:text-base text-[#374354] leading-relaxed">
               Kids copy answers from AI and digests in two minutes, stop using
               their own brains, and go blank when an exam twists the question.
             </p>
           </div>
 
           <div className="rounded-2xl border border-[#F5B942]/45 bg-[#FFFDF7] p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
-            <span className="shrink-0 self-start rounded-full bg-[#F5B942]/25 px-3 py-1 font-mono-tech text-[11px] font-bold text-[#6E4700]">
+            <span className="shrink-0 self-start rounded-full bg-[#F5B942]/25 px-3 py-1 font-mono-tech text-[11px] font-bold text-[#5C3B00]">
               Research Finding · Gerlich, 2025
             </span>
             <p className="text-xs sm:text-sm text-[#142033] leading-relaxed">
@@ -814,7 +818,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Future Jobs Need Thinkers, Not Just Degrees
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 AI can already write basic code, summarize chapters, and pass
                 routine tests. Tomorrow&apos;s jobs will go to kids who spot
                 mistakes, ask sharp questions, and solve new problems.
@@ -828,7 +832,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Built on Phenomenon-Based Learning
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 In Finland, schools start with real-world problems instead of
                 isolated textbook facts. CubitX brings that habit from Class 5—so
                 your child leads AI instead of depending on it.
@@ -842,7 +846,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Start Early (Classes 5 to 10)
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 Memorizing Q&amp;A only works if the exact same question comes in
                 the exam. Change one word or number, and kids lose marks.
                 Training their brain early fixes this for life.
@@ -858,7 +862,7 @@ export default function Landing() {
               <h3 className="font-display text-2xl font-extrabold text-[#142033]">
                 NEP 2020 changed the rules. Marks now go to kids who understand.
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63]">
+              <p className="text-xs sm:text-sm text-[#374354]">
                 NEP 2020 (Paras 4.4–4.6) cuts down rote memorization and pushes
                 real thinking in school exams.
               </p>
@@ -869,7 +873,7 @@ export default function Landing() {
                 <div className="font-display text-base font-extrabold text-[#142033]">
                   CBSE (Classes 5–10)
                 </div>
-                <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                   <strong className="text-[#142033]">
                     50% of CBSE theory papers
                   </strong>{' '}
@@ -883,7 +887,7 @@ export default function Landing() {
                 <div className="font-display text-base font-extrabold text-[#142033]">
                   Maharashtra State Board (SSC / Balbharati)
                 </div>
-                <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+                <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                   In the{' '}
                   <strong className="text-[#142033]">
                     80 written + 20 internal/activity
@@ -932,7 +936,7 @@ export default function Landing() {
                 className={`rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
                   sandboxTab === 'mission'
                     ? 'bg-[#142033] text-white'
-                    : 'text-[#424F63] hover:text-[#142033]'
+                    : 'text-[#374354] hover:text-[#142033]'
                 }`}
               >
                 Thinking Mission
@@ -953,7 +957,7 @@ export default function Landing() {
                 className={`rounded-full px-4 py-2 text-xs font-bold transition cursor-pointer ${
                   sandboxTab === 'sheet'
                     ? 'bg-[#142033] text-white'
-                    : 'text-[#424F63] hover:text-[#142033]'
+                    : 'text-[#374354] hover:text-[#142033]'
                 }`}
               >
                 Chapter Challenge
@@ -976,7 +980,7 @@ export default function Landing() {
                 <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
                   One clue can trick you. Two clues show the truth.
                 </h3>
-                <p className="text-sm text-[#424F63] leading-relaxed">
+                <p className="text-sm text-[#374354] leading-relaxed">
                   Put numbers into this machine and watch what comes out. Most
                   kids lock in a rule after one try. Watch what happens when you
                   test a second number.
@@ -989,7 +993,7 @@ export default function Landing() {
                   <button
                     type="button"
                     onClick={resetMachine}
-                    className="rounded px-2 py-1 text-xs font-semibold text-[#424F63] hover:text-[#142033] underline underline-offset-4 cursor-pointer"
+                    className="rounded px-2 py-1 text-xs font-semibold text-[#374354] hover:text-[#142033] underline underline-offset-4 cursor-pointer"
                   >
                     Reset machine
                   </button>
@@ -999,7 +1003,7 @@ export default function Landing() {
               <div className="space-y-5 rounded-2xl border border-[#142033]/12 bg-[#F7F6F1] p-5 sm:p-6">
                 <div className="grid grid-cols-3 items-center gap-3 rounded-2xl border border-[#142033]/10 bg-white p-4 text-center">
                   <div>
-                    <div className="font-mono-tech text-[10px] font-semibold uppercase text-[#424F63]">
+                    <div className="font-mono-tech text-[10px] font-semibold uppercase text-[#374354]">
                       Input
                     </div>
                     <div className="mt-1 font-display text-3xl font-extrabold tabular-nums text-[#142033]">
@@ -1022,7 +1026,7 @@ export default function Landing() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-[#424F63]">
+                  <div className="text-xs font-semibold text-[#374354]">
                     Tap another number to test:
                   </div>
                   <div
@@ -1050,7 +1054,7 @@ export default function Landing() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-[#424F63]">
+                  <div className="text-xs font-semibold text-[#374354]">
                     Which rule fits every number you tested?
                   </div>
                   <div
@@ -1126,7 +1130,7 @@ export default function Landing() {
                 <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
                   School chapters turned into real thinking questions.
                 </h3>
-                <p className="text-sm text-[#424F63] leading-relaxed">
+                <p className="text-sm text-[#374354] leading-relaxed">
                   Matched to your child&apos;s Class (5 to 10) and Board. No
                   memorized textbook definitions. Free gives{' '}
                   {FREE_THINKING_SHEET_LIMIT} challenges per chapter; Paid opens{' '}
@@ -1150,7 +1154,7 @@ export default function Landing() {
                       className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                         sheetBoard === b
                           ? 'border-[#142033] bg-[#142033] text-white'
-                          : 'border-[#142033]/18 bg-[#F7F6F1] text-[#424F63] hover:text-[#142033]'
+                          : 'border-[#142033]/18 bg-[#F7F6F1] text-[#374354] hover:text-[#142033]'
                       }`}
                     >
                       {b}
@@ -1160,7 +1164,7 @@ export default function Landing() {
               </div>
 
               <div className="space-y-4 rounded-2xl border border-[#142033]/12 bg-[#F7F6F1] p-5 sm:p-6">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-[#424F63]">
+                <div className="flex items-center justify-between text-[11px] font-semibold text-[#374354]">
                   <span>Class 6 · {sheetBoard} · Science</span>
                   <span className="font-mono-tech text-[#066869]">
                     Step 2 · What is really happening?
@@ -1189,7 +1193,7 @@ export default function Landing() {
                       className={`w-full rounded-xl border p-3.5 text-left text-xs sm:text-sm font-medium transition cursor-pointer ${
                         sheetPick === idx
                           ? 'border-[#066869] bg-white text-[#142033]'
-                          : 'border-[#142033]/12 bg-white/80 text-[#424F63] hover:border-[#142033]/40 hover:text-[#142033]'
+                          : 'border-[#142033]/12 bg-white/80 text-[#374354] hover:border-[#142033]/40 hover:text-[#142033]'
                       }`}
                     >
                       {viewpoint}
@@ -1217,14 +1221,14 @@ export default function Landing() {
             ================================================================= */}
         <section id="brain-map" className="cx-hairline-t py-16 sm:py-24 space-y-8">
           <div className="max-w-3xl space-y-2.5">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#087F80]/12 px-3.5 py-1 font-mono-tech text-[10px] font-bold uppercase tracking-[0.14em] text-[#087F80]">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#066869]/12 px-3.5 py-1 font-mono-tech text-[10px] font-bold uppercase tracking-[0.14em] text-[#066869]">
               Only on CubitX · Live Brain Map Preview
             </div>
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
               Your Kid&apos;s Brain Map: Don&apos;t just check marks. See how your
               child&apos;s brain works.
             </h2>
-            <p className="text-sm sm:text-base text-[#424F63] leading-relaxed">
+            <p className="text-sm sm:text-base text-[#374354] leading-relaxed">
               Other apps only show a percentage score. Scroll inside the live
               window below to explore every chart, step-by-step replay, and
               growth graph included in{' '}
@@ -1234,10 +1238,10 @@ export default function Landing() {
           </div>
 
           {/* EYE-CATCHING DEEP NAVY & TEAL FRAMED SHOWCASE WINDOW */}
-          <div className="rounded-[32px] border-2 border-[#087F80]/45 bg-[#030A18] p-2 sm:p-3 shadow-[0_24px_60px_-15px_rgba(3,10,24,0.38)]">
+          <div className="rounded-[32px] border-2 border-[#066869]/45 bg-[#030A18] p-2 sm:p-3 shadow-[0_24px_60px_-15px_rgba(3,10,24,0.38)]">
             <div className="rounded-[24px] bg-[#F2F7F6] overflow-hidden">
               {/* Window Title Bar */}
-              <div className="bg-gradient-to-r from-[#030A18] via-[#0B2536] to-[#087F80] text-white px-5 sm:px-7 py-4 flex flex-wrap items-center justify-between gap-3">
+              <div className="bg-gradient-to-r from-[#030A18] via-[#0B2536] to-[#066869] text-white px-5 sm:px-7 py-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F07868]" />
@@ -1257,73 +1261,73 @@ export default function Landing() {
               <div className="max-h-[680px] overflow-y-auto p-5 sm:p-8 space-y-10">
                 {/* Top Child Header + 4 Stat Cards */}
                 <div className="space-y-5">
-                  <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#087F80]/15 pb-4">
+                  <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#066869]/15 pb-4">
                     <div>
-                      <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
+                      <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#066869]">
                         Class 7 · Sample Brain Mapping
                       </div>
                       <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-[#142033] mt-0.5">
                         Aarav&apos;s Brain Mapping
                       </h3>
-                      <p className="text-xs sm:text-sm text-[#424F63]">
+                      <p className="text-xs sm:text-sm text-[#374354]">
                         Step-by-step view of how Aarav checks clues, spots traps, and fixes mistakes—without marks or exam pressure.
                       </p>
                     </div>
-                    <span className="rounded-full bg-[#087F80] px-3.5 py-1 text-xs font-bold text-white">
+                    <span className="rounded-full bg-[#066869] px-3.5 py-1 text-xs font-bold text-white">
                       Last 30 days
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-                    <div className="rounded-2xl border border-[#087F80]/15 bg-white p-4 shadow-sm">
-                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#586579]">
+                    <div className="rounded-2xl border border-[#066869]/15 bg-white p-4 shadow-sm">
+                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#3E4B5E]">
                         Thinking Missions
                       </div>
                       <div className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
                         14
                       </div>
-                      <p className="text-[11px] text-[#586579]">Puzzles explored</p>
+                      <p className="text-[11px] text-[#3E4B5E]">Puzzles explored</p>
                     </div>
 
-                    <div className="rounded-2xl border border-[#087F80]/30 bg-white p-4 shadow-sm">
-                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#087F80]">
+                    <div className="rounded-2xl border border-[#066869]/30 bg-white p-4 shadow-sm">
+                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#066869]">
                         Chapter Challenges
                       </div>
-                      <div className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-[#087F80]">
+                      <div className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-[#066869]">
                         18
                       </div>
-                      <p className="text-[11px] text-[#586579]">Board-linked challenges done</p>
+                      <p className="text-[11px] text-[#3E4B5E]">Board-linked challenges done</p>
                     </div>
 
-                    <div className="rounded-2xl border border-[#087F80]/15 bg-white p-4 shadow-sm">
-                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#586579]">
+                    <div className="rounded-2xl border border-[#066869]/15 bg-white p-4 shadow-sm">
+                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#3E4B5E]">
                         Own-Word Notes
                       </div>
                       <div className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
                         9
                       </div>
-                      <p className="text-[11px] text-[#586579]">Written in Aarav&apos;s words</p>
+                      <p className="text-[11px] text-[#3E4B5E]">Written in Aarav&apos;s words</p>
                     </div>
 
-                    <div className="rounded-2xl border border-[#087F80]/15 bg-white p-4 shadow-sm">
-                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#586579]">
+                    <div className="rounded-2xl border border-[#066869]/15 bg-white p-4 shadow-sm">
+                      <div className="font-mono-tech text-[10px] font-bold uppercase text-[#3E4B5E]">
                         Active Days
                       </div>
                       <div className="mt-1 font-display text-2xl sm:text-3xl font-extrabold text-[#142033]">
                         12
                       </div>
-                      <p className="text-[11px] text-[#586579]">Days practised this month</p>
+                      <p className="text-[11px] text-[#3E4B5E]">Days practised this month</p>
                     </div>
                   </div>
 
                   {/* 4 Visual Analytical Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-display text-sm font-extrabold text-[#142033]">
                           Thinking Activity
                         </h4>
-                        <span className="rounded-full bg-[#087F80]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#087F80]">
+                        <span className="rounded-full bg-[#066869]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#066869]">
                           32 actions
                         </span>
                       </div>
@@ -1340,17 +1344,17 @@ export default function Landing() {
                           >
                             <div
                               className={`w-full rounded-t-lg ${
-                                bar.active ? 'bg-[#087F80]' : 'bg-[#142033]/15'
+                                bar.active ? 'bg-[#066869]' : 'bg-[#142033]/20'
                               }`}
                               style={{ height: `${bar.pct}%` }}
                             />
-                            <span className="text-[10px] font-bold text-[#586579]">
+                            <span className="text-[10px] font-bold text-[#3E4B5E]">
                               {bar.label}
                             </span>
                           </div>
                         ))}
                       </div>
-                      <p className="text-[11px] text-[#586579]">
+                      <p className="text-[11px] text-[#3E4B5E]">
                         Missions, Chapter Challenges, and clue checks logged.
                       </p>
                     </div>
@@ -1407,17 +1411,17 @@ export default function Landing() {
                           </text>
                         </svg>
                       </div>
-                      <p className="text-[11px] text-white/75">
+                      <p className="text-[11px] text-slate-200">
                         Thinking skills practised across Missions &amp; Challenges.
                       </p>
                     </div>
 
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-display text-sm font-extrabold text-[#142033]">
                           Clue-Testing Habit
                         </h4>
-                        <span className="rounded-full bg-[#F5B942]/25 px-2 py-0.5 text-[10px] font-extrabold text-[#8A5A00]">
+                        <span className="rounded-full bg-[#F5B942]/25 px-2 py-0.5 text-[10px] font-extrabold text-[#5C3B00]">
                           Strong
                         </span>
                       </div>
@@ -1425,46 +1429,46 @@ export default function Landing() {
                         <div>
                           <div className="flex justify-between text-xs font-bold mb-1">
                             <span className="text-[#142033]">Tested 2+ clues</span>
-                            <span className="text-[#087F80]">78%</span>
+                            <span className="text-[#066869]">78%</span>
                           </div>
                           <div className="h-2.5 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
-                            <div className="h-full w-[78%] rounded-full bg-[#087F80]" />
+                            <div className="h-full w-[78%] rounded-full bg-[#066869]" />
                           </div>
                         </div>
                         <div>
                           <div className="flex justify-between text-xs font-bold mb-1">
-                            <span className="text-[#586579]">First-hunch picks</span>
-                            <span className="text-[#586579]">22%</span>
+                            <span className="text-[#3E4B5E]">First-hunch picks</span>
+                            <span className="text-[#3E4B5E]">22%</span>
                           </div>
                           <div className="h-2.5 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
                             <div className="h-full w-[22%] rounded-full bg-[#F5B942]" />
                           </div>
                         </div>
                       </div>
-                      <p className="text-[11px] text-[#586579]">
+                      <p className="text-[11px] text-[#3E4B5E]">
                         Aarav checks extra clues before deciding.
                       </p>
                     </div>
 
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm flex flex-col justify-between gap-3">
                       <div className="flex items-center justify-between">
                         <h4 className="font-display text-sm font-extrabold text-[#142033]">
                           Key Thinking Moves
                         </h4>
-                        <span className="rounded-full bg-[#5267E8]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#5267E8]">
+                        <span className="rounded-full bg-[#3B4FD4]/10 px-2 py-0.5 text-[10px] font-extrabold text-[#2E3FB8]">
                           Stage 2
                         </span>
                       </div>
                       <div className="space-y-2">
                         {[
-                          { label: 'Clues checked', val: '14 / 15', color: 'bg-[#087F80]', pct: 92 },
-                          { label: 'Mind shifts (Sisu)', val: '6 / 15', color: 'bg-[#5267E8]', pct: 45 },
+                          { label: 'Clues checked', val: '14 / 15', color: 'bg-[#066869]', pct: 92 },
+                          { label: 'Mind shifts (Sisu)', val: '6 / 15', color: 'bg-[#3B4FD4]', pct: 45 },
                           { label: 'Own-word notes', val: '9 / 15', color: 'bg-[#F5B942]', pct: 60 },
                         ].map((row) => (
                           <div key={row.label} className="space-y-1">
                             <div className="flex justify-between text-[11px] font-bold">
                               <span className="text-[#142033]">{row.label}</span>
-                              <span className="text-[#586579]">{row.val}</span>
+                              <span className="text-[#3E4B5E]">{row.val}</span>
                             </div>
                             <div className="h-1.5 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
                               <div
@@ -1475,7 +1479,7 @@ export default function Landing() {
                           </div>
                         ))}
                       </div>
-                      <p className="text-[11px] text-[#586579]">
+                      <p className="text-[11px] text-[#3E4B5E]">
                         Targets scale across the 1-year journey.
                       </p>
                     </div>
@@ -1483,13 +1487,13 @@ export default function Landing() {
                 </div>
 
                 {/* Section 2 Inside Window: Interactive Eight Thinking Skills */}
-                <div className="border-t border-[#087F80]/15 pt-8 space-y-4">
+                <div className="border-t border-[#066869]/15 pt-8 space-y-4">
                   <h4 className="font-display text-xl font-extrabold text-[#142033]">
                     Eight Thinking Skills — Click Any Slice to Inspect
                   </h4>
 
                   <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start">
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-4 items-center">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm grid grid-cols-1 sm:grid-cols-[210px_1fr] gap-4 items-center">
                       <svg
                         viewBox="0 0 300 300"
                         className="w-full max-w-[210px] mx-auto h-auto overflow-visible"
@@ -1585,7 +1589,7 @@ export default function Landing() {
                               </span>
                               <span
                                 className={`shrink-0 text-[10px] font-bold ${
-                                  active ? 'text-[#55E2CE]' : 'text-[#586579]'
+                                  active ? 'text-[#55E2CE]' : 'text-[#3E4B5E]'
                                 }`}
                               >
                                 {meta.label}
@@ -1596,7 +1600,7 @@ export default function Landing() {
                       </div>
                     </div>
 
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-6 shadow-sm space-y-4">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-6 shadow-sm space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                           <span className="rounded-lg bg-[#030A18] px-2.5 py-1 text-xs font-extrabold text-[#55E2CE]">
@@ -1615,7 +1619,7 @@ export default function Landing() {
                         </span>
                       </div>
 
-                      <p className="text-xs sm:text-sm text-[#586579]">
+                      <p className="text-xs sm:text-sm text-[#3E4B5E]">
                         {selectedSkill.summary}
                       </p>
 
@@ -1626,7 +1630,7 @@ export default function Landing() {
                           className={`rounded-full px-3.5 py-1 text-xs font-bold transition cursor-pointer ${
                             inspectorTab === 'home'
                               ? 'bg-[#030A18] text-white'
-                              : 'bg-[#F2F7F6] text-[#586579]'
+                              : 'bg-[#F2F7F6] text-[#3E4B5E]'
                           }`}
                         >
                           What to notice
@@ -1637,7 +1641,7 @@ export default function Landing() {
                           className={`rounded-full px-3.5 py-1 text-xs font-bold transition cursor-pointer ${
                             inspectorTab === 'how'
                               ? 'bg-[#030A18] text-white'
-                              : 'bg-[#F2F7F6] text-[#586579]'
+                              : 'bg-[#F2F7F6] text-[#3E4B5E]'
                           }`}
                         >
                           How we observe this
@@ -1649,14 +1653,14 @@ export default function Landing() {
                           <ul className="space-y-1.5 text-xs text-[#142033]">
                             {selectedSkill.noticeAtHome.map((line) => (
                               <li key={line} className="flex items-start gap-2">
-                                <span className="text-[#087F80] font-bold">→</span>
+                                <span className="text-[#066869] font-bold">→</span>
                                 <span>{line}</span>
                               </li>
                             ))}
                           </ul>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-3.5">
-                              <div className="text-[11px] font-extrabold text-[#087F80] mb-1">
+                            <div className="rounded-2xl bg-[#066869]/8 border border-[#066869]/20 p-3.5">
+                              <div className="text-[11px] font-extrabold text-[#066869] mb-1">
                                 What we saw
                               </div>
                               <p className="text-xs text-[#142033] leading-relaxed">
@@ -1664,10 +1668,10 @@ export default function Landing() {
                               </p>
                             </div>
                             <div className="rounded-2xl bg-[#F2F7F6] border border-[#142033]/10 p-3.5">
-                              <div className="text-[11px] font-extrabold text-[#586579] mb-1">
+                              <div className="text-[11px] font-extrabold text-[#3E4B5E] mb-1">
                                 Still exploring
                               </div>
-                              <p className="text-xs text-[#586579] leading-relaxed">
+                              <p className="text-xs text-[#3E4B5E] leading-relaxed">
                                 {selectedSkill.stillExploring}
                               </p>
                             </div>
@@ -1678,7 +1682,7 @@ export default function Landing() {
                           <div className="text-xs font-extrabold text-[#142033]">
                             Observation method
                           </div>
-                          <p className="text-xs sm:text-sm text-[#586579] leading-relaxed">
+                          <p className="text-xs sm:text-sm text-[#3E4B5E] leading-relaxed">
                             {selectedSkill.howWeObserve}
                           </p>
                         </div>
@@ -1688,35 +1692,35 @@ export default function Landing() {
                 </div>
 
                 {/* Section 3 Inside Window: Real Thinking Moments + Interactive Step-by-Step Replay */}
-                <div className="border-t border-[#087F80]/15 pt-8 space-y-4">
+                <div className="border-t border-[#066869]/15 pt-8 space-y-4">
                   <h4 className="font-display text-xl font-extrabold text-[#142033]">
                     Real Thinking Moments &amp; Step-by-Step Replay
                   </h4>
 
                   <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 items-start">
                     <div className="space-y-3">
-                      <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-[#087F80]">
-                          <span className="rounded-md bg-[#087F80]/10 px-2 py-0.5">B2</span>
+                      <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#066869]">
+                          <span className="rounded-md bg-[#066869]/10 px-2 py-0.5">B2</span>
                           <span>Using evidence</span>
                         </div>
                         <h5 className="font-display text-base font-extrabold text-[#142033]">
                           Tested a second input before locking in a rule
                         </h5>
-                        <p className="text-xs sm:text-sm text-[#586579] leading-relaxed">
+                        <p className="text-xs sm:text-sm text-[#3E4B5E] leading-relaxed">
                           Aarav did not stop at the first coincidence. He ran a second check, saw it contradict +6, and switched to ×3.
                         </p>
                       </div>
 
-                      <div className="rounded-3xl bg-white border border-[#087F80]/15 p-5 shadow-sm space-y-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-[#087F80]">
-                          <span className="rounded-md bg-[#087F80]/10 px-2 py-0.5">A1</span>
+                      <div className="rounded-3xl bg-white border border-[#066869]/15 p-5 shadow-sm space-y-2">
+                        <div className="flex items-center gap-2 text-xs font-bold text-[#066869]">
+                          <span className="rounded-md bg-[#066869]/10 px-2 py-0.5">A1</span>
                           <span>Asking good questions</span>
                         </div>
                         <h5 className="font-display text-base font-extrabold text-[#142033]">
                           Questioned a bold claim with a tiny sample
                         </h5>
-                        <p className="text-xs sm:text-sm text-[#586579] leading-relaxed">
+                        <p className="text-xs sm:text-sm text-[#3E4B5E] leading-relaxed">
                           Aarav paused before trusting a bold percentage and asked who was actually tested.
                         </p>
                       </div>
@@ -1744,7 +1748,7 @@ export default function Landing() {
                             className={`rounded-xl py-2 text-xs font-bold transition cursor-pointer ${
                               idx === replayStepIdx
                                 ? 'bg-[#55E2CE] text-[#030A18]'
-                                : 'bg-white/10 text-white/75 hover:bg-white/20'
+                                : 'bg-white/10 text-slate-200 hover:bg-white/20'
                             }`}
                           >
                             Step {idx + 1}
@@ -1775,7 +1779,7 @@ export default function Landing() {
                         <div className="text-xs font-extrabold text-[#F5B942]">
                           {currentReplayStep.thought}
                         </div>
-                        <p className="text-xs text-white/80 leading-relaxed">
+                        <p className="text-xs text-slate-200 leading-relaxed">
                           {currentReplayStep.detail}
                         </p>
                       </div>
@@ -1784,23 +1788,23 @@ export default function Landing() {
                 </div>
 
                 {/* Section 4 Inside Window: Critical Thinking Growth + 8-Area Brain Map Web */}
-                <div className="border-t border-[#087F80]/15 pt-8 space-y-5">
+                <div className="border-t border-[#066869]/15 pt-8 space-y-5">
                   <h4 className="font-display text-xl font-extrabold text-[#142033]">
                     Critical Thinking Growth &amp; 8-Area Brain Map Web
                   </h4>
 
                   <div className="grid grid-cols-1 lg:grid-cols-[1.15fr_0.85fr] gap-6">
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-6 shadow-sm space-y-4">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-6 shadow-sm space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h5 className="font-display text-base font-extrabold text-[#142033]">
                             Progress Over Time · {selectedGrowthSkill.name}
                           </h5>
-                          <p className="text-xs text-[#586579]">
+                          <p className="text-xs text-[#3E4B5E]">
                             Tap any skill chip below to inspect its growth curve.
                           </p>
                         </div>
-                        <span className="rounded-full bg-[#087F80]/10 px-3 py-1 text-xs font-extrabold text-[#087F80]">
+                        <span className="rounded-full bg-[#066869]/10 px-3 py-1 text-xs font-extrabold text-[#066869]">
                           {selectedGrowthSkill.code}
                         </span>
                       </div>
@@ -1819,7 +1823,7 @@ export default function Landing() {
                               className={`rounded-full px-3 py-1 text-xs font-bold transition cursor-pointer ${
                                 active
                                   ? 'bg-[#030A18] text-[#55E2CE]'
-                                  : 'bg-[#F2F7F6] text-[#586579]'
+                                  : 'bg-[#F2F7F6] text-[#3E4B5E]'
                               }`}
                             >
                               {s.shortName}
@@ -1832,15 +1836,15 @@ export default function Landing() {
                         <svg viewBox="0 0 360 175" className="w-full h-auto overflow-visible">
                           <defs>
                             <linearGradient id="cxLandingGrowth" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="0%" stopColor="#087F80" stopOpacity="0.28" />
-                              <stop offset="100%" stopColor="#087F80" stopOpacity="0.02" />
+                              <stop offset="0%" stopColor="#066869" stopOpacity="0.28" />
+                              <stop offset="100%" stopColor="#066869" stopOpacity="0.02" />
                             </linearGradient>
                           </defs>
                           <path d={areaPath} fill="url(#cxLandingGrowth)" />
                           <path
                             d={linePath}
                             fill="none"
-                            stroke="#087F80"
+                            stroke="#066869"
                             strokeWidth="3.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -1852,7 +1856,7 @@ export default function Landing() {
                                 cy={pt.y}
                                 r="5.5"
                                 fill="#FFFFFF"
-                                stroke="#087F80"
+                                stroke="#066869"
                                 strokeWidth="3"
                               />
                               <text
@@ -1861,7 +1865,7 @@ export default function Landing() {
                                 textAnchor="middle"
                                 fontSize="10"
                                 fontWeight="700"
-                                fill="#586579"
+                                fill="#3E4B5E"
                               >
                                 {pt.label}
                               </text>
@@ -1870,8 +1874,8 @@ export default function Landing() {
                         </svg>
                       </div>
 
-                      <div className="rounded-2xl bg-[#087F80]/8 border border-[#087F80]/20 p-3.5">
-                        <div className="text-xs font-extrabold text-[#087F80] mb-0.5">
+                      <div className="rounded-2xl bg-[#066869]/8 border border-[#066869]/20 p-3.5">
+                        <div className="text-xs font-extrabold text-[#066869] mb-0.5">
                           What this tells us about Aarav
                         </div>
                         <p className="text-xs sm:text-sm text-[#142033] leading-relaxed">
@@ -1885,7 +1889,7 @@ export default function Landing() {
                         <h5 className="font-display text-base font-extrabold text-white">
                           All 8 Areas · Brain Map Web
                         </h5>
-                        <p className="text-xs text-white/70 mt-0.5">
+                        <p className="text-xs text-slate-200 mt-0.5">
                           Aarav&apos;s thinking balance across all 8 skills.
                         </p>
                       </div>
@@ -1936,7 +1940,7 @@ export default function Landing() {
                                 dominantBaseline="central"
                                 fontSize="10"
                                 fontWeight="700"
-                                fill="rgba(255,255,255,0.85)"
+                                fill="#E2E8F0"
                               >
                                 {pt.shortName}
                               </text>
@@ -1945,28 +1949,28 @@ export default function Landing() {
                         </svg>
                       </div>
 
-                      <p className="text-xs text-white/75 leading-relaxed">
+                      <p className="text-xs text-slate-200 leading-relaxed">
                         Every child&apos;s web has its own shape. Smaller areas are simply new skills to explore next.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                    <div className="rounded-3xl bg-white border border-[#087F80]/15 p-6 shadow-sm space-y-3">
+                    <div className="rounded-3xl bg-white border border-[#066869]/15 p-6 shadow-sm space-y-3">
                       <h5 className="font-display text-lg font-extrabold text-[#142033]">
                         How Aarav&apos;s reasoning shifted
                       </h5>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div className="rounded-2xl bg-[#F2F7F6] p-3.5 space-y-1">
-                          <div className="text-xs font-extrabold text-[#586579]">
+                          <div className="text-xs font-extrabold text-[#3E4B5E]">
                             Earlier
                           </div>
                           <p className="text-xs sm:text-sm text-[#142033]">
                             Picked an explanation after checking just one initial clue.
                           </p>
                         </div>
-                        <div className="rounded-2xl bg-[#087F80]/10 border border-[#087F80]/20 p-3.5 space-y-1">
-                          <div className="text-xs font-extrabold text-[#087F80]">
+                        <div className="rounded-2xl bg-[#066869]/10 border border-[#066869]/20 p-3.5 space-y-1">
+                          <div className="text-xs font-extrabold text-[#066869]">
                             More Recently
                           </div>
                           <p className="text-xs sm:text-sm text-[#142033]">
@@ -1977,7 +1981,7 @@ export default function Landing() {
                     </div>
 
                     <div className="rounded-3xl bg-[#FFFDF7] border border-[#E6DEC8] p-6 shadow-sm flex flex-col justify-center gap-2">
-                      <div className="text-xs font-extrabold uppercase tracking-wider text-[#087F80]">
+                      <div className="text-xs font-extrabold uppercase tracking-wider text-[#066869]">
                         In Aarav&apos;s Own Words
                       </div>
                       <blockquote className="font-display text-lg sm:text-xl font-extrabold text-[#142033] leading-snug">
@@ -1989,14 +1993,14 @@ export default function Landing() {
               </div>
 
               {/* Bottom CTA Bar of Window */}
-              <div className="bg-white border-t border-[#087F80]/20 px-5 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
-                <p className="text-xs sm:text-sm text-[#424F63]">
+              <div className="bg-white border-t border-[#066869]/20 px-5 sm:px-8 py-4 flex flex-wrap items-center justify-between gap-4">
+                <p className="text-xs sm:text-sm text-[#374354]">
                   Take the free thinking test right now to unlock your own child&apos;s live Brain Mapping.
                 </p>
                 <button
                   type="button"
                   onClick={handleStart}
-                  className="cx-action-pill bg-[#087F80] px-5 py-2.5 text-xs text-white hover:bg-[#030A18] cursor-pointer"
+                  className="cx-action-pill bg-[#066869] px-5 py-2.5 text-xs text-white hover:bg-[#030A18] cursor-pointer"
                 >
                   Take Free Thinking Test →
                 </button>
@@ -2016,7 +2020,7 @@ export default function Landing() {
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
               Be a partner in your child&apos;s thinking journey.
             </h2>
-            <p className="text-sm sm:text-base text-[#424F63] leading-relaxed">
+            <p className="text-sm sm:text-base text-[#374354] leading-relaxed">
               Your encouragement shapes how your child approaches unfamiliar
               problems. CubitX gives you simple ways to stay involved and
               explore real-world questions together at home.
@@ -2031,7 +2035,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Start a fun dinner-table conversation
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 After a mission on <em>Force &amp; Pressure</em>, ask:{' '}
                 <em>
                   &ldquo;Why do heavy trucks have 8 or 10 wide tyres instead of 4 thin ones?&rdquo;
@@ -2047,7 +2051,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Celebrate how they think through mistakes
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 Look at Your Kid&apos;s Brain Map together and say:{' '}
                 <em>
                   &ldquo;I saw how you changed your approach after the first try and figured it out.&rdquo;
@@ -2063,7 +2067,7 @@ export default function Landing() {
               <h3 className="font-display text-lg font-extrabold text-[#142033]">
                 Short, consistent practice that builds clarity
               </h3>
-              <p className="text-xs sm:text-sm text-[#424F63] leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#374354] leading-relaxed">
                 Solving {FREE_DAILY_MISSIONS} Thinking Missions a day helps
                 your child pause, check clues, and tackle tricky school
                 questions with calm confidence.
@@ -2083,7 +2087,7 @@ export default function Landing() {
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
               Partner With Us: Bring Finnish-Style Thinking Labs to Your School
             </h2>
-            <p className="text-sm sm:text-base text-[#424F63] leading-relaxed">
+            <p className="text-sm sm:text-base text-[#374354] leading-relaxed">
               Schools and parents work best together. CubitX helps Classes 5 to
               10 schools run a weekly{' '}
               <strong className="text-[#142033]">
@@ -2103,7 +2107,7 @@ export default function Landing() {
                 <h3 className="font-display text-base font-extrabold text-[#142033]">
                   100% CBSE &amp; State Board Aligned
                 </h3>
-                <p className="text-xs text-[#424F63] leading-relaxed">
+                <p className="text-xs text-[#374354] leading-relaxed">
                   Directly builds the 50% competency &amp; application reasoning
                   skills required under NEP 2020.
                 </p>
@@ -2116,7 +2120,7 @@ export default function Landing() {
                 <h3 className="font-display text-base font-extrabold text-[#142033]">
                   No Lesson Prep or Paper Checking
                 </h3>
-                <p className="text-xs text-[#424F63] leading-relaxed">
+                <p className="text-xs text-[#374354] leading-relaxed">
                   Students solve interactive missions and chapter challenges on
                   screen with instant step-by-step insights.
                 </p>
@@ -2129,7 +2133,7 @@ export default function Landing() {
                 <h3 className="font-display text-base font-extrabold text-[#142033]">
                   Class-Wise Thinking Benchmark
                 </h3>
-                <p className="text-xs text-[#424F63] leading-relaxed">
+                <p className="text-xs text-[#374354] leading-relaxed">
                   See section-wise reasoning growth across all 8 skills in a
                   positive, supportive format.
                 </p>
@@ -2142,7 +2146,7 @@ export default function Landing() {
                 <h3 className="font-display text-base font-extrabold text-[#142033]">
                   100% Balance Carry-Forward
                 </h3>
-                <p className="text-xs text-[#424F63] leading-relaxed">
+                <p className="text-xs text-[#374354] leading-relaxed">
                   If a family joins first and their school partners later, their
                   remaining plan balance carries forward automatically.
                 </p>
@@ -2156,7 +2160,7 @@ export default function Landing() {
               <h3 className="font-display text-xl sm:text-2xl font-extrabold">
                 Start a Free 14-Day School Pilot
               </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-200 leading-relaxed">
                 Try CubitX with one section of Classes 5 to 10 in your computer
                 lab or smart classroom—complete with a Principal&apos;s Thinking
                 Benchmark Report at the end of 14 days.
@@ -2192,7 +2196,7 @@ export default function Landing() {
             <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-[#142033]">
               Start free every day. Pay once only if you want unlimited access.
             </h2>
-            <p className="text-sm text-[#424F63]">
+            <p className="text-sm text-[#374354]">
               Get {FREE_DAILY_MISSIONS} free Thinking Missions daily plus{' '}
               {FREE_THINKING_SHEET_LIMIT} free Chapter Challenges in every
               chapter—no card needed, no auto-debit, zero sales calls.
@@ -2203,13 +2207,13 @@ export default function Landing() {
             {/* FREE FOREVER */}
             <div className="rounded-3xl border border-[#142033]/14 bg-white p-6 flex flex-col justify-between gap-6">
               <div className="space-y-4">
-                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#424F63]">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#3E4B5E]">
                   Free Forever
                 </div>
                 <div className="font-display text-3xl font-extrabold text-[#142033]">
                   ₹0
                 </div>
-                <ul className="space-y-2 text-xs text-[#424F63]">
+                <ul className="space-y-2 text-xs text-[#374354]">
                   <li>✓ {FREE_DAILY_MISSIONS} Free Thinking Missions every day</li>
                   <li>✓ {FREE_THINKING_SHEET_LIMIT} Free Chapter Challenges / chapter</li>
                   <li>✓ Basic Brain Map summary</li>
@@ -2227,18 +2231,18 @@ export default function Landing() {
             {/* EXPLORER — ₹999 */}
             <div className="rounded-3xl border border-[#142033]/14 bg-white p-6 flex flex-col justify-between gap-6">
               <div className="space-y-4">
-                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#424F63]">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#3E4B5E]">
                   Explorer
                 </div>
                 <div>
                   <span className="font-display text-3xl font-extrabold tabular-nums text-[#142033]">
                     ₹{PRICE_INR}
                   </span>
-                  <span className="text-xs font-semibold text-[#424F63]">
+                  <span className="text-xs font-semibold text-[#3E4B5E]">
                     {' '}
                     / year
                   </span>
-                  <div className="text-[11px] text-[#424F63] mt-0.5">
+                  <div className="text-[11px] text-[#3E4B5E] mt-0.5">
                     ₹83/month · One-Time Payment
                   </div>
                 </div>
@@ -2272,11 +2276,11 @@ export default function Landing() {
                   <span className="font-display text-3xl font-extrabold tabular-nums text-[#142033]">
                     ₹1,499
                   </span>
-                  <span className="text-xs font-semibold text-[#424F63]">
+                  <span className="text-xs font-semibold text-[#3E4B5E]">
                     {' '}
                     / year
                   </span>
-                  <div className="text-[11px] text-[#424F63] mt-0.5">
+                  <div className="text-[11px] text-[#3E4B5E] mt-0.5">
                     ₹125/month · One-Time Payment
                   </div>
                 </div>
@@ -2298,18 +2302,18 @@ export default function Landing() {
             {/* SCHOLAR ELITE — ₹2,499 */}
             <div className="rounded-3xl border border-[#142033]/14 bg-white p-6 flex flex-col justify-between gap-6">
               <div className="space-y-4">
-                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#6E4700]">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#5C3B00]">
                   Scholar Elite
                 </div>
                 <div>
                   <span className="font-display text-3xl font-extrabold tabular-nums text-[#142033]">
                     ₹2,499
                   </span>
-                  <span className="text-xs font-semibold text-[#424F63]">
+                  <span className="text-xs font-semibold text-[#3E4B5E]">
                     {' '}
                     / year
                   </span>
-                  <div className="text-[11px] text-[#424F63] mt-0.5">
+                  <div className="text-[11px] text-[#3E4B5E] mt-0.5">
                     just ₹208/mo — less than 1 week of tuition
                   </div>
                 </div>
@@ -2340,7 +2344,7 @@ export default function Landing() {
               for a <strong className="text-[#066869]">flat 20% off</strong>{' '}
               (₹799 / ₹1,199 / ₹1,999)—also applies if you add a 3rd child.
             </div>
-            <div className="font-mono-tech text-[11px] text-[#424F63]">
+            <div className="font-mono-tech text-[11px] text-[#3E4B5E]">
               One-Time UPI / Card · 18% GST Included · Zero Auto-Renewal
             </div>
           </div>
@@ -2379,13 +2383,13 @@ export default function Landing() {
                       </span>
                       <span
                         aria-hidden="true"
-                        className="font-mono-tech text-lg font-medium text-[#424F63]"
+                        className="font-mono-tech text-lg font-medium text-[#3E4B5E]"
                       >
                         {isOpen ? '−' : '+'}
                       </span>
                     </button>
                     {isOpen && (
-                      <p className="pb-5 pr-8 text-sm text-[#424F63] leading-relaxed">
+                      <p className="pb-5 pr-8 text-sm text-[#374354] leading-relaxed">
                         {item.a}
                       </p>
                     )}
@@ -2405,7 +2409,7 @@ export default function Landing() {
               <h2 className="font-display text-2xl sm:text-3xl font-extrabold">
                 See how your child thinks in 10 minutes.
               </h2>
-              <p className="text-xs sm:text-sm text-slate-300">
+              <p className="text-xs sm:text-sm text-slate-200">
                 Take the free thinking test right now—and watch Your Kid&apos;s
                 Brain Map update live.
               </p>
@@ -2422,12 +2426,14 @@ export default function Landing() {
       </main>
 
       <footer className="border-t border-[#142033]/12 bg-[#EFECE3]/60 py-8">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 text-xs text-[#424F63]">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 sm:px-6 text-xs text-[#374354]">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center rounded-lg bg-[#030A18] px-2.5 py-1">
               <img
                 src="/cubitx-logo.jpg"
                 alt="CubitX"
+                width={80}
+                height={28}
                 className="h-4 w-auto object-contain mix-blend-lighten"
               />
             </span>

@@ -1,0 +1,13 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "CubitX",
+  "name_for_model": "cubitx",
+  "description_for_human": "Critical thinking platform for Classes 5 to 10 students (CBSE & Maharashtra State Board) with Thinking Missions, Chapter Challenges, and Brain Mapping.",
+  "description_for_model": "CubitX provides interactive critical thinking missions, CBSE and Maharashtra State Board chapter challenges, and step-by-step brain mapping insights for students in Classes 5 to 10.",
+  "auth": {
+    "type": "none"
+  },
+  "logo_url": "https://www.cubitx.in/cubitx-logo.jpg",
+  "contact_email": "hello@cubitx.in",
+  "legal_info_url": "https://www.cubitx.in/privacy.html"
+}
