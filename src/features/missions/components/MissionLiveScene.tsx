@@ -1,713 +1,832 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface MissionLiveSceneProps {
   missionId: string;
 }
 
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  size: number;
+  color: string;
+}
+
 export default function MissionLiveScene({ missionId }: MissionLiveSceneProps) {
-  const [step, setStep] = useState<0 | 1>(0);
-  const [inspected, setInspected] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // DAY 1 · MISSION 1: The Missing Tiffin (Realistic Classroom Desk & Steel Tiffin Dabba)
-  if (missionId === 'd1-m1') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="font-sans text-xs font-bold text-white/85">
-              Classroom Bench · Tap time to inspect
-            </span>
-          </div>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => {
-                setStep(0);
-                setInspected(false);
-              }}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              10:00 AM
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                setInspected(false);
-              }}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              12:30 PM
-            </button>
-          </div>
-        </div>
+  // Interactive controls shared across scenarios
+  const [sliderVal, setSliderVal] = useState<number>(100); // 0 to 100
+  const [mode, setMode] = useState<0 | 1>(0);
+  const [actionPulse, setActionPulse] = useState<number>(0);
 
-        <div
-          onClick={() => setInspected((v) => !v)}
-          className="relative h-48 sm:h-56 w-full cursor-pointer select-none overflow-hidden"
-          style={{
-            background:
-              step === 0
-                ? 'linear-gradient(180deg, #2D3A4B 0%, #3E4C5E 58%, #6B4423 58%, #4A2E16 100%)'
-                : 'linear-gradient(180deg, #3B495C 0%, #52637A 58%, #6B4423 58%, #4A2E16 100%)',
-          }}
-        >
-          {/* Sunlight window beam */}
-          <div
-            className="absolute inset-0 pointer-events-none transition-opacity duration-500"
-            style={{
-              background:
-                'radial-gradient(circle at 82% 18%, rgba(255,244,214,0.28) 0%, transparent 60%)',
-            }}
-          />
+  // Reset controls cleanly whenever mission changes
+  useEffect(() => {
+    setMode(0);
+    setActionPulse(0);
+    if (missionId === 'd2-m1' || missionId === 'd1-m4') {
+      setSliderVal(100); // Day 10
+    } else if (missionId === 'd2-m4') {
+      setSliderVal(0); // Start zoomed on Top 10, scrub to 100
+    } else if (missionId === 'd1-m5') {
+      setSliderVal(0); // 0 = ice solid, 100 = ice melted
+    } else {
+      setSliderVal(50);
+    }
+  }, [missionId]);
 
-          {/* Classroom Door on Left */}
-          <div className="absolute left-5 top-4 h-28 w-16 rounded-t-md border-2 border-[#26170B] bg-[#5C3A21] shadow-lg">
-            <div className="mt-12 ml-2 h-2.5 w-2.5 rounded-full bg-amber-300 shadow" />
-            {step === 0 ? (
-              <div className="mx-auto mt-3 w-11 rounded bg-[#142033]/90 py-1 text-center text-[10px] font-extrabold text-amber-200 shadow">
-                LOCKED
-              </div>
-            ) : (
-              <div className="mx-auto mt-3 w-11 rounded bg-white/90 py-1 text-center text-[10px] font-extrabold text-[#142033] shadow">
-                OPEN
-              </div>
-            )}
-          </div>
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-          {/* Realistic Brushed Steel Indian Tiffin Box on Wooden Desk */}
-          <div className="absolute left-1/2 top-[34%] -translate-x-1/2 flex flex-col items-center">
-            {/* Lid (lifts when clicked!) */}
-            <div
-              className={`w-28 h-5 rounded-t-xl border border-white/40 shadow-md transition-transform duration-500 ${
-                inspected ? '-translate-y-6 -rotate-6' : 'translate-y-0'
-              }`}
-              style={{
-                background:
-                  'linear-gradient(90deg, #94A3B8 0%, #F8FAFC 35%, #CBD5E1 65%, #64748B 100%)',
-              }}
-            >
-              <div className="mx-auto -mt-1.5 h-2 w-8 rounded-full bg-slate-300 border border-slate-500" />
-            </div>
+    let animId = 0;
+    let t = 0;
+    const particles: Particle[] = [];
 
-            {/* Inside Tiffin Contents */}
-            <div className="w-26 h-12 rounded-b-xl border-x border-b border-white/30 shadow-2xl relative overflow-hidden flex items-center justify-center"
-              style={{
-                background:
-                  'linear-gradient(90deg, #7C8B9E 0%, #E2E8F0 35%, #94A3B8 70%, #475569 100%)',
-              }}
-            >
-              {inspected && (
-                <div className="inset-1 absolute rounded-b-lg bg-[#1E293B] flex items-center justify-center px-2 text-center">
-                  {step === 0 ? (
-                    <span className="text-[11px] font-bold text-amber-300">
-                      4 Sweet Mango Slices
-                    </span>
-                  ) : (
-                    <span className="text-[11px] font-bold text-slate-200">
-                      Empty · Clean Box
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            {/* Desk Shadow */}
-            <div className="mt-1 h-2.5 w-32 rounded-full bg-black/45 blur-[2px]" />
-          </div>
+    const spawnSplash = (cx: number, cy: number, color: string, count = 18) => {
+      for (let i = 0; i < count; i++) {
+        const angle = -Math.PI * Math.random();
+        const speed = 1.2 + Math.random() * 3.2;
+        particles.push({
+          x: cx + (Math.random() - 0.5) * 18,
+          y: cy,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 1,
+          life: 1,
+          size: 2 + Math.random() * 2.5,
+          color,
+        });
+      }
+    };
 
-          {/* Bottom Interactive Caption */}
-          <div className="absolute bottom-2.5 inset-x-3 flex items-center justify-between rounded-xl bg-black/55 backdrop-blur-md px-3.5 py-2 text-xs text-white">
-            <span className="font-semibold">
-              {step === 0
-                ? '10:00 AM: Room locked for assembly'
-                : '12:30 PM: Kabir sitting near bench · Hands have no mango smell'}
-            </span>
-            <span className="rounded-full bg-white/15 px-2.5 py-0.5 text-[10px] font-bold text-amber-200">
-              {inspected ? 'Tap to close lid' : 'Tap tiffin to open'}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (actionPulse > 0) {
+      if (missionId === 'd2-m1' || missionId === 'd1-m4') {
+        spawnSplash(145, 132, '#7DD3FC', 26);
+      } else if (missionId === 'd1-m2') {
+        spawnSplash(220, 130, '#7DD3FC', 28);
+      } else if (missionId === 'd2-m3') {
+        spawnSplash(160, 105, '#FDBA74', 24);
+      } else if (missionId === 'd2-m5') {
+        spawnSplash(225, 150, '#CBD5E1', 22);
+      }
+    }
 
-  // DAY 1 · MISSION 2: The Wet Shoes (Dry Asphalt Road vs Verandah Bicycle Wash)
-  if (missionId === 'd1-m2') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Morning Check · Tap location
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Outside Road
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              7:00 AM Verandah
-            </button>
-          </div>
-        </div>
+    const drawPot = (
+      x: number,
+      y: number,
+      growth: number,
+      wetSoil: boolean,
+      healthy: boolean
+    ) => {
+      // Ground shadow
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(x, y + 48, 38, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-        <div className="relative h-48 sm:h-56 w-full overflow-hidden">
-          {step === 0 ? (
-            <div
-              className="h-full w-full relative"
-              style={{
-                background:
-                  'linear-gradient(180deg, #60A5FA 0%, #BAE6FD 55%, #D6C7B2 55%, #475569 72%, #334155 100%)',
-              }}
-            >
-              {/* Warm Morning Sun */}
-              <div className="absolute right-8 top-5 h-12 w-12 rounded-full bg-amber-300 shadow-[0_0_35px_rgba(253,224,71,0.9)]" />
-              {/* Dry dusty road texture */}
-              <div className="absolute bottom-11 inset-x-0 flex justify-around opacity-60">
-                <div className="h-1.5 w-14 rounded bg-amber-100" />
-                <div className="h-1.5 w-14 rounded bg-amber-100" />
-                <div className="h-1.5 w-14 rounded bg-amber-100" />
-              </div>
-              <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-                Outside Road & Neighbour Roofs: Completely dry, dusty, zero puddles
-              </div>
-            </div>
-          ) : (
-            <div
-              className="h-full w-full relative"
-              style={{
-                background:
-                  'linear-gradient(180deg, #CBD5E1 0%, #94A3B8 62%, #475569 62%, #1E293B 100%)',
-              }}
-            >
-              {/* Bicycle Wheel & Water Spray */}
-              <div className="absolute left-8 top-8 h-24 w-24 rounded-full border-4 border-slate-900 shadow-lg flex items-center justify-center">
-                <div className="h-16 w-16 rounded-full border border-dashed border-slate-300 animate-spin" />
-              </div>
-              {/* Animated Water Droplets splashing toward shoe rack */}
-              <div className="absolute left-32 top-12 flex gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-sky-300 shadow animate-bounce" />
-                <span className="h-3 w-3 rounded-full bg-sky-200 shadow animate-ping" />
-                <span className="h-2 w-2 rounded-full bg-sky-300 shadow animate-bounce" />
-              </div>
-              {/* Wet Puddle & White School Shoes */}
-              <div className="absolute right-8 bottom-12 flex flex-col items-center">
-                <div className="flex gap-2">
-                  <div className="h-6 w-12 rounded-t-xl rounded-b-md bg-white border border-slate-300 shadow-md" />
-                  <div className="h-6 w-12 rounded-t-xl rounded-b-md bg-white border border-slate-300 shadow-md" />
-                </div>
-                <div className="mt-1 h-3 w-32 rounded-full bg-sky-400/50 blur-[1px]" />
-              </div>
-              <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/65 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-                7:00 AM Verandah: Brother washed bicycle right beside the shoe rack
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+      // Soil mound
+      ctx.fillStyle = wetSoil ? '#2B180A' : '#78553A';
+      ctx.beginPath();
+      ctx.ellipse(x, y, 31, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
 
-  // DAY 1 · MISSION 3: Fastest Way to School
-  if (missionId === 'd1-m3') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            School Bell in 15 Mins · Aarav’s Pocket: ₹20
-          </span>
-          <button
-            type="button"
-            onClick={() => setStep((s) => (s === 0 ? 1 : 0))}
-            className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#142033] cursor-pointer"
-          >
-            {step === 0 ? 'Inspect Vehicles' : 'Show Travel Time'}
-          </button>
-        </div>
+      // Dry cracks if dry
+      if (!wetSoil) {
+        ctx.strokeStyle = '#3E2715';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(x - 14, y);
+        ctx.lineTo(x - 4, y + 2);
+        ctx.lineTo(x + 8, y - 1);
+        ctx.stroke();
+      }
 
-        <div className="p-4 grid grid-cols-3 gap-2.5 bg-gradient-to-b from-[#233044] to-[#17202E]">
-          {/* Park Walk */}
-          <div className="rounded-xl bg-white/8 border border-white/12 p-3 flex flex-col justify-between space-y-2">
-            <div className="text-xs font-extrabold text-amber-200">Park Shortcut</div>
-            <div className="h-14 rounded-lg bg-gradient-to-b from-amber-200/20 to-stone-700/40 flex items-center justify-center text-xs font-bold text-white">
-              {step === 0 ? '12 mins' : '₹0 · Open Gate'}
-            </div>
-          </div>
+      // Stem
+      const stemH = 10 + growth * 58;
+      const droop = healthy ? 0 : 18 * growth;
+      ctx.strokeStyle = healthy ? '#4ADE80' : '#A3A380';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.quadraticCurveTo(x + droop * 0.4, y - stemH * 0.55, x + droop, y - stemH);
+      ctx.stroke();
 
-          {/* Auto Rickshaw */}
-          <div className="rounded-xl bg-white/8 border border-white/12 p-3 flex flex-col justify-between space-y-2">
-            <div className="text-xs font-extrabold text-amber-300">Auto Rickshaw</div>
-            <div className="h-14 rounded-lg bg-gradient-to-b from-amber-400/25 to-stone-900/50 flex items-center justify-center text-xs font-bold text-white text-center px-1">
-              {step === 0 ? '8 mins' : 'Fare ₹30 (Has ₹20)'}
-            </div>
-          </div>
+      // Leaves
+      const leafCount = healthy ? Math.max(2, Math.floor(2 + growth * 4)) : 2;
+      for (let i = 0; i < leafCount; i++) {
+        const frac = (i + 1) / (leafCount + 0.5);
+        const lx = x + droop * frac;
+        const ly = y - stemH * frac;
+        const dir = i % 2 === 0 ? 1 : -1;
+        const leafLen = (8 + growth * 14) * (healthy ? 1 : 0.65);
 
-          {/* Bicycle */}
-          <div className="rounded-xl bg-white/8 border border-white/12 p-3 flex flex-col justify-between space-y-2">
-            <div className="text-xs font-extrabold text-slate-200">Bicycle</div>
-            <div className="h-14 rounded-lg bg-gradient-to-b from-slate-400/20 to-stone-900/50 flex items-center justify-center text-xs font-bold text-white text-center px-1">
-              {step === 0 ? '10 mins' : 'Front Tyre Flat'}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+        ctx.fillStyle = healthy ? '#22C55E' : '#9CA37B';
+        ctx.beginPath();
+        ctx.ellipse(
+          lx + dir * leafLen * 0.55,
+          ly + (healthy ? -2 : 4),
+          leafLen * 0.6,
+          leafLen * 0.28,
+          dir * (healthy ? -0.35 : 0.45),
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
 
-  // DAY 1 · MISSION 4: The Drooping Plant
-  if (missionId === 'd1-m4') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Tap to compare Window vs Dark Desk
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Sunny Window
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Dark Desk
-            </button>
-          </div>
-        </div>
+      // Terracotta pot body with 3D cylindrical gradient
+      const potGrad = ctx.createLinearGradient(x - 34, y, x + 34, y);
+      potGrad.addColorStop(0, '#7C2D12');
+      potGrad.addColorStop(0.35, '#EA580C');
+      potGrad.addColorStop(0.75, '#C2410C');
+      potGrad.addColorStop(1, '#5A1E0B');
 
-        <div
-          className="relative h-48 sm:h-52 w-full flex items-end justify-center pb-11 transition-all duration-500"
-          style={{
-            background:
-              step === 0
-                ? 'radial-gradient(circle at 80% 20%, #FDE68A 0%, #3B4D63 55%, #1E293B 100%)'
-                : 'linear-gradient(180deg, #161E2B 0%, #243042 75%, #111824 100%)',
-          }}
-        >
-          {/* Terracotta Clay Pot */}
-          <div className="relative flex flex-col items-center">
-            <div
-              className={`w-1.5 bg-amber-200 rounded-full transition-all duration-500 origin-bottom ${
-                step === 0 ? 'h-20 rotate-0' : 'h-14 rotate-[38deg]'
-              }`}
-            />
-            <div className="h-3 w-20 rounded-t bg-[#B45309] border-b border-black/30" />
-            <div className="h-12 w-16 rounded-b-lg bg-gradient-to-r from-[#92400E] via-[#D97706] to-[#78350F] shadow-xl" />
-          </div>
-          <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-            {step === 0
-              ? 'Sunny Window: 1 cup water daily · Upright firm stem'
-              : 'Dark Corner Desk: 1 cup water daily · Drooping pale stem'}
-          </div>
-        </div>
-      </div>
-    );
-  }
+      ctx.fillStyle = potGrad;
+      ctx.beginPath();
+      ctx.moveTo(x - 32, y + 6);
+      ctx.lineTo(x + 32, y + 6);
+      ctx.lineTo(x + 24, y + 48);
+      ctx.lineTo(x - 24, y + 48);
+      ctx.closePath();
+      ctx.fill();
 
-  // DAY 1 · MISSION 5: The Best Juice Shop
-  if (missionId === 'd1-m5') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Both Cost ₹20 · Tap to melt the ice
-          </span>
-          <button
-            type="button"
-            onClick={() => setStep((s) => (s === 0 ? 1 : 0))}
-            className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#142033] cursor-pointer"
-          >
-            {step === 0 ? 'Look Inside Glasses' : 'Show Full Glasses'}
-          </button>
-        </div>
+      // Pot rim
+      ctx.fillStyle = potGrad;
+      ctx.beginPath();
+      ctx.roundRect(x - 35, y, 70, 9, 4);
+      ctx.fill();
+    };
 
-        <div className="h-48 sm:h-52 w-full bg-gradient-to-b from-[#253246] to-[#161E2B] flex items-end justify-around pb-12 px-6 relative">
-          {/* Shop A Tall Glass */}
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="w-16 h-28 rounded-b-xl border-2 border-white/50 bg-white/10 p-1 flex flex-col justify-end overflow-hidden shadow-xl">
-              {step === 0 ? (
-                <div className="h-24 w-full rounded-b-lg bg-gradient-to-t from-amber-500 to-amber-300 relative">
-                  <div className="grid grid-cols-2 gap-1 p-1">
-                    <span className="h-4 rounded bg-white/75" />
-                    <span className="h-4 rounded bg-white/75" />
-                    <span className="h-4 rounded bg-white/75" />
-                    <span className="h-4 rounded bg-white/75" />
-                  </div>
-                </div>
-              ) : (
-                <div className="h-12 w-full rounded-b-lg bg-amber-400 transition-all duration-500" />
-              )}
-            </div>
-            <span className="text-xs font-bold text-white">
-              Shop A · {step === 0 ? 'Big Cup (₹20)' : 'Only Half Juice'}
-            </span>
-          </div>
+    const render = () => {
+      t += 0.03;
+      const W = canvas.width;
+      const H = canvas.height;
+      ctx.clearRect(0, 0, W, H);
 
-          {/* Shop B Medium Glass */}
-          <div className="flex flex-col items-center gap-1.5">
-            <div className="w-16 h-22 rounded-b-xl border-2 border-white/50 bg-white/10 p-1 flex flex-col justify-end overflow-hidden shadow-xl">
-              <div className="h-19 w-full rounded-b-lg bg-gradient-to-t from-amber-500 to-amber-300" />
-            </div>
-            <span className="text-xs font-bold text-white">
-              Shop B · {step === 0 ? 'Medium Cup (₹20)' : '100% Pure Juice'}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+      // Update & draw shared particles
+      const updateParticles = () => {
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.14;
+          p.life -= 0.025;
+          if (p.life <= 0) {
+            particles.splice(i, 1);
+            continue;
+          }
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      };
 
-  // DAY 2 · MISSION 1: The Two Plant Pots (Interactive Verandah vs Dark Room)
-  if (missionId === 'd2-m1') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            10-Day Setup · Tap pot to inspect
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Pot A (Verandah)
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Pot B (Dark Room)
-            </button>
-          </div>
-        </div>
+      // =========================================================
+      // DAY 2 · MISSION 1: THE TWO PLANT POTS (10-Day Time-Lapse + Watering)
+      // =========================================================
+      if (missionId === 'd2-m1') {
+        const growth = sliderVal / 100;
 
-        <div
-          className="relative h-48 sm:h-54 w-full flex items-end justify-center pb-12 transition-all duration-500"
-          style={{
-            background:
-              step === 0
-                ? 'radial-gradient(circle at 82% 18%, rgba(253,224,71,0.45) 0%, #334155 58%, #1E293B 100%)'
-                : 'linear-gradient(180deg, #111824 0%, #1F2937 75%, #0F172A 100%)',
-          }}
-        >
-          {step === 0 && (
-            <div className="absolute top-6 right-16 flex flex-col gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-sky-300 animate-bounce" />
-              <span className="h-2.5 w-2.5 rounded-full bg-sky-200 animate-pulse" />
-            </div>
-          )}
-          <div className="flex flex-col items-center">
-            <div
-              className={`w-1.5 rounded-full bg-amber-200 transition-all duration-500 ${
-                step === 0 ? 'h-24' : 'h-7'
-              }`}
-            />
-            <div className="h-3 w-22 rounded-t bg-[#B45309]" />
-            <div className="h-12 w-18 rounded-b-lg bg-gradient-to-r from-[#92400E] via-[#D97706] to-[#78350F] shadow-2xl" />
-          </div>
-          <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-            {step === 0
-              ? 'Pot A: 6 hrs bright sunlight + 1 full mug water daily'
-              : 'Pot B: 0 hrs sunlight + 0 drops water for 10 days'}
-          </div>
-        </div>
-      </div>
-    );
-  }
+        // Left half: Sunny Verandah
+        const sunBg = ctx.createLinearGradient(0, 0, 0, H);
+        sunBg.addColorStop(0, '#38BDF8');
+        sunBg.addColorStop(0.68, '#FEF3C7');
+        sunBg.addColorStop(0.68, '#92400E');
+        sunBg.addColorStop(1, '#451A03');
+        ctx.fillStyle = sunBg;
+        ctx.fillRect(0, 0, W / 2, H);
 
-  // DAY 2 · MISSION 2: The Lucky Blue Bat (Turf Pitch Delivery Comparison)
-  if (missionId === 'd2-m2') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Both Bats: 900g Willow · Tap match
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Saturday (45 Runs)
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Last Week (12 Runs)
-            </button>
-          </div>
-        </div>
+        // Glowing sun & rays
+        ctx.fillStyle = '#FDE047';
+        ctx.beginPath();
+        ctx.arc(54, 34, 18 + Math.sin(t * 2) * 1.5, 0, Math.PI * 2);
+        ctx.fill();
 
-        <div
-          className="relative h-48 sm:h-52 w-full overflow-hidden"
-          style={{
-            background:
-              'linear-gradient(180deg, #334155 0%, #475569 58%, #C2A878 58%, #9A7B4F 100%)',
-          }}
-        >
-          {/* Pitch Crease Lines */}
-          <div className="absolute bottom-14 left-12 h-8 w-1.5 bg-white/80" />
-          <div className="absolute bottom-14 right-12 h-8 w-1.5 bg-white/80" />
+        ctx.strokeStyle = 'rgba(253, 224, 71, 0.25)';
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(64, 44);
+        ctx.lineTo(145, 130);
+        ctx.stroke();
 
-          {/* Leather Cricket Ball */}
-          <div
-            className={`absolute h-5 w-5 rounded-full bg-gradient-to-br from-rose-500 to-red-900 border border-white/40 shadow-lg transition-all duration-700 ${
-              step === 0
-                ? 'left-1/2 top-14 -translate-x-1/2 animate-bounce'
-                : 'right-20 top-24 animate-ping'
-            }`}
-          />
+        // Right half: Dark Room
+        const darkBg = ctx.createLinearGradient(0, 0, 0, H);
+        darkBg.addColorStop(0, '#0F172A');
+        darkBg.addColorStop(0.68, '#1E293B');
+        darkBg.addColorStop(0.68, '#334155');
+        darkBg.addColorStop(1, '#0F172A');
+        ctx.fillStyle = darkBg;
+        ctx.fillRect(W / 2, 0, W / 2, H);
 
-          <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-            {step === 0
-              ? 'Saturday: Class 3 kids bowling slow underarm balls on small ground'
-              : 'Last Week: Class 8 boys bowling fast overarm balls on big ground'}
-          </div>
-        </div>
-      </div>
-    );
-  }
+        // Center wall divider
+        ctx.fillStyle = '#0F172A';
+        ctx.fillRect(W / 2 - 2, 0, 4, H);
 
-  // DAY 2 · MISSION 3: The Cold Steel Spoon (Interactive Heat-Flow Inspection)
-  if (missionId === 'd2-m3') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Kitchen Shelf All Night · Tap spoon to touch
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Touch Steel
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Touch Wood
-            </button>
-          </div>
-        </div>
+        drawPot(145, 136, growth, true, true);
+        drawPot(415, 136, Math.min(0.22, growth * 0.22), false, false);
 
-        <div className="relative h-48 sm:h-52 w-full bg-gradient-to-b from-[#2A3648] to-[#17202D] flex flex-col items-center justify-center pb-8 px-6">
-          {/* Realistic Spoon Silhouette with Metallic or Wood Grain Gradient */}
-          <div className="flex items-center">
-            <div
-              className="h-4 w-32 rounded-l-full shadow-lg transition-all duration-300"
-              style={{
-                background:
-                  step === 0
-                    ? 'linear-gradient(180deg, #F8FAFC 0%, #94A3B8 55%, #475569 100%)'
-                    : 'linear-gradient(180deg, #D97706 0%, #92400E 60%, #451A03 100%)',
-              }}
-            />
-            <div
-              className="h-12 w-20 -ml-2 rounded-full shadow-xl transition-all duration-300"
-              style={{
-                background:
-                  step === 0
-                    ? 'radial-gradient(circle at 35% 35%, #FFFFFF 0%, #94A3B8 60%, #334155 100%)'
-                    : 'radial-gradient(circle at 35% 35%, #F59E0B 0%, #92400E 65%, #451A03 100%)',
-              }}
-            />
-          </div>
+        // Labels
+        ctx.fillStyle = '#142033';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Pot A · Sun + 1 Mug Water', 72, 22);
+        ctx.fillStyle = '#E2E8F0';
+        ctx.fillText('Pot B · Dark Room + 0 Water', 330, 22);
 
-          <div className="mt-4 flex items-center gap-2 text-xs font-bold text-amber-200">
-            <span>Warm Finger (37°C)</span>
-            <span className="tracking-widest">
-              {step === 0 ? '→ → → Heat rushes out FAST' : '→ Heat leaves very slowly'}
-            </span>
-          </div>
+        updateParticles();
+      }
 
-          <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-            Both spoons sat on the exact same open shelf all night (no fridge)
-          </div>
-        </div>
-      </div>
-    );
-  }
+      // =========================================================
+      // DAY 2 · MISSION 2: THE LUCKY BLUE BAT (Turf Pitch Delivery Physics)
+      // =========================================================
+      else if (missionId === 'd2-m2') {
+        // Sky & Stadium backdrop
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#1E3A8A');
+        sky.addColorStop(0.55, '#60A5FA');
+        sky.addColorStop(0.55, '#15803D');
+        sky.addColorStop(1, '#14532D');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
 
-  // DAY 2 · MISSION 4: The Carrom Club Poster (100 Club Members vs 10 Sent)
-  if (missionId === 'd2-m4') {
-    return (
-      <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-          <span className="font-sans text-xs font-bold text-white/85">
-            Poster: “9 out of 10 won!” · Tap view
-          </span>
-          <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-            <button
-              type="button"
-              onClick={() => setStep(0)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              Match Team (10)
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className={`rounded-full px-3 py-1 transition cursor-pointer ${
-                step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-              }`}
-            >
-              All Club Members (100)
-            </button>
-          </div>
-        </div>
+        // Clay cricket pitch strip
+        ctx.fillStyle = '#D6B88D';
+        ctx.beginPath();
+        ctx.moveTo(95, 122);
+        ctx.lineTo(465, 122);
+        ctx.lineTo(510, 178);
+        ctx.lineTo(50, 178);
+        ctx.closePath();
+        ctx.fill();
 
-        <div className="relative h-48 sm:h-52 w-full bg-gradient-to-b from-[#233044] to-[#151D29] flex flex-col items-center justify-center pb-9 px-4">
-          {step === 0 ? (
-            <div className="grid grid-cols-5 gap-3">
-              {Array.from({ length: 10 }, (_, i) => (
-                <div
-                  key={i}
-                  className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-extrabold shadow ${
-                    i < 9
-                      ? 'bg-amber-300 text-[#142033]'
-                      : 'bg-slate-600 text-white/70'
-                  }`}
-                >
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-20 gap-1 max-w-md">
-              {Array.from({ length: 100 }, (_, i) => (
-                <span
-                  key={i}
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    i < 9
-                      ? 'bg-amber-300'
-                      : i === 9
-                      ? 'bg-slate-300'
-                      : 'bg-white/15'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+        // Stumps at both ends
+        ctx.fillStyle = '#FEF3C7';
+        ctx.fillRect(102, 108, 3, 28);
+        ctx.fillRect(108, 108, 3, 28);
+        ctx.fillRect(452, 108, 3, 28);
+        ctx.fillRect(458, 108, 3, 28);
 
-          <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/60 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-            {step === 0
-              ? 'Only the top 10 players went to play · 9 won medals'
-              : '90 club students stayed back at school · Only 9 out of 100 won'}
-          </div>
-        </div>
-      </div>
-    );
-  }
+        // Ball trajectory: mode 0 = Saturday slow loop, mode 1 = Last week fast bullet
+        const speed = mode === 0 ? 0.55 : 1.45;
+        const prog = (t * speed) % 1;
+        const bx = 115 + prog * 330;
+        const arcH = mode === 0 ? Math.sin(prog * Math.PI) * 68 : Math.abs(Math.sin(prog * Math.PI * 1.4)) * 18;
+        const by = 142 - arcH;
 
-  // DAY 2 · MISSION 5: The Cancelled Picnic (6:30 AM Bus Tyre Burst vs 7:00 AM Bright Sun)
+        // Ball shadow on pitch
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.beginPath();
+        ctx.ellipse(bx, 148, 8, 3, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Red leather cricket ball with white seam
+        ctx.fillStyle = '#DC2626';
+        ctx.beginPath();
+        ctx.arc(bx, by, 7.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(bx, by, 5, -0.5, 1.2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(
+          mode === 0
+            ? 'Saturday: Class 3 Kids · Slow Underarm Loop (45 Runs)'
+            : 'Last Week: Class 8 Boys · Fast Overarm Pace (12 Runs)',
+          24,
+          26
+        );
+      }
+
+      // =========================================================
+      // DAY 2 · MISSION 3: THE COLD STEEL SPOON (Thermal Heat Transfer)
+      // =========================================================
+      else if (missionId === 'd2-m3') {
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#1E293B');
+        bg.addColorStop(1, '#0F172A');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Kitchen Wooden Countertop
+        ctx.fillStyle = '#5C3A21';
+        ctx.fillRect(0, 142, W, 58);
+
+        // Draw Steel Spoon (Left)
+        const steelGrad = ctx.createLinearGradient(90, 90, 210, 135);
+        steelGrad.addColorStop(0, '#F8FAFC');
+        steelGrad.addColorStop(0.5, '#94A3B8');
+        steelGrad.addColorStop(1, '#475569');
+        ctx.fillStyle = steelGrad;
+        ctx.beginPath();
+        ctx.roundRect(75, 114, 95, 9, 4);
+        ctx.ellipse(190, 118, 30, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw Wooden Spoon (Right)
+        const woodGrad = ctx.createLinearGradient(320, 90, 460, 135);
+        woodGrad.addColorStop(0, '#D97706');
+        woodGrad.addColorStop(0.6, '#92400E');
+        woodGrad.addColorStop(1, '#451A03');
+        ctx.fillStyle = woodGrad;
+        ctx.beginPath();
+        ctx.roundRect(320, 114, 95, 9, 4);
+        ctx.ellipse(435, 118, 30, 14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Warm Finger Probe hovering over selected spoon
+        const fingerX = mode === 0 ? 190 : 435;
+        ctx.fillStyle = '#FDBA74';
+        ctx.beginPath();
+        ctx.roundRect(fingerX - 11, 34, 22, 62, 11);
+        ctx.fill();
+
+        // Animated heat dots rushing from finger into spoon
+        const flowCount = mode === 0 ? 6 : 1;
+        for (let i = 0; i < flowCount; i++) {
+          const p = (t * (mode === 0 ? 1.6 : 0.4) + i / flowCount) % 1;
+          const hy = 92 + p * 24;
+          const hx = fingerX + Math.sin(p * 8 + i) * 10;
+          ctx.fillStyle = '#FB923C';
+          ctx.beginPath();
+          ctx.arc(hx, hy, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = '#F8FAFC';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Steel Spoon (Room Temp)', 115, 165);
+        ctx.fillText('Wooden Spoon (Room Temp)', 355, 165);
+        ctx.fillStyle = '#FDE68A';
+        ctx.fillText(
+          mode === 0
+            ? 'Heat rushes OUT of your warm finger FAST → Feels icy!'
+            : 'Heat leaves your warm finger VERY SLOWLY → Feels normal',
+          24,
+          24
+        );
+      }
+
+      // =========================================================
+      // DAY 2 · MISSION 4: THE CARROM CLUB POSTER (100 Students vs 10 Sent)
+      // =========================================================
+      else if (missionId === 'd2-m4') {
+        ctx.fillStyle = '#142033';
+        ctx.fillRect(0, 0, W, H);
+
+        const zoomOut = sliderVal / 100; // 0 = 10 players big, 1 = 100 players grid
+        const cols = zoomOut < 0.35 ? 5 : 20;
+        const count = zoomOut < 0.35 ? 10 : 100;
+        const radius = zoomOut < 0.35 ? 15 : 5.2;
+        const gapX = zoomOut < 0.35 ? 74 : 24;
+        const gapY = zoomOut < 0.35 ? 54 : 22;
+        const startX = zoomOut < 0.35 ? 130 : 52;
+        const startY = zoomOut < 0.35 ? 64 : 46;
+
+        for (let i = 0; i < count; i++) {
+          const r = Math.floor(i / cols);
+          const c = i % cols;
+          const cx = startX + c * gapX;
+          const cy = startY + r * gapY;
+
+          if (i < 9) {
+            ctx.fillStyle = '#F5B942'; // 9 medal winners
+          } else if (i === 9) {
+            ctx.fillStyle = '#94A3B8'; // 10th player who went to match
+          } else {
+            ctx.fillStyle = 'rgba(255,255,255,0.16)'; // 90 club students left at school
+          }
+
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.fillStyle = '#F8FAFC';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText(
+          zoomOut < 0.35
+            ? 'Poster View: 9 Medal Winners out of 10 Sent to Match'
+            : 'Full Club View: Only 9 Winners out of 100 Club Students (90 Stayed Back)',
+          24,
+          24
+        );
+      }
+
+      // =========================================================
+      // DAY 2 · MISSION 5: THE CANCELLED PICNIC (6:30 AM Bus Tyre vs 7:00 AM Sun)
+      // =========================================================
+      else if (missionId === 'd2-m5') {
+        const sky = ctx.createLinearGradient(0, 0, 0, H);
+        sky.addColorStop(0, '#38BDF8');
+        sky.addColorStop(0.64, '#BAE6FD');
+        sky.addColorStop(0.64, '#334155');
+        sky.addColorStop(1, '#1E293B');
+        ctx.fillStyle = sky;
+        ctx.fillRect(0, 0, W, H);
+
+        // Bright Morning Sun
+        ctx.fillStyle = '#FDE047';
+        ctx.beginPath();
+        ctx.arc(485, 38, 20, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Yellow Indian School Bus
+        const busX = mode === 0 ? 110 : 125;
+        const tilt = mode === 0 ? 0.05 : 0.06;
+        ctx.save();
+        ctx.translate(busX, 118);
+        ctx.rotate(tilt);
+
+        // Bus Body
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        ctx.roundRect(-75, -42, 165, 52, 8);
+        ctx.fill();
+
+        // Windows
+        ctx.fillStyle = '#1E293B';
+        for (let w = 0; w < 4; w++) {
+          ctx.fillRect(-62 + w * 36, -32, 26, 18);
+        }
+
+        // Front Good Wheel
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.arc(-45, 12, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Rear Flat Burst Wheel
+        ctx.fillStyle = '#0F172A';
+        ctx.beginPath();
+        ctx.ellipse(58, 16, 16, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.fillStyle = '#0F172A';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(
+          mode === 0
+            ? '6:30 AM Highway: School Bus Rear Tyre Burst!'
+            : '7:00 AM Sky: Clear Blue Sky & Zero Rain — Bus Still Stuck',
+          24,
+          26
+        );
+
+        updateParticles();
+      }
+
+      // =========================================================
+      // DAY 1 · MISSIONS 1–5 INTERACTIVE SCENES
+      // =========================================================
+      else if (missionId === 'd1-m1') {
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, '#334155');
+        bg.addColorStop(0.65, '#475569');
+        bg.addColorStop(0.65, '#78350F');
+        bg.addColorStop(1, '#451A03');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        // Steel Tiffin Box
+        const tiffinGrad = ctx.createLinearGradient(230, 80, 330, 140);
+        tiffinGrad.addColorStop(0, '#94A3B8');
+        tiffinGrad.addColorStop(0.4, '#F8FAFC');
+        tiffinGrad.addColorStop(1, '#475569');
+        ctx.fillStyle = tiffinGrad;
+        ctx.beginPath();
+        ctx.roundRect(235, 96, 90, 42, 8);
+        ctx.fill();
+
+        // Lid lifts when mode === 1
+        const lidLift = mode === 1 ? -22 : 0;
+        ctx.fillStyle = tiffinGrad;
+        ctx.beginPath();
+        ctx.roundRect(230, 86 + lidLift, 100, 12, 5);
+        ctx.fill();
+
+        ctx.fillStyle = '#F8FAFC';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText(
+          mode === 0
+            ? '10:00 AM: Classroom Locked · Mangoes Inside Box'
+            : '12:30 PM: Box Empty · Kabir Near Bench (No Mango Smell)',
+          24,
+          26
+        );
+      } else if (missionId === 'd1-m2') {
+        const bg = ctx.createLinearGradient(0, 0, 0, H);
+        bg.addColorStop(0, mode === 0 ? '#60A5FA' : '#94A3B8');
+        bg.addColorStop(0.62, mode === 0 ? '#BAE6FD' : '#CBD5E1');
+        bg.addColorStop(0.62, '#475569');
+        bg.addColorStop(1, '#1E293B');
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, W, H);
+
+        if (mode === 0) {
+          ctx.fillStyle = '#FDE047';
+          ctx.beginPath();
+          ctx.arc(470, 38, 18, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#0F172A';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('Outside Road: 100% Dry & Dusty (Zero Rain Overnight)', 24, 28);
+        } else {
+          // Bicycle Wheel
+          ctx.strokeStyle = '#0F172A';
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(140, 116, 28, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // White shoes near shoe rack
+          ctx.fillStyle = '#FFFFFF';
+          ctx.beginPath();
+          ctx.roundRect(330, 124, 34, 15, 6);
+          ctx.roundRect(372, 124, 34, 15, 6);
+          ctx.fill();
+
+          ctx.fillStyle = '#0F172A';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText('7:00 AM Verandah: Brother Washed Cycle Beside Shoe Rack', 24, 28);
+        }
+        updateParticles();
+      } else if (missionId === 'd1-m3') {
+        ctx.fillStyle = '#142033';
+        ctx.fillRect(0, 0, W, H);
+
+        const routes = [
+          { name: 'Park Walk', time: '12 min · ₹0', w: 240, y: 42 },
+          { name: 'Auto', time: mode === 0 ? '8 min · ₹30' : 'Need ₹30 (Has ₹20)', w: 160, y: 92 },
+          { name: 'Cycle', time: mode === 0 ? '10 min · ₹0' : 'Front Tyre Flat!', w: 200, y: 142 },
+        ];
+
+        for (const r of routes) {
+          ctx.fillStyle = '#F8FAFC';
+          ctx.font = 'bold 13px sans-serif';
+          ctx.fillText(r.name, 26, r.y + 14);
+
+          ctx.fillStyle = 'rgba(255,255,255,0.14)';
+          ctx.beginPath();
+          ctx.roundRect(115, r.y, 260, 20, 10);
+          ctx.fill();
+
+          ctx.fillStyle = '#F5B942';
+          ctx.beginPath();
+          ctx.roundRect(115, r.y, r.w, 20, 10);
+          ctx.fill();
+
+          ctx.fillStyle = '#E2E8F0';
+          ctx.fillText(r.time, 388, r.y + 14);
+        }
+      } else if (missionId === 'd1-m4') {
+        const growth = sliderVal / 100;
+        ctx.fillStyle = '#1E293B';
+        ctx.fillRect(0, 0, W, H);
+
+        drawPot(150, 136, growth, true, true);
+        drawPot(410, 136, growth * 0.65, true, false);
+
+        ctx.fillStyle = '#F8FAFC';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Sunny Window · 1 Cup Water', 75, 24);
+        ctx.fillText('Dark Corner Desk · 1 Cup Water', 325, 24);
+        updateParticles();
+      } else {
+        // d1-m5 Juice Shop
+        ctx.fillStyle = '#142033';
+        ctx.fillRect(0, 0, W, H);
+
+        const melt = sliderVal / 100;
+        // Shop A Glass
+        ctx.strokeStyle = '#E2E8F0';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(130, 44, 64, 110);
+        const juiceA = 96 - melt * 44;
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(132, 152 - juiceA, 60, juiceA);
+
+        // Ice cubes melting
+        if (melt < 0.85) {
+          ctx.fillStyle = `rgba(224, 242, 254, ${1 - melt})`;
+          ctx.fillRect(140, 62, 18, 18);
+          ctx.fillRect(164, 66, 18, 18);
+          ctx.fillRect(142, 86, 18, 18);
+        }
+
+        // Shop B Glass
+        ctx.strokeRect(360, 68, 64, 86);
+        ctx.fillStyle = '#F59E0B';
+        ctx.fillRect(362, 74, 60, 78);
+
+        ctx.fillStyle = '#F8FAFC';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('Shop A · Big Cup ₹20', 105, 176);
+        ctx.fillText('Shop B · Medium Cup ₹20 (No Ice)', 305, 176);
+      }
+
+      animId = requestAnimationFrame(render);
+    };
+
+    animId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animId);
+  }, [missionId, sliderVal, mode, actionPulse]);
+
   return (
-    <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#1B2432] shadow-inner">
-      <div className="flex items-center justify-between px-4 py-2.5 bg-[#111824] border-b border-white/10">
-        <span className="font-sans text-xs font-bold text-white/85">
-          Rule: “If it rains → Picnic cancelled”
-        </span>
-        <div className="inline-flex rounded-full bg-white/10 p-0.5 text-xs font-bold">
-          <button
-            type="button"
-            onClick={() => setStep(0)}
-            className={`rounded-full px-3 py-1 transition cursor-pointer ${
-              step === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
-            }`}
-          >
-            6:30 AM Highway
-          </button>
-          <button
-            type="button"
-            onClick={() => setStep(1)}
-            className={`rounded-full px-3 py-1 transition cursor-pointer ${
-              step === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
-            }`}
-          >
-            7:00 AM Sky
-          </button>
-        </div>
-      </div>
+    <div className="rounded-2xl overflow-hidden border border-[#142033]/15 bg-[#142033] shadow-sm">
+      <canvas
+        ref={canvasRef}
+        width={560}
+        height={196}
+        className="w-full h-44 sm:h-52 block"
+      />
 
-      <div
-        className="relative h-48 sm:h-52 w-full overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(180deg, #60A5FA 0%, #BAE6FD 56%, #475569 56%, #1E293B 100%)',
-        }}
-      >
-        <div className="absolute right-8 top-4 h-11 w-11 rounded-full bg-amber-300 shadow-[0_0_30px_rgba(253,224,71,0.85)]" />
-
-        {step === 0 ? (
-          <div className="absolute left-8 bottom-12 flex items-end">
-            {/* School Bus Body */}
-            <div className="h-16 w-40 rounded-t-xl rounded-bl-md bg-gradient-to-b from-amber-300 to-amber-500 border border-amber-700 shadow-xl px-2.5 pt-2 flex gap-1.5">
-              <div className="h-5 w-7 rounded bg-slate-800/80" />
-              <div className="h-5 w-7 rounded bg-slate-800/80" />
-              <div className="h-5 w-7 rounded bg-slate-800/80" />
-              <div className="h-5 w-7 rounded bg-slate-800/80" />
+      {/* INTERACTIVE LAB CONTROLS BAR */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-[#0F172A] border-t border-white/10 text-xs text-white">
+        {(missionId === 'd2-m1' || missionId === 'd1-m4') && (
+          <>
+            <div className="flex items-center gap-2.5 flex-1 min-w-[180px]">
+              <span className="font-bold text-white/80 shrink-0">
+                Day {Math.max(1, Math.round((sliderVal / 100) * 10))}
+              </span>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={sliderVal}
+                onChange={(e) => setSliderVal(Number(e.target.value))}
+                className="w-full accent-amber-400 cursor-pointer"
+              />
             </div>
-            {/* Front Good Tyre & Rear Flat Burst Tyre */}
-            <div className=" -ml-36 -mb-2 h-7 w-7 rounded-full bg-slate-900 border-2 border-slate-400" />
-            <div className="ml-20 -mb-2 h-3.5 w-9 rounded-full bg-slate-900 border border-slate-400" />
-          </div>
-        ) : (
-          <div className="absolute left-8 top-10 rounded-xl bg-white/90 px-4 py-2.5 text-xs font-extrabold text-[#142033] shadow-lg">
-            Clear Blue Sky · 0% Rain · Dry Roads
+            <button
+              type="button"
+              onClick={() => setActionPulse((p) => p + 1)}
+              className="rounded-full bg-white px-3.5 py-1.5 font-extrabold text-[#142033] hover:bg-amber-200 transition cursor-pointer"
+            >
+              Pour 1 Mug Water
+            </button>
+          </>
+        )}
+
+        {missionId === 'd2-m4' && (
+          <div className="flex items-center gap-3 w-full">
+            <span className="font-bold text-white/85 shrink-0">
+              {sliderVal < 35 ? 'Top 10 Players' : 'All 100 Club Kids'}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sliderVal}
+              onChange={(e) => setSliderVal(Number(e.target.value))}
+              className="w-full accent-amber-400 cursor-pointer"
+            />
           </div>
         )}
 
-        <div className="absolute bottom-2.5 inset-x-3 rounded-xl bg-black/65 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white">
-          {step === 0
-            ? '6:30 AM: Hired school bus tyre burst on highway — no spare bus'
-            : '7:00 AM: Bright sun outside, yet picnic cancelled due to bus breakdown'}
-        </div>
+        {missionId === 'd1-m5' && (
+          <div className="flex items-center gap-3 w-full">
+            <span className="font-bold text-white/85 shrink-0">
+              {sliderVal < 50 ? 'With Ice' : 'Ice Melted'}
+            </span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={sliderVal}
+              onChange={(e) => setSliderVal(Number(e.target.value))}
+              className="w-full accent-amber-400 cursor-pointer"
+            />
+          </div>
+        )}
+
+        {missionId === 'd2-m2' && (
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-white/75 font-semibold">Compare bowlers:</span>
+            <div className="inline-flex rounded-full bg-white/10 p-0.5 font-bold">
+              <button
+                type="button"
+                onClick={() => setMode(0)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                Saturday (Slow)
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode(1)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                Last Week (Fast)
+              </button>
+            </div>
+          </div>
+        )}
+
+        {missionId === 'd2-m3' && (
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-white/75 font-semibold">Touch spoon:</span>
+            <div className="inline-flex rounded-full bg-white/10 p-0.5 font-bold">
+              <button
+                type="button"
+                onClick={() => setMode(0)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                Touch Steel
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode(1)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                Touch Wood
+              </button>
+            </div>
+          </div>
+        )}
+
+        {missionId === 'd2-m5' && (
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-white/75 font-semibold">Morning timeline:</span>
+            <div className="inline-flex rounded-full bg-white/10 p-0.5 font-bold">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(0);
+                  setActionPulse((p) => p + 1);
+                }}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                6:30 AM Bus
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode(1)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                7:00 AM Sky
+              </button>
+            </div>
+          </div>
+        )}
+
+        {(missionId === 'd1-m1' || missionId === 'd1-m2' || missionId === 'd1-m3') && (
+          <div className="flex items-center justify-between w-full gap-2">
+            <span className="text-white/75 font-semibold">Inspect scene:</span>
+            <div className="inline-flex rounded-full bg-white/10 p-0.5 font-bold">
+              <button
+                type="button"
+                onClick={() => setMode(0)}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 0 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                {missionId === 'd1-m1'
+                  ? '10:00 AM'
+                  : missionId === 'd1-m2'
+                  ? 'Outside Road'
+                  : 'Travel Times'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(1);
+                  setActionPulse((p) => p + 1);
+                }}
+                className={`rounded-full px-3 py-1 cursor-pointer ${
+                  mode === 1 ? 'bg-white text-[#142033]' : 'text-white/75'
+                }`}
+              >
+                {missionId === 'd1-m1'
+                  ? '12:30 PM Open Lid'
+                  : missionId === 'd1-m2'
+                  ? '7:00 AM Verandah'
+                  : 'Check Limits'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
