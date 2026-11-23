@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChild } from '../auth/ChildContext';
 import { useApp } from '../store';
-import {
-  analyzeThinking,
-  buildMomentsFromResponses,
-} from '../../features/parent-insights/thinkingAnalysis';
+import { buildMomentsFromResponses } from '../../features/parent-insights/thinkingAnalysis';
 import { loadDayConfig } from '../../missions/curriculum';
 import {
   triggerDialTick,
@@ -17,13 +14,13 @@ import {
   PRICE_INR,
 } from '../config';
 import { isDevMode } from '../auth/devMode';
+import type { SkillCode } from '../analytics/thinkingSheetBridge';
 import {
-  summarizeThinkingSheets,
-  type SkillCode,
-} from '../analytics/thinkingSheetBridge';
+  buildUnifiedAssessmentProfile,
+  type CoverageStatus,
+} from '../analytics/unifiedProfile';
 
 type TimeWindow = '7d' | '30d' | '90d' | 'all';
-type CoverageStatus = 'observed' | 'early' | 'review' | 'upcoming';
 
 interface SkillMetadata {
   id: SkillCode;
@@ -40,6 +37,7 @@ interface SkillMetadata {
 interface ComputedSkill extends SkillMetadata {
   status: CoverageStatus;
   obsCount: number;
+  needsPracticeCount: number;
   whatWeSaw: string;
   stillExploring: string;
   growthSeries: number[];
@@ -58,7 +56,8 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
       'Pauses before answering to ask what a rule or clue actually means.',
       'Asks specific “what if” questions instead of broad guesses.',
     ],
-    howWeObserve: 'Tracked when your child isolates an unknown variable before making a choice.',
+    howWeObserve:
+      'Tracked via question relevance, problem restatement, source questioning, and strategic help-seeking.',
     emptyWhatWeSaw: 'No diagnostic question missions completed yet in this window.',
     emptyStillExploring: 'Will populate automatically as your child explores clue-gathering missions.',
   },
@@ -72,7 +71,8 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
       'Points out when a claim sounds confident but lacks proof.',
       'Asks “how do we know that?” before accepting an assumption.',
     ],
-    howWeObserve: 'Tracked when your child identifies an omitted fact or hidden assumption.',
+    howWeObserve:
+      'Tracked when your child isolates variables, spots hidden assumptions, or flags missing facts.',
     emptyWhatWeSaw: 'No missing-information challenges completed yet in this window.',
     emptyStillExploring: 'Will populate as your child completes variable-check challenges.',
   },
@@ -86,9 +86,10 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
       'Explains why one option works better than another.',
       'Links two separate clues together to back up a point.',
     ],
-    howWeObserve: 'Tracked when your child writes or selects a cause-and-effect reason.',
+    howWeObserve:
+      'Tracked across English, Hindi, Marathi, and Hinglish causal chains, mechanism naming, and analogies.',
     emptyWhatWeSaw: 'No written explanations recorded yet in this window.',
-    emptyStillExploring: 'Appears as soon as your child writes a short reason in their own words.',
+    emptyStillExploring: 'Appears as soon as your child writes or selects a causal reason.',
   },
   {
     id: 'B2',
@@ -100,7 +101,8 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
       'Tests an idea a second time instead of trusting the first coincidence.',
       'Refers back to actual facts or observations when explaining.',
     ],
-    howWeObserve: 'Tracked when your child runs multiple verification tests before deciding.',
+    howWeObserve:
+      'Tracked via multi-clue verification runs, reflection pause times, and separating observation from guesses.',
     emptyWhatWeSaw: 'No multi-clue verification runs recorded yet in this window.',
     emptyStillExploring: 'Tracks how many test probes your child runs before choosing.',
   },
@@ -109,12 +111,13 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
     code: 'B3',
     shortName: 'Weak Logic',
     name: 'Detecting weak reasoning',
-    summary: 'Spots leaps in logic, small sample sizes, or unfair comparisons.',
+    summary: 'Spots leaps in logic, small sample sizes, biased sources, or overconfident AI claims.',
     noticeAtHome: [
       'Notices when someone generalizes from just one or two examples.',
-      'Questions bold claims that do not have a fair comparison.',
+      'Questions bold claims or AI outputs that lack a fair comparison.',
     ],
-    howWeObserve: 'Tracked when your child flags unsupported generalizations or weak claims.',
+    howWeObserve:
+      'Tracked when your child rejects decoy/trap claims, spots small samples, or questions source reliability.',
     emptyWhatWeSaw: 'No weak-reasoning challenges completed yet in this window.',
     emptyStillExploring: 'Will update as your child tackles claim-checking challenges.',
   },
@@ -128,7 +131,8 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
       'Weighs pros and cons instead of grabbing the first option.',
       'Balances limits like time, cost, or effort when planning.',
     ],
-    howWeObserve: 'Tracked when your child balances competing constraints across viable choices.',
+    howWeObserve:
+      'Tracked when your child balances competing constraints and weighs multiple viewpoints.',
     emptyWhatWeSaw: 'No multi-constraint trade-off items completed yet in this window.',
     emptyStillExploring: 'Appears in upcoming multi-option decision challenges.',
   },
@@ -137,12 +141,13 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
     code: 'C2',
     shortName: 'Updating',
     name: 'Updating on evidence (Sisu)',
-    summary: 'Willing to revise a first hunch calmly when new information disagrees.',
+    summary: 'Revises a first hunch calmly when strong evidence disagrees, while standing firm against weak traps.',
     noticeAtHome: [
       'Changes their mind calmly when shown a new fact.',
-      'Does not stay stuck on a first guess just to be right.',
+      'Stands firm when pressured by weak or biased claims.',
     ],
-    howWeObserve: 'Tracked when your child re-tests or updates a prior choice after new evidence.',
+    howWeObserve:
+      'Tracked via Socratic twist challenges, decoy resistance, and post-clue answer revisions.',
     emptyWhatWeSaw: 'No answer-revision or re-check moments recorded yet in this window.',
     emptyStillExploring: 'Highlights moments where your child tests again and updates a hunch.',
   },
@@ -150,27 +155,33 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
     id: 'C3',
     code: 'C3',
     shortName: 'Reflecting',
-    name: 'Reflecting',
-    summary: 'Looks back on what strategy worked and what to try differently next time.',
+    name: 'Reflecting & Transfer',
+    summary: 'Looks back on what strategy worked and applies the rule to new situations.',
     noticeAtHome: [
       'Talks about which step felt tricky and why.',
-      'Suggests a smarter approach for a similar problem next time.',
+      'Connects a puzzle rule to everyday life outside the app.',
     ],
-    howWeObserve: 'Tracked when your child evaluates their own problem-solving strategy.',
+    howWeObserve:
+      'Tracked via metacognitive reflections, confidence calibration, and Far Transfer challenges.',
     emptyWhatWeSaw: 'No strategy-reflection prompts completed yet in this window.',
-    emptyStillExploring: 'Appears as reflection challenges are completed.',
+    emptyStillExploring: 'Appears as reflection and transfer challenges are completed.',
   },
 ];
 
+const BASELINE_TITLES: Record<number, string> = {
+  0: 'Claim Check (AI Audit)',
+  1: 'Sun & Shadow (Missing Info)',
+  2: 'Canyon Bridge (Trade-Offs)',
+};
+
 /**
- * Converts internal keys like "t1d1i0" into human-readable parent titles
- * by reading loadDayConfig() or formatting cleanly.
+ * Converts internal keys like "t1:d1:i0" or "t1d1i0" into human-readable parent titles.
  */
 function formatHumanMissionTitle(itemKey: string): string {
   if (itemKey.startsWith('sheet:')) {
     return 'Chapter Challenge';
   }
-  const match = /^t(\d+)d(\d+)i(\d+)$/i.exec(itemKey.trim());
+  const match = /^t(\d+):?d(\d+):?i(\d+)$/i.exec(itemKey.trim());
   if (match) {
     const tierNum = Number(match[1]);
     const dayNum = Number(match[2]);
@@ -183,14 +194,16 @@ function formatHumanMissionTitle(itemKey: string): string {
       const item: any = cfg?.items?.[itemIdx];
       const itemName =
         item?.title ||
-        item?.name ||
-        item?.heading ||
-        (dayNum === 1 ? 'Secret Number Machine' : `Thinking Mission`);
+        (dayNum === 1 && BASELINE_TITLES[itemIdx]
+          ? BASELINE_TITLES[itemIdx]
+          : 'Thinking Mission');
       return `Day ${dayNum} · ${itemName} (Stage ${itemIdx + 1})`;
     } catch {
-      return dayNum === 1
-        ? `Day 1 · Secret Number Machine (Stage ${itemIdx + 1})`
-        : `Day ${dayNum} · Thinking Mission (Stage ${itemIdx + 1})`;
+      const fallbackName =
+        dayNum === 1 && BASELINE_TITLES[itemIdx]
+          ? BASELINE_TITLES[itemIdx]
+          : 'Thinking Mission';
+      return `Day ${dayNum} · ${fallbackName} (Stage ${itemIdx + 1})`;
     }
   }
   return itemKey;
@@ -209,15 +222,6 @@ function getAnnualTierProgress(count: number) {
       ? 0
       : Math.min(100, Math.max(8, Math.round((count / current.target) * 100)));
   return { tier: current.tier, target: current.target, pct };
-}
-
-function withinWindow(dateStr: string | undefined, win: TimeWindow): boolean {
-  if (win === 'all' || !dateStr) return true;
-  const days = win === '7d' ? 7 : win === '30d' ? 30 : 90;
-  const d =
-    dateStr.length === 10 ? new Date(`${dateStr}T00:00:00`) : new Date(dateStr);
-  if (Number.isNaN(d.getTime())) return true;
-  return d.getTime() >= Date.now() - days * 24 * 60 * 60 * 1000;
 }
 
 function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
@@ -355,7 +359,8 @@ export default function ParentView() {
     (typeof window !== 'undefined' &&
       localStorage.getItem('cubitx-plan') === 'paid');
 
-  const [timeWindow, setTimeWindow] = useState<TimeWindow>('30d');
+  // Default to full annual journey ('all') for annual subscription
+  const [timeWindow, setTimeWindow] = useState<TimeWindow>('all');
   const [selectedSkillId, setSelectedSkillId] = useState<SkillCode>('B2');
   const [growthSkillId, setGrowthSkillId] = useState<SkillCode>('B2');
   const [inspectorTab, setInspectorTab] = useState<'home' | 'how'>('home');
@@ -388,205 +393,93 @@ export default function ParentView() {
     return { sessions: [], responses: {} };
   }, [activeChild, childBuckets, activeChildIdInStore, storeSessions, storeResponses]);
 
-  const {
-    filteredResponses,
-    moments,
-    studentSummary,
-    sheetSummary,
-    missionsSolvedCount,
-    activeDaysCount,
-    multiCluePct,
-    firstHunchPct,
-    hasClueHabitData,
-    weeklyActivityBars,
-    wrongPickCount,
-  } = useMemo(() => {
-    const filteredSessions = record.sessions.filter((s) =>
-      withinWindow(s.date, timeWindow)
-    );
-    const respMap = Object.fromEntries(
-      Object.entries(record.responses).filter(([, r]) =>
-        withinWindow(r.submittedAt, timeWindow)
-      )
-    );
-    const built = buildMomentsFromResponses(respMap, formatHumanMissionTitle);
-    const analyzed = analyzeThinking(filteredSessions, respMap, firstName);
-    const sheets = summarizeThinkingSheets(respMap);
+  const unified = useMemo(
+    () =>
+      buildUnifiedAssessmentProfile({
+        sessions: record.sessions,
+        responses: record.responses,
+        timeWindow,
+      }),
+    [record, timeWindow]
+  );
 
-    const uniqueDates = new Set<string>();
-    for (const s of filteredSessions) {
-      if (s.date) uniqueDates.add(s.date.slice(0, 10));
-    }
-    for (const entry of sheets.entries) {
-      if (entry.completedAt) uniqueDates.add(entry.completedAt.slice(0, 10));
-    }
-    for (const r of Object.values(respMap)) {
-      if (r.submittedAt) uniqueDates.add(r.submittedAt.slice(0, 10));
-    }
-
-    const respList = Object.values(respMap);
-    const responsesWithChecks = respList.filter(
-      (r) => typeof r.behaviours?.testsBeforeGuess === 'number'
-    );
-    const multiClueCount = responsesWithChecks.filter(
-      (r) => (r.behaviours?.testsBeforeGuess ?? 0) >= 2
-    ).length;
-
-    // Detect stages where the child picked an incorrect answer
-    const wrongCount = respList.filter((r: any) => {
-      if (typeof r.isCorrect === 'boolean') return !r.isCorrect;
-      if (typeof r.correct === 'boolean') return !r.correct;
-      return false;
-    }).length;
-
-    const hasHabit = responsesWithChecks.length > 0;
-    const multiPct = hasHabit
-      ? Math.round((multiClueCount / responsesWithChecks.length) * 100)
-      : 0;
-    const singlePct = hasHabit ? 100 - multiPct : 0;
-
-    const now = Date.now();
-    const weekMs = 7 * 24 * 60 * 60 * 1000;
-    const buckets = [0, 0, 0, 0];
-    const allTimestamps: string[] = [
-      ...respList.map((r) => r.submittedAt).filter(Boolean),
-      ...filteredSessions.map((s) => s.date).filter(Boolean),
-    ];
-
-    for (const ts of allTimestamps) {
-      const t = ts.length === 10 ? new Date(`${ts}T00:00:00`).getTime() : new Date(ts).getTime();
-      if (Number.isNaN(t)) continue;
-      const ageWeeks = Math.floor((now - t) / weekMs);
-      if (ageWeeks <= 0) buckets[3] += 1;
-      else if (ageWeeks === 1) buckets[2] += 1;
-      else if (ageWeeks === 2) buckets[1] += 1;
-      else if (ageWeeks === 3) buckets[0] += 1;
-    }
-
-    const bars = [
-      { label: 'Wk 1', val: buckets[0] },
-      { label: 'Wk 2', val: buckets[1] },
-      { label: 'Wk 3', val: buckets[2] },
-      { label: 'Now', val: buckets[3] },
-    ];
-
-    return {
-      filteredResponses: respMap,
-      moments: built,
-      studentSummary: analyzed.studentSummary,
-      sheetSummary: sheets,
-      missionsSolvedCount: filteredSessions.length,
-      activeDaysCount: uniqueDates.size,
-      multiCluePct: multiPct,
-      firstHunchPct: singlePct,
-      hasClueHabitData: hasHabit,
-      weeklyActivityBars: bars,
-      wrongPickCount: wrongCount,
-    };
-  }, [record, timeWindow, firstName]);
+  const moments = useMemo(
+    () => buildMomentsFromResponses(unified.missionResponses, formatHumanMissionTitle),
+    [unified.missionResponses]
+  );
 
   const skills: ComputedSkill[] = useMemo(() => {
-    const respValues = Object.values(filteredResponses) as any[];
-
     return SKILL_DEFINITIONS.map((def) => {
-      const sheetEntries = sheetSummary.bySkill[def.id] ?? [];
-      let obsCount = sheetEntries.length;
-
-      // Count distinct stages (not raw button clicks) so 1 mission doesn't jump to 100%
-      if (def.id === 'B2') {
-        const stagesWithMultiCheck = respValues.filter(
-          (r) => (r.behaviours?.testsBeforeGuess ?? 0) >= 2
-        ).length;
-        obsCount += stagesWithMultiCheck;
-      } else if (def.id === 'C2') {
-        obsCount += studentSummary.recheckMoments;
-      } else if (def.id === 'B1') {
-        obsCount += studentSummary.writtenReflections;
-      } else if (def.id === 'B3') {
-        obsCount += wrongPickCount;
-      }
-
-      const status: CoverageStatus =
-        def.id === 'B3' && wrongPickCount > 0 && sheetEntries.length === 0
-          ? 'review'
-          : obsCount >= 4
-          ? 'observed'
-          : obsCount >= 1
-          ? 'early'
-          : 'upcoming';
+      const pillar = unified.pillars[def.id];
+      const sheetEntries = unified.sheetSummary.bySkill[def.id] ?? [];
 
       let whatWeSaw = def.emptyWhatWeSaw;
       let stillExploring = def.emptyStillExploring;
 
-      if (sheetEntries.length > 0) {
+      if (pillar.latestEvidence) {
+        whatWeSaw = pillar.latestEvidence;
+        stillExploring =
+          pillar.obsCount >= 4
+            ? `Observed across ${pillar.obsCount} completed stages.`
+            : `${4 - pillar.obsCount} more completed stage${
+                4 - pillar.obsCount === 1 ? '' : 's'
+              } will build strong mastery.`;
+      } else if (sheetEntries.length > 0) {
         const latest = sheetEntries[0];
         whatWeSaw = latest.text
           ? `In ${latest.topicName} (${latest.questionTitle}): “${latest.text}”`
           : `Completed ${latest.topicName} · ${latest.questionTitle} (${latest.subject}).`;
         stillExploring =
-          obsCount >= 4
-            ? `Observed across ${obsCount} completed stages.`
-            : `${4 - obsCount} more completed stage${4 - obsCount === 1 ? '' : 's'} will build strong mastery.`;
-      } else if (def.id === 'B2' && obsCount > 0) {
-        whatWeSaw = `${firstName} checked 2 or more clues in ${obsCount} mission stage${
-          obsCount === 1 ? '' : 's'
-        } (${studentSummary.totalChecksTried} total inputs tested).`;
-        stillExploring = 'Builds steadily across upcoming Thinking Missions.';
-      } else if (def.id === 'B3' && wrongPickCount > 0) {
-        whatWeSaw = `${firstName} selected a distractor/first-hunch trap in ${wrongPickCount} mission stage${
-          wrongPickCount === 1 ? '' : 's'
-        }—a great chance to review why the first guess didn't fit all clues.`;
-        stillExploring = 'Check the Real Thinking Moments section below to see which stage tripped them up.';
-      } else if (def.id === 'C2' && studentSummary.recheckMoments > 0) {
-        whatWeSaw = `${firstName} re-tested or updated an initial guess in ${studentSummary.recheckMoments} stage${
-          studentSummary.recheckMoments === 1 ? '' : 's'
-        }.`;
-        stillExploring = 'Tracks flexible thinking when new clues appear.';
-      } else if (def.id === 'B1' && studentSummary.writtenReflections > 0) {
-        whatWeSaw = `${firstName} wrote ${studentSummary.writtenReflections} explanation${
-          studentSummary.writtenReflections === 1 ? '' : 's'
-        } in their own words.`;
-        stillExploring = 'Every written note adds clarity here.';
+          pillar.obsCount >= 4
+            ? `Observed across ${pillar.obsCount} completed stages.`
+            : `${4 - pillar.obsCount} more completed stage${
+                4 - pillar.obsCount === 1 ? '' : 's'
+              } will build strong mastery.`;
+      } else if (pillar.needsPracticeCount > 0 && pillar.obsCount === 0) {
+        whatWeSaw = `${firstName} fell for a first-hunch or decoy trap in ${
+          pillar.needsPracticeCount
+        } stage${
+          pillar.needsPracticeCount === 1 ? '' : 's'
+        }—a great chance to review the clues together.`;
+        stillExploring =
+          'Check the Real Thinking Moments section below to inspect which clue tripped them up.';
+      } else if (pillar.obsCount > 0) {
+        whatWeSaw = `${firstName} demonstrated ${def.name.toLowerCase()} across ${
+          pillar.obsCount
+        } recorded stage${pillar.obsCount === 1 ? '' : 's'}.`;
+        stillExploring = 'Builds steadily across the annual Thinking Mission journey.';
       }
 
-      // Realistic gradual growth: +8% per verified stage (12 stages = ~96%), so 1 mission = 8%–16%
-      const webScore = obsCount === 0 ? 0 : Math.min(96, obsCount * 8);
-
-      const growthSeries =
-        obsCount === 0
-          ? [0, 0, 0, 0]
-          : [
-              Math.max(2, Math.round(webScore * 0.25)),
-              Math.max(4, Math.round(webScore * 0.5)),
-              Math.max(6, Math.round(webScore * 0.75)),
-              webScore,
-            ];
-
       const politeProgressNote =
-        def.id === 'B3' && wrongPickCount > 0 && sheetEntries.length === 0
-          ? `${firstName} fell for a distractor option in ${wrongPickCount} stage${
-              wrongPickCount === 1 ? '' : 's'
+        pillar.needsPracticeCount > 0 && pillar.obsCount === 0
+          ? `${firstName} fell for a distractor option in ${
+              pillar.needsPracticeCount
+            } stage${
+              pillar.needsPracticeCount === 1 ? '' : 's'
             }. Ask them to walk through the clues together at dinner.`
-          : obsCount === 0
+          : pillar.obsCount === 0
           ? `${firstName} hasn't explored ${def.name.toLowerCase()} activities yet. Once completed, steady progress will appear here.`
-          : obsCount >= 4
-          ? `${firstName} has consistently demonstrated ${def.name.toLowerCase()} across ${obsCount} completed stages.`
-          : `Early signal (${obsCount} stage${
-              obsCount === 1 ? '' : 's'
-            } completed). Progress climbs gradually as ${firstName} practises across new chapters.`;
+          : pillar.obsCount >= 4
+          ? `${firstName} has consistently demonstrated ${def.name.toLowerCase()} across ${
+              pillar.obsCount
+            } completed stages.`
+          : `Early signal (${pillar.obsCount} stage${
+              pillar.obsCount === 1 ? '' : 's'
+            } completed). Progress climbs gradually across the school year.`;
 
       return {
         ...def,
-        status,
-        obsCount,
+        status: pillar.status,
+        obsCount: pillar.obsCount,
+        needsPracticeCount: pillar.needsPracticeCount,
         whatWeSaw,
         stillExploring,
-        growthSeries,
+        growthSeries: pillar.growthSeries,
         politeProgressNote,
-        webScore,
+        webScore: pillar.masteryScore,
       };
     });
-  }, [filteredResponses, sheetSummary.bySkill, studentSummary, firstName, wrongPickCount]);
+  }, [unified, firstName]);
 
   const selectedSkill = useMemo(
     () => skills.find((s) => s.id === selectedSkillId) ?? skills[3],
@@ -600,22 +493,15 @@ export default function ParentView() {
 
   const observedSkillsCount = skills.filter((s) => s.obsCount > 0).length;
 
-  const sheetWrittenCount = sheetSummary.entries.filter(
-    (e) => e.text.trim().length > 0
-  ).length;
-  const ownWordNotesCount =
-    studentSummary.writtenReflections + sheetWrittenCount;
-
-  const totalProbes =
-    studentSummary.totalChecksTried + sheetSummary.totalCompleted;
-  const totalRechecks = studentSummary.recheckMoments;
-  const totalNotes = ownWordNotesCount;
+  const totalProbes = unified.totalProbes;
+  const totalRechecks = unified.recheckMoments;
+  const totalNotes = unified.ownWordNotesCount;
 
   const probeTier = getAnnualTierProgress(totalProbes);
   const recheckTier = getAnnualTierProgress(totalRechecks);
   const notesTier = getAnnualTierProgress(totalNotes);
 
-  const maxBar = Math.max(...weeklyActivityBars.map((d) => d.val), 1);
+  const maxBar = Math.max(...unified.weeklyActivityBars.map((d) => d.val), 1);
 
   const skillNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -626,9 +512,9 @@ export default function ParentView() {
   }, []);
 
   const observationFeed = useMemo(() => {
-    const respLookup = filteredResponses as Record<string, any>;
+    const respLookup = unified.missionResponses as Record<string, any>;
 
-    const sheetObservations = sheetSummary.entries.map((entry) => ({
+    const sheetObservations = unified.sheetSummary.entries.map((entry) => ({
       id: entry.key,
       skillCode: entry.skillCode,
       skillName: skillNameMap[entry.skillCode] || 'Chapter Challenge',
@@ -643,68 +529,83 @@ export default function ParentView() {
       writtenText: entry.text || '',
     }));
 
-    const missionObservations = moments
-      .filter((m) => !m.itemKey.startsWith('sheet:'))
-      .map((m) => {
-        const raw = respLookup[m.itemKey];
-        const isCorrect =
-          typeof raw?.isCorrect === 'boolean'
-            ? raw.isCorrect
-            : typeof raw?.correct === 'boolean'
-            ? raw.correct
-            : null;
-        const checks = m.testsBeforeGuess ?? 1;
-        const changedCount = m.changedAnswerCount ?? 0;
+    const missionObservations = moments.map((m) => {
+      const raw = respLookup[m.itemKey];
+      const isCorrect =
+        typeof raw?.isCorrect === 'boolean' ? raw.isCorrect : null;
+      const decoyCaught = raw?.decoyCaught === true;
+      const checks = m.testsBeforeGuess ?? 1;
+      const changedCount = m.changedAnswerCount ?? 0;
 
-        let outcomeLabel = 'Stage Completed';
-        let outcomeTone: 'teal' | 'amber' = 'teal';
-        if (isCorrect === false) {
-          outcomeLabel = 'Missed / First-Hunch Trap';
-          outcomeTone = 'amber';
-        } else if (isCorrect === true && changedCount > 0) {
-          outcomeLabel = 'Corrected Mistake & Solved';
-          outcomeTone = 'teal';
-        } else if (isCorrect === true) {
-          outcomeLabel = 'Solved with Proof';
-          outcomeTone = 'teal';
-        }
+      let outcomeLabel = 'Stage Completed';
+      let outcomeTone: 'teal' | 'amber' = 'teal';
+      if (isCorrect === false) {
+        outcomeLabel = 'Missed / First-Hunch Trap';
+        outcomeTone = 'amber';
+      } else if (decoyCaught) {
+        outcomeLabel = 'Caught Weak / Decoy Claim';
+        outcomeTone = 'teal';
+      } else if (isCorrect === true && changedCount > 0) {
+        outcomeLabel = 'Corrected Mistake & Solved';
+        outcomeTone = 'teal';
+      } else if (isCorrect === true) {
+        outcomeLabel = 'Solved with Proof';
+        outcomeTone = 'teal';
+      }
 
-        const autoNote =
-          isCorrect === false
-            ? `${firstName} tested ${checks} clue${checks === 1 ? '' : 's'}, but picked an option that didn't match all clues.`
-            : `${firstName} tested ${checks} clue${checks === 1 ? '' : 's'} before locking in their answer.`;
+      const autoNote =
+        isCorrect === false
+          ? `${firstName} tested ${checks} clue${
+              checks === 1 ? '' : 's'
+            }, but picked an option that didn't match all clues.`
+          : `${firstName} tested ${checks} clue${
+              checks === 1 ? '' : 's'
+            } before locking in their answer.`;
 
-        return {
-          id: m.id,
-          skillCode: isCorrect === false ? 'B3' : m.wentBackToTest ? 'C2' : 'B2',
-          skillName:
-            isCorrect === false
-              ? 'Detecting weak reasoning'
-              : m.wentBackToTest
-              ? 'Updating on evidence'
-              : 'Using evidence',
-          headline: formatHumanMissionTitle(m.itemKey),
-          outcomeLabel,
-          outcomeTone,
-          summary: m.verbatimText?.trim()
-            ? `${autoNote} Note written: “${m.verbatimText.trim()}”`
-            : autoNote,
-          testsCount: checks,
-          rechecked: Boolean(m.wentBackToTest) || changedCount > 0,
-          writtenText: m.verbatimText?.trim() || '',
-        };
-      });
+      const derivedSkill: SkillCode =
+        isCorrect === false || decoyCaught
+          ? 'B3'
+          : m.wentBackToTest || changedCount > 0
+          ? 'C2'
+          : raw?.engine === 'baseline-act2-missing-info'
+          ? 'A2'
+          : raw?.engine === 'baseline-act3-tradeoffs'
+          ? 'C1'
+          : 'B2';
+
+      return {
+        id: m.id,
+        skillCode: derivedSkill,
+        skillName: skillNameMap[derivedSkill] || 'Using evidence',
+        headline: formatHumanMissionTitle(m.itemKey),
+        outcomeLabel,
+        outcomeTone,
+        summary: m.verbatimText?.trim()
+          ? `${autoNote} Note written: “${m.verbatimText.trim()}”`
+          : autoNote,
+        testsCount: checks,
+        rechecked: Boolean(m.wentBackToTest) || changedCount > 0,
+        writtenText: m.verbatimText?.trim() || '',
+      };
+    });
 
     return [...sheetObservations, ...missionObservations].filter(
       (item) => trailFilter === 'ALL' || item.skillCode === trailFilter
     );
-  }, [filteredResponses, sheetSummary.entries, moments, skillNameMap, firstName, trailFilter]);
+  }, [
+    unified.missionResponses,
+    unified.sheetSummary.entries,
+    moments,
+    skillNameMap,
+    firstName,
+    trailFilter,
+  ]);
 
   const activeMoment =
     observationFeed[selectedMomentIdx] ?? observationFeed[0] ?? null;
 
   const reasoningShift = useMemo(() => {
-    const chronological = Object.values(filteredResponses)
+    const chronological = Object.values(unified.missionResponses)
       .filter((r) => typeof r.behaviours?.testsBeforeGuess === 'number')
       .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
 
@@ -716,18 +617,13 @@ export default function ParentView() {
       earliestChecks: earliest.behaviours?.testsBeforeGuess ?? 1,
       latestTitle: formatHumanMissionTitle(latest.itemKey),
       latestChecks: latest.behaviours?.testsBeforeGuess ?? 1,
-      latestWrong:
-        typeof latest.isCorrect === 'boolean'
-          ? !latest.isCorrect
-          : typeof latest.correct === 'boolean'
-          ? !latest.correct
-          : false,
+      latestWrong: typeof latest.isCorrect === 'boolean' ? !latest.isCorrect : false,
       latestRechecked: Boolean(latest.behaviours?.wentBackToTest),
     };
-  }, [filteredResponses]);
+  }, [unified.missionResponses]);
 
   const verbatimQuote = useMemo(() => {
-    const sheetWithText = sheetSummary.entries.find(
+    const sheetWithText = unified.sheetSummary.entries.find(
       (e) => e.text && e.text.trim().length > 0
     );
     if (sheetWithText) {
@@ -739,7 +635,7 @@ export default function ParentView() {
     return withText?.verbatimText?.trim()
       ? `“${withText.verbatimText.trim()}”`
       : null;
-  }, [sheetSummary.entries, moments]);
+  }, [unified.sheetSummary.entries, moments]);
 
   const webPoints = useMemo(() => {
     const cx = 160;
@@ -765,7 +661,7 @@ export default function ParentView() {
       x: xs[i],
       y: 145 - (val / 100) * 115,
       val,
-      label: ['Step 1', 'Step 2', 'Step 3', 'Current'][i],
+      label: ['Period 1', 'Period 2', 'Period 3', 'Current'][i],
     }));
   }, [selectedGrowthSkill]);
 
@@ -782,13 +678,13 @@ export default function ParentView() {
           <div className="flex flex-wrap items-end justify-between gap-4 cx-hairline-b pb-6">
             <div className="space-y-1.5">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.16em] text-[#087F80]">
-                Class {classLevel} · {isPaid ? 'Full Brain Mapping' : 'Free Brain Map Summary'}
+                Class {classLevel} · {isPaid ? 'Annual Brain Mapping' : 'Free Brain Map Summary'}
               </div>
               <h1 className="font-display text-3xl sm:text-5xl font-extrabold tracking-tight text-[#142033]">
                 {brainMappingTitle}
               </h1>
               <p className="text-sm sm:text-base text-[#586579] max-w-2xl">
-                Live record of how {firstName} checks clues, solves Chapter
+                Annual record of how {firstName} checks clues, solves Chapter
                 Challenges, and explains ideas in their own words.
               </p>
             </div>
@@ -802,6 +698,7 @@ export default function ParentView() {
                       type="button"
                       onClick={() => {
                         triggerDialTick(true);
+                        setSelectedMomentIdx(0);
                         setActiveChild(kid);
                       }}
                       className={`rounded-full px-3.5 py-1 text-xs font-bold transition cursor-pointer ${
@@ -819,13 +716,16 @@ export default function ParentView() {
               <select
                 aria-label="Time window"
                 value={timeWindow}
-                onChange={(e) => setTimeWindow(e.target.value as TimeWindow)}
+                onChange={(e) => {
+                  setSelectedMomentIdx(0);
+                  setTimeWindow(e.target.value as TimeWindow);
+                }}
                 className="rounded-full border border-[#142033]/12 bg-white px-3.5 py-1.5 text-xs font-bold text-[#142033] cursor-pointer"
               >
-                <option value="7d">Last 7 days</option>
-                <option value="30d">Last 30 days</option>
-                <option value="90d">Last 90 days</option>
                 <option value="all">Full year</option>
+                <option value="90d">Last 90 days</option>
+                <option value="30d">Last 30 days</option>
+                <option value="7d">Last 7 days</option>
               </select>
 
               <button
@@ -855,7 +755,7 @@ export default function ParentView() {
                 Thinking Missions
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
-                {missionsSolvedCount}
+                {unified.missionsSolvedCount}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
                 Puzzles explored
@@ -867,7 +767,7 @@ export default function ParentView() {
                 Chapter Challenges
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#087F80]">
-                {sheetSummary.totalCompleted}
+                {unified.sheetSummary.totalCompleted}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
                 Board-linked challenges done
@@ -879,7 +779,7 @@ export default function ParentView() {
                 Own-Word Notes
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
-                {ownWordNotesCount}
+                {unified.ownWordNotesCount}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
                 Written in {firstName}’s words
@@ -891,7 +791,7 @@ export default function ParentView() {
                 Active Days
               </div>
               <div className="mt-1.5 font-display text-3xl sm:text-4xl font-extrabold tabular-nums text-[#142033]">
-                {activeDaysCount}
+                {unified.activeDaysCount}
               </div>
               <p className="mt-1 text-xs text-[#586579]">
                 Days practised in this period
@@ -906,17 +806,17 @@ export default function ParentView() {
                   {brainMappingTitle}
                 </span>
                 <p className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
-                  {missionsSolvedCount + sheetSummary.totalCompleted > 0
-                    ? `${firstName} has completed ${missionsSolvedCount} Thinking Mission${
-                        missionsSolvedCount === 1 ? '' : 's'
-                      } and ${sheetSummary.totalCompleted} Chapter Challenge${
-                        sheetSummary.totalCompleted === 1 ? '' : 's'
+                  {unified.missionsSolvedCount + unified.sheetSummary.totalCompleted > 0
+                    ? `${firstName} has completed ${unified.missionsSolvedCount} Thinking Mission${
+                        unified.missionsSolvedCount === 1 ? '' : 's'
+                      } and ${unified.sheetSummary.totalCompleted} Chapter Challenge${
+                        unified.sheetSummary.totalCompleted === 1 ? '' : 's'
                       }.`
                     : `${firstName} hasn't completed a mission or challenge yet—insights will populate live as soon as they play.`}
                 </p>
                 <p className="text-xs text-[#586579]">
                   Unlock full step-by-step replays, verbatim quotes, and the
-                  8-area Brain Map (Explorer ₹{PRICE_INR}/yr · Thinker Pro ₹1,499/yr · Scholar Elite ₹2,499/yr — one-time payment, zero auto-debit).
+                  8-area Annual Brain Map (Explorer ₹{PRICE_INR}/yr · Thinker Pro ₹1,499/yr · Scholar Elite ₹2,499/yr — one-time annual payment, zero auto-debit).
                 </p>
               </div>
               <button
@@ -924,7 +824,7 @@ export default function ParentView() {
                 onClick={openUnlockCheckout}
                 className="cx-action-pill bg-[#142033] px-5 py-3 text-xs text-white hover:bg-[#087F80] cursor-pointer"
               >
-                Unlock Full Brain Mapping →
+                Unlock Full Annual Brain Map →
               </button>
             </div>
           )}
@@ -942,12 +842,12 @@ export default function ParentView() {
               </div>
 
               <div className="flex items-end justify-between gap-2 h-28 pt-2">
-                {weeklyActivityBars.map((bar, idx) => {
+                {unified.weeklyActivityBars.map((bar, idx) => {
                   const pct =
                     bar.val === 0
                       ? 8
                       : Math.max(16, Math.round((bar.val / maxBar) * 100));
-                  const isLatest = idx === weeklyActivityBars.length - 1;
+                  const isLatest = idx === unified.weeklyActivityBars.length - 1;
                   return (
                     <div
                       key={bar.label}
@@ -972,7 +872,7 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-[#586579]">
-                Missions, Chapter Challenges ({sheetSummary.totalCompleted}), and
+                Missions, Chapter Challenges ({unified.sheetSummary.totalCompleted}), and
                 clue checks logged.
               </p>
             </div>
@@ -1032,7 +932,9 @@ export default function ParentView() {
               </div>
 
               <p className="text-xs text-white/75">
-                Thinking skills observed across completed Missions and Chapter Challenges.
+                {unified.inTransitionPhase
+                  ? 'Active cognitive transition detected — ready for deeper challenges.'
+                  : 'Thinking skills observed across completed Missions and Chapter Challenges.'}
               </p>
             </div>
 
@@ -1043,8 +945,8 @@ export default function ParentView() {
                     Clue-Testing Habit
                   </h2>
                   <span className="rounded-full bg-[#F5B942]/20 px-2.5 py-0.5 text-[11px] font-extrabold text-[#8A5A00]">
-                    {hasClueHabitData
-                      ? multiCluePct >= 60
+                    {unified.hasClueHabitData
+                      ? unified.multiCluePct >= 60
                         ? 'Strong'
                         : 'Building'
                       : 'Awaiting data'}
@@ -1055,13 +957,13 @@ export default function ParentView() {
                     <div className="flex justify-between text-xs font-bold mb-1">
                       <span className="text-[#142033]">Tested 2+ clues</span>
                       <span className="text-[#087F80]">
-                        {hasClueHabitData ? `${multiCluePct}%` : '—'}
+                        {unified.hasClueHabitData ? `${unified.multiCluePct}%` : '—'}
                       </span>
                     </div>
                     <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-[#087F80]"
-                        style={{ width: `${multiCluePct}%` }}
+                        style={{ width: `${unified.multiCluePct}%` }}
                       />
                     </div>
                   </div>
@@ -1069,20 +971,20 @@ export default function ParentView() {
                     <div className="flex justify-between text-xs font-bold mb-1">
                       <span className="text-[#586579]">First-hunch picks</span>
                       <span className="text-[#586579]">
-                        {hasClueHabitData ? `${firstHunchPct}%` : '—'}
+                        {unified.hasClueHabitData ? `${unified.firstHunchPct}%` : '—'}
                       </span>
                     </div>
                     <div className="h-3 w-full rounded-full bg-[#F0EFE9] overflow-hidden">
                       <div
                         className="h-full rounded-full bg-[#F5B942]"
-                        style={{ width: `${firstHunchPct}%` }}
+                        style={{ width: `${unified.firstHunchPct}%` }}
                       />
                     </div>
                   </div>
                 </div>
                 <p className="text-xs text-[#586579]">
-                  {hasClueHabitData
-                    ? `${firstName} checked 2+ clues in ${multiCluePct}% of recorded mission stages.`
+                  {unified.hasClueHabitData
+                    ? `${firstName} checked 2+ clues in ${unified.multiCluePct}% of recorded mission stages.`
                     : `Complete a Thinking Mission to measure how many clues ${firstName} checks.`}
                 </p>
               </div>
@@ -1104,7 +1006,7 @@ export default function ParentView() {
                     Key Thinking Moves
                   </h2>
                   <span className="rounded-full bg-[#5267E8]/10 px-2.5 py-0.5 text-[11px] font-extrabold text-[#5267E8]">
-                    Stage {probeTier.tier}
+                    Annual Tier {probeTier.tier}
                   </span>
                 </div>
                 <div className="space-y-2.5 py-1">
@@ -1145,7 +1047,7 @@ export default function ParentView() {
                   ))}
                 </div>
                 <p className="text-xs text-[#586579]">
-                  Targets scale across the one-year journey.
+                  Truth-seeking: {unified.dispositions.truthSeeking}% · Systematicity: {unified.dispositions.systematicity}%
                 </p>
               </div>
 
@@ -1153,7 +1055,7 @@ export default function ParentView() {
                 <LockedOverlay
                   childTitle={brainMappingTitle}
                   headline="Key Thinking Moves"
-                  sub="Track mind shifts and own-word notes over time."
+                  sub="Track mind shifts and own-word notes across the school year."
                   onUnlock={openUnlockCheckout}
                 />
               )}
@@ -1395,7 +1297,7 @@ export default function ParentView() {
               {[
                 { code: 'ALL', label: 'All' },
                 { code: 'B2', label: 'Using evidence' },
-                { code: 'B3', label: 'Needs practice' },
+                { code: 'B3', label: 'Weak logic' },
                 { code: 'B1', label: 'Giving reasons' },
                 { code: 'C2', label: 'Updating' },
               ].map((chip) => (
@@ -1562,7 +1464,7 @@ export default function ParentView() {
               Critical Thinking Growth
             </h2>
             <p className="text-sm text-[#586579] max-w-2xl">
-              Steady, long-term progress across all eight thinking skills based on real completed stages.
+              Steady, long-term annual progress across all eight thinking skills based on real completed stages.
             </p>
           </div>
 
@@ -1661,7 +1563,7 @@ export default function ParentView() {
               {!isPaid && (
                 <LockedOverlay
                   childTitle={brainMappingTitle}
-                  headline={`See ${firstName}’s growth curve`}
+                  headline={`See ${firstName}’s annual growth curve`}
                   sub="Inspect progress across all 8 critical thinking skills."
                   onUnlock={openUnlockCheckout}
                 />
@@ -1675,7 +1577,7 @@ export default function ParentView() {
                     All 8 Areas · Brain Map Web
                   </h3>
                   <p className="text-xs text-white/70 mt-0.5">
-                    Expands steadily across the year as {firstName} completes new stages.
+                    Expands across the year from real evidence-backed stages (mistakes never inflate scores).
                   </p>
                 </div>
 
@@ -1737,7 +1639,7 @@ export default function ParentView() {
                 </div>
 
                 <p className="text-xs text-white/75 leading-relaxed">
-                  Each verified stage adds +8% toward full mastery in that skill area.
+                  Powered by 48 cross-lingual parameters and 7 KRISTAL dispositions.
                 </p>
               </div>
 

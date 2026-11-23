@@ -6,6 +6,7 @@ import {
   triggerDialTick,
   triggerSoftConfirm,
 } from '../../../core/lib/tactileFeedback';
+import { evaluateSocraticMove } from '../../../core/analytics/socraticEngine';
 
 interface ActRecord {
   actNumber: 1 | 2 | 3;
@@ -33,12 +34,22 @@ const AI_OPTIONS = [
   },
 ] as const;
 
+const ACT1_SOCRATIC_MAP: Record<string, string> = {
+  'trust-bot':
+    'If a weather bot says it is 99% sure it will rain after looking out one window for 5 seconds, should we trust the 99% number—or check how it tested?',
+};
+
 const SHADOW_FACTORS = [
   { id: 'sun-angle', label: 'Sun angle in sky' },
   { id: 'time-of-day', label: 'Time of day' },
   { id: 'pole-fixed', label: 'Pole stayed still' },
   { id: 'cloud-cover', label: 'Cloud cover' },
 ] as const;
+
+const ACT2_SOCRATIC_MAP: Record<string, string> = {
+  'The pole shrank at noon':
+    'If the wooden pole actually shrank at 12:00 PM, how did it grow back to full height by 4:00 PM without anyone touching it?',
+};
 
 const BRIDGE_PIECES = [
   { id: 'truss', label: 'Triangle Truss', strength: 4, cost: 2 },
@@ -54,28 +65,43 @@ export default function BaselineDiscoveryMission() {
   const completeItem = useApp((s) => s.completeItem);
 
   const curriculumTier = curriculumTierFrom(user?.tier ?? 'foundation');
-  const startedAtRef = useRef<number>(Date.now());
+  const stepStartedAtRef = useRef<number>(Date.now());
+  const firstTapMsRef = useRef<number | undefined>(undefined);
 
   const [step, setStep] = useState<0 | 1 | 2 | 3 | 4>(0);
 
+  // Act 1 state
   const [aiPick, setAiPick] = useState<string>('');
   const [aiTwistShown, setAiTwistShown] = useState(false);
   const [aiRevisedPick, setAiRevisedPick] = useState<string>('');
   const [aiNote, setAiNote] = useState('');
+  const [aiSocraticPrompt, setAiSocraticPrompt] = useState<string>('');
 
+  // Act 2 state
   const [sunHour, setSunHour] = useState<number>(8);
   const [checkedFactors, setCheckedFactors] = useState<string[]>([]);
   const [shadowChoice, setShadowChoice] = useState<string>('');
+  const [shadowSocraticPrompt, setShadowSocraticPrompt] = useState<string>('');
 
+  // Act 3 state
   const [pickedPieces, setPickedPieces] = useState<string[]>([]);
   const [bridgeTested, setBridgeTested] = useState(false);
   const [bridgeNote, setBridgeNote] = useState('');
+  const [bridgeSocraticPrompt, setBridgeSocraticPrompt] = useState<string>('');
 
   const [records, setRecords] = useState<ActRecord[]>([]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    stepStartedAtRef.current = Date.now();
+    firstTapMsRef.current = undefined;
   }, [step]);
+
+  const recordFirstTap = () => {
+    if (firstTapMsRef.current === undefined) {
+      firstTapMsRef.current = Date.now() - stepStartedAtRef.current;
+    }
+  };
 
   const budget = 6;
   const targetStrength = 9;
@@ -91,32 +117,63 @@ export default function BaselineDiscoveryMission() {
   const shadowLength = Math.max(24, shadowScale * 75) * shadowDir;
 
   const handleAiSelect = (id: string) => {
+    recordFirstTap();
     triggerDialTick(true);
+
     if (!aiPick) {
       setAiPick(id);
       setAiTwistShown(true);
     } else {
       setAiRevisedPick(id);
     }
+
+    const socratic = evaluateSocraticMove({
+      selectedOptionId: id,
+      optionSocraticMap: ACT1_SOCRATIC_MAP,
+      freeText: aiNote,
+    });
+    setAiSocraticPrompt(socratic.triggered ? socratic.prompt : '');
+  };
+
+  const handleAiNoteChange = (val: string) => {
+    recordFirstTap();
+    setAiNote(val);
+    const activeId = aiRevisedPick || aiPick;
+    const socratic = evaluateSocraticMove({
+      selectedOptionId: activeId,
+      optionSocraticMap: ACT1_SOCRATIC_MAP,
+      freeText: val,
+    });
+    setAiSocraticPrompt(socratic.triggered ? socratic.prompt : '');
   };
 
   const finishActOne = async () => {
     triggerSoftConfirm(true);
+    const initialOpt = AI_OPTIONS.find((o) => o.id === aiPick);
     const finalId = aiRevisedPick || aiPick;
     const opt = AI_OPTIONS.find((o) => o.id === finalId);
     const revised = Boolean(aiRevisedPick && aiRevisedPick !== aiPick);
+    const decoyCaught = finalId !== 'trust-bot';
 
     await saveResponse(`t${curriculumTier}:d1:i0`, {
       engine: 'baseline-act1-ai-audit',
       text: aiNote.trim() || opt?.label,
       picked: AI_OPTIONS.findIndex((o) => o.id === finalId),
+      question: 'Spot the catch in StudyBot claim about orange juice and test memory.',
+      sceneKeywords: ['orange juice', '8 kids', 'lunch table', '40%', 'yesterday', 'surprise quiz', 'notice'],
+      mechanismKeywords: ['sample', 'control group', 'comparison', 'notice', 'surprise'],
+      isCorrect: decoyCaught,
+      decoyCaught,
+      challengeStrength: 'decoy',
+      revisedFromText: revised ? initialOpt?.label : undefined,
       behaviours: {
         testsBeforeGuess: aiTwistShown ? 2 : 1,
         wentBackToTest: revised,
         changedAnswerCount: revised ? 1 : 0,
-        secondsOnItem: Math.round((Date.now() - startedAtRef.current) / 1000),
+        timeToFirstTapMs: firstTapMsRef.current,
+        secondsOnItem: Math.round((Date.now() - stepStartedAtRef.current) / 1000),
       },
-    });
+    } as any);
     await completeItem(`t${curriculumTier}:d1:i0`, 1);
 
     setRecords((prev) => [
@@ -134,15 +191,23 @@ export default function BaselineDiscoveryMission() {
 
   const finishActTwo = async () => {
     triggerSoftConfirm(true);
+    const isCorrect = shadowChoice === 'Sun angle shifts across the sky';
+
     await saveResponse(`t${curriculumTier}:d1:i1`, {
       engine: 'baseline-act2-missing-info',
       text: shadowChoice || undefined,
       picked: checkedFactors.length,
+      question: 'Move the sun and identify why the shadow shifts across the day.',
+      sceneKeywords: ['sun', 'angle', 'shadow', 'pole', 'noon', 'time'],
+      mechanismKeywords: ['angle', 'sun', 'position', 'altitude'],
+      isCorrect,
       behaviours: {
-        testsBeforeGuess: checkedFactors.length,
+        testsBeforeGuess: Math.max(1, checkedFactors.length),
         wentBackToTest: checkedFactors.length >= 2,
+        timeToFirstTapMs: firstTapMsRef.current,
+        secondsOnItem: Math.round((Date.now() - stepStartedAtRef.current) / 1000),
       },
-    });
+    } as any);
     await completeItem(`t${curriculumTier}:d1:i1`, 1);
 
     setRecords((prev) => [
@@ -160,16 +225,24 @@ export default function BaselineDiscoveryMission() {
 
   const finishActThree = async () => {
     triggerSoftConfirm(true);
+    const isCorrect = builtStrength >= targetStrength && usedCost <= budget;
+
     await saveResponse(`t${curriculumTier}:d1:i2`, {
       engine: 'baseline-act3-tradeoffs',
       text:
         bridgeNote.trim() ||
         `${activePieces.map((p) => p.label).join(' + ')} (${builtStrength} strength, ${usedCost}/${budget} cost)`,
       picked: builtStrength,
+      question: 'Reach 9 strength inside a 6 budget by weighing bridge trade-offs.',
+      sceneKeywords: ['truss', 'timber', 'steel', 'card', 'strength', 'budget', 'cost'],
+      mechanismKeywords: ['trade-off', 'budget', 'strength', 'cost', 'balance'],
+      isCorrect,
       behaviours: {
         testsBeforeGuess: activePieces.length,
+        timeToFirstTapMs: firstTapMsRef.current,
+        secondsOnItem: Math.round((Date.now() - stepStartedAtRef.current) / 1000),
       },
-    });
+    } as any);
     await completeItem(`t${curriculumTier}:d1:i2`, 1);
 
     setRecords((prev) => [
@@ -334,6 +407,17 @@ export default function BaselineDiscoveryMission() {
               })}
             </div>
 
+            {aiSocraticPrompt && (
+              <div className="border-l-4 border-[#087F80] bg-[#087F80]/8 p-5 rounded-r-2xl space-y-1">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#087F80]">
+                  PAUSE &amp; CHECK
+                </div>
+                <p className="text-sm font-bold text-[#142033]">
+                  {aiSocraticPrompt}
+                </p>
+              </div>
+            )}
+
             {aiTwistShown && (
               <div className="border-l-4 border-[#F5B942] bg-white p-5 rounded-r-2xl space-y-1">
                 <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#8A5A00]">
@@ -350,7 +434,7 @@ export default function BaselineDiscoveryMission() {
               type="text"
               maxLength={240}
               value={aiNote}
-              onChange={(e) => setAiNote(e.target.value)}
+              onChange={(e) => handleAiNoteChange(e.target.value)}
               placeholder="Optional: write one line in your own words..."
               className="w-full rounded-2xl border border-[#142033]/15 bg-white px-5 py-4 text-sm text-[#142033] outline-none focus:border-[#087F80]"
             />
@@ -432,6 +516,7 @@ export default function BaselineDiscoveryMission() {
                   aria-label="Time of day slider"
                   value={sunHour}
                   onChange={(e) => {
+                    recordFirstTap();
                     triggerDialTick(true);
                     setSunHour(Number(e.target.value));
                   }}
@@ -455,6 +540,7 @@ export default function BaselineDiscoveryMission() {
                       key={f.id}
                       type="button"
                       onClick={() => {
+                        recordFirstTap();
                         triggerDialTick(true);
                         setCheckedFactors((prev) =>
                           prev.includes(f.id)
@@ -485,8 +571,14 @@ export default function BaselineDiscoveryMission() {
                   key={choice}
                   type="button"
                   onClick={() => {
+                    recordFirstTap();
                     triggerDialTick(true);
                     setShadowChoice(choice);
+                    const socratic = evaluateSocraticMove({
+                      selectedOptionId: choice,
+                      optionSocraticMap: ACT2_SOCRATIC_MAP,
+                    });
+                    setShadowSocraticPrompt(socratic.triggered ? socratic.prompt : '');
                   }}
                   className={`rounded-2xl border p-4 text-left text-xs font-extrabold transition cursor-pointer ${
                     shadowChoice === choice
@@ -498,6 +590,17 @@ export default function BaselineDiscoveryMission() {
                 </button>
               ))}
             </div>
+
+            {shadowSocraticPrompt && (
+              <div className="border-l-4 border-[#087F80] bg-[#087F80]/8 p-5 rounded-r-2xl space-y-1">
+                <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#087F80]">
+                  PAUSE &amp; CHECK
+                </div>
+                <p className="text-sm font-bold text-[#142033]">
+                  {shadowSocraticPrompt}
+                </p>
+              </div>
+            )}
 
             <button
               type="button"
@@ -579,6 +682,7 @@ export default function BaselineDiscoveryMission() {
                     key={piece.id}
                     type="button"
                     onClick={() => {
+                      recordFirstTap();
                       triggerDialTick(true);
                       setBridgeTested(false);
                       setPickedPieces((prev) =>
@@ -615,6 +719,7 @@ export default function BaselineDiscoveryMission() {
               type="button"
               disabled={activePieces.length === 0 || usedCost > budget}
               onClick={() => {
+                recordFirstTap();
                 triggerDialTick(true);
                 setBridgeTested(true);
               }}
@@ -634,10 +739,20 @@ export default function BaselineDiscoveryMission() {
                   type="text"
                   maxLength={200}
                   value={bridgeNote}
-                  onChange={(e) => setBridgeNote(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBridgeNote(val);
+                    const socratic = evaluateSocraticMove({ freeText: val });
+                    setBridgeSocraticPrompt(socratic.triggered ? socratic.prompt : '');
+                  }}
                   placeholder="Optional: what did you trade off and why?"
                   className="w-full rounded-xl border border-[#142033]/15 bg-[#F7F6F1] px-4 py-3 text-xs text-[#142033]"
                 />
+                {bridgeSocraticPrompt && (
+                  <p className="text-xs font-bold text-[#087F80]">
+                    {bridgeSocraticPrompt}
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => void finishActThree()}

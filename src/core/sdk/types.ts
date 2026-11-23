@@ -1,6 +1,8 @@
 /* =========================================================
-   CubitX SDK Types
+   CubitX SDK Types (v9.0 Annual Architecture)
    ========================================================= */
+
+import type React from 'react';
 
 export type DomainKey =
   | 'hypothesis'
@@ -11,6 +13,7 @@ export type DomainKey =
   | 'causality';
 
 export type Tier = 'foundation' | 'advanced';
+export type CurriculumTier = 1 | 2 | 3 | 'foundation' | 'builder' | 'explorer';
 
 export interface MetricWeight {
   fn: string;
@@ -63,4 +66,52 @@ export interface Session {
   id: string;
   date: string;
   missionsCompleted: string[];
+}
+
+/* ─── v9.0 Mission & Socratic Authoring Contracts ─────────── */
+
+export interface MissionChoiceOption {
+  id: string;
+  tag: string;
+  label: string;
+  isCorrect?: boolean;
+  socraticCounter?: string;
+}
+
+export interface MissionClue {
+  id: string;
+  label: string;
+  detail: string;
+  isCausal: boolean;
+}
+
+export interface MissionChallengeCard {
+  strength: 'strong' | 'weak' | 'decoy';
+  headline: string;
+  prompt: string;
+}
+
+export interface MissionStageSpec {
+  id: string;
+  title: string;
+  phenomenonTag: string;
+  difficultyLevel: 1 | 2 | 3 | 4 | 5;
+  isFarTransfer?: boolean;
+  hookPrompt: string;
+  question: string;
+  clues: MissionClue[];
+  options: MissionChoiceOption[];
+  challengeCard?: MissionChallengeCard;
+  hints: [string, string, string];
+  sceneKeywords: string[];
+  causalKeywords: string[];
+  decorativeKeywords: string[];
+  mechanismKeywords: string[];
+}
+
+export interface DayConfig {
+  day: number;
+  title: string;
+  theme?: string;
+  items: MissionStageSpec[];
 }

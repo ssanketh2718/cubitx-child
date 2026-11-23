@@ -27,6 +27,19 @@ export interface SavedResponse {
   picked?: number;
   behaviours?: SavedBehaviouralSignals;
   submittedAt: string;
+  // v9.0 Assessment & Socratic metadata
+  question?: string;
+  sceneKeywords?: string[];
+  causalKeywords?: string[];
+  decorativeKeywords?: string[];
+  mechanismKeywords?: string[];
+  isCorrect?: boolean;
+  decoyCaught?: boolean;
+  challengeStrength?: 'strong' | 'weak' | 'decoy';
+  revisedFromText?: string;
+  confidenceBefore?: number;
+  confidenceAfter?: number;
+  isFarTransfer?: boolean;
 }
 
 export type CubitXUser = User & {
@@ -60,15 +73,15 @@ interface AppState {
   devDayOverride: number | null;
   setDevDayOverride: (day: number | null) => void;
 
-  /** Preferred: isolate local progress per immutable child ID */
+  /** Preferred: isolate local progress per immutable child ID (365-day annual horizon) */
   setActiveChildProfile: (
     child: { id: string; name: string; grade: number },
-    trialDays?: number
+    planDays?: number
   ) => void;
   getChildBucket: (childId: string) => ChildLocalData | null;
 
   /** Legacy guest/onboarding helper (uses a transient 'guest-local' bucket) */
-  setUser: (user: { name: string; grade: number }, trialDays: number) => void;
+  setUser: (user: { name: string; grade: number }, planDays?: number) => void;
   setSupabaseId: (id: string) => void;
 
   completeItem: (itemId: string, requiredCount: number) => Promise<void>;
@@ -77,12 +90,7 @@ interface AppState {
 
   saveResponse: (
     itemKey: string,
-    data: {
-      engine: string;
-      text?: string;
-      picked?: number;
-      behaviours?: SavedBehaviouralSignals;
-    }
+    data: Omit<SavedResponse, 'itemKey' | 'submittedAt'>
   ) => Promise<void>;
   getResponse: (itemKey: string) => SavedResponse | null;
 
@@ -101,7 +109,8 @@ interface AppState {
 }
 
 const GUEST_BUCKET_ID = 'guest-local';
-const MAX_DAYS = 30;
+export const ANNUAL_SUBSCRIPTION_DAYS = 365;
+const MAX_DAYS = ANNUAL_SUBSCRIPTION_DAYS;
 const DEV_DAY_KEY = 'cubitx-dev-day';
 
 const todayKey = (): string => {
@@ -133,7 +142,7 @@ const readDevDay = (): number | null => {
   if (!v) return null;
 
   const n = Number(v);
-  return Number.isFinite(n) && n >= 1 && n <= 30 ? n : null;
+  return Number.isFinite(n) && n >= 1 && n <= MAX_DAYS ? n : null;
 };
 
 const writeDevDay = (day: number | null): void => {
@@ -150,12 +159,12 @@ function createFreshBucket(
   childId: string,
   name: string,
   grade: number,
-  trialDays: number,
+  planDays: number,
   parentSupabaseId: string | null
 ): ChildLocalData {
   const now = new Date();
-  const trialEnds = new Date();
-  trialEnds.setDate(trialEnds.getDate() + trialDays);
+  const planEnds = new Date();
+  planEnds.setDate(planEnds.getDate() + planDays);
 
   const tier: Tier = sdkTierForClass(grade);
 
@@ -168,7 +177,7 @@ function createFreshBucket(
       tier,
       createdAt: now.toISOString(),
       registeredAt: now.toISOString(),
-      trialEndsAt: trialEnds.toISOString(),
+      trialEndsAt: planEnds.toISOString(),
       supabaseId: parentSupabaseId ?? undefined,
     },
     days: {
@@ -210,7 +219,7 @@ export const useApp = create<AppState>()(
         }));
       },
 
-      setActiveChildProfile: (child, trialDays = 30) => {
+      setActiveChildProfile: (child, planDays = ANNUAL_SUBSCRIPTION_DAYS) => {
         const state = get();
         const buckets = { ...state.childBuckets };
 
@@ -246,7 +255,7 @@ export const useApp = create<AppState>()(
               child.id,
               child.name,
               child.grade,
-              trialDays,
+              planDays,
               state.parentSupabaseId
             );
 
@@ -278,7 +287,7 @@ export const useApp = create<AppState>()(
         return state.childBuckets[childId] ?? null;
       },
 
-      setUser: (input, trialDays) => {
+      setUser: (input, planDays = ANNUAL_SUBSCRIPTION_DAYS) => {
         const state = get();
         const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
 
@@ -293,7 +302,7 @@ export const useApp = create<AppState>()(
 
         get().setActiveChildProfile(
           { id: bucketId, name: input.name, grade: input.grade },
-          trialDays
+          planDays
         );
       },
 
@@ -378,11 +387,9 @@ export const useApp = create<AppState>()(
       },
 
       saveResponse: async (itemKey, data) => {
-        // Keep responses in local per-child app state while server-side
-        // scoring is intentionally disabled. Do not imply cloud sync.
         set((state) => {
           const bucketId = state.activeChildId ?? GUEST_BUCKET_ID;
-          const nextResponses = {
+          const nextResponses: Record<string, SavedResponse> = {
             ...state.responses,
             [itemKey]: {
               ...data,
