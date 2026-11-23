@@ -17,20 +17,14 @@ const FACT_CARD_STYLES = [
   {
     bg: 'bg-[#E9F7F6]',
     border: 'border-[#087F80]/30',
-    tagColor: 'text-[#087F80]',
-    dot: 'bg-[#087F80]',
   },
   {
     bg: 'bg-[#FFF6E0]',
     border: 'border-[#F5B942]/45',
-    tagColor: 'text-[#9A6300]',
-    dot: 'bg-[#F5B942]',
   },
   {
     bg: 'bg-[#EEF2FF]',
     border: 'border-[#5267E8]/30',
-    tagColor: 'text-[#3B4CCA]',
-    dot: 'bg-[#5267E8]',
   },
 ] as const;
 
@@ -51,7 +45,6 @@ export default function BaselineDiscoveryMission() {
   const [missionIdx, setMissionIdx] = useState(0);
   const [finishedAll, setFinishedAll] = useState(false);
 
-  // Single-frame interactive state for current mission
   const [firstPickId, setFirstPickId] = useState<string>('');
   const [finalPickId, setFinalPickId] = useState<string>('');
   const [noteText, setNoteText] = useState('');
@@ -170,14 +163,11 @@ export default function BaselineDiscoveryMission() {
     return (
       <div className="min-h-screen cx-paper-canvas text-[#142033] flex items-center justify-center p-4">
         <div className="max-w-lg w-full rounded-[32px] bg-white border border-[#142033]/12 p-8 shadow-[var(--shadow-artifact)] text-center space-y-5">
-          <span className="inline-block rounded-full bg-[#087F80]/10 px-3.5 py-1 font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#087F80]">
-            DAY 1 COMPLETE · 5 / 5 DONE
-          </span>
           <h1 className="font-display text-3xl font-extrabold text-[#142033]">
-            Great detective work today!
+            Great work today!
           </h1>
           <p className="text-sm text-[#586579]">
-            All 5 clue checks and your own-word notes are saved to your Brain Map.
+            All 5 answers are saved to your Brain Map.
           </p>
           <button
             type="button"
@@ -195,7 +185,7 @@ export default function BaselineDiscoveryMission() {
 
   return (
     <div className="min-h-screen cx-paper-canvas text-[#142033]">
-      {/* TOP BAR WITH 5-SEGMENT PROGRESS */}
+      {/* TOP BAR */}
       <header className="sticky top-0 z-30 border-b border-[#142033]/10 bg-[#F7F6F1]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-4 py-3">
           <button
@@ -236,13 +226,10 @@ export default function BaselineDiscoveryMission() {
         </div>
       </header>
 
-      {/* SINGLE-FRAME MISSION CONSOLE */}
+      {/* SINGLE-FRAME CONSOLE — ZERO SECTION OR CARD TITLES */}
       <main className="mx-auto max-w-3xl px-4 py-5 pb-16">
         {isLockedByPlan ? (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-8 text-center shadow-[var(--shadow-artifact)] space-y-4">
-            <span className="inline-block rounded-full bg-[#142033] px-3 py-1 font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#55E2CE]">
-              FREE PREVIEW: 2 OF 5 MISSIONS OPEN TODAY
-            </span>
             <h2 className="font-display text-2xl font-extrabold text-[#142033]">
               Unlock all 5 daily missions for the full year
             </h2>
@@ -271,45 +258,31 @@ export default function BaselineDiscoveryMission() {
           </div>
         ) : (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-5 sm:p-7 shadow-[var(--shadow-artifact)] space-y-5">
-            {/* 1. STORY STATEMENT */}
-            <div className="rounded-2xl bg-[#142033] p-5 text-white space-y-1.5">
-              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-widest text-[#55E2CE]">
-                MISSION 0{missionIdx + 1} OF 0{missions.length}
-              </div>
+            {/* 1. STORY STATEMENT (NO TITLE) */}
+            <div className="rounded-2xl bg-[#142033] p-5 text-white">
               <p className="font-display text-lg sm:text-xl font-extrabold leading-snug">
                 {current.hookPrompt}
               </p>
             </div>
 
-            {/* 2. ALL EXTRA DETAILS OPEN & COLOR-CODED */}
-            <div className="space-y-2">
-              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
-                READ THESE DETAILS
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                {current.clues.map((clue, idx) => {
-                  const style = FACT_CARD_STYLES[idx % FACT_CARD_STYLES.length];
-                  return (
-                    <div
-                      key={clue.id}
-                      className={`rounded-2xl border ${style.border} ${style.bg} p-3.5 text-left`}
-                    >
-                      <div
-                        className={`flex items-center gap-1.5 font-mono-tech text-[10px] font-bold uppercase ${style.tagColor}`}
-                      >
-                        <span className={`h-2 w-2 rounded-full ${style.dot}`} />
-                        <span>{clue.label}</span>
-                      </div>
-                      <p className="mt-1.5 text-xs sm:text-sm font-bold text-[#142033] leading-snug">
-                        {clue.detail}
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
+            {/* 2. COLOR-CODED DETAIL CARDS (NO SECTION OR CARD TITLES) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {current.clues.map((clue, idx) => {
+                const style = FACT_CARD_STYLES[idx % FACT_CARD_STYLES.length];
+                return (
+                  <div
+                    key={clue.id}
+                    className={`rounded-2xl border ${style.border} ${style.bg} p-4 text-left flex items-center`}
+                  >
+                    <p className="text-xs sm:text-sm font-bold text-[#142033] leading-snug">
+                      {clue.detail}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
 
-            {/* 3. QUESTION & OPTIONS WITH INLINE EXTRA INFO RIGHT BELOW SELECTED OPTION */}
+            {/* 3. QUESTION & OPTIONS WITH TITLE-FREE INLINE FOLLOW-UP */}
             <div className="space-y-2.5">
               <h2 className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
                 {current.question}
@@ -348,17 +321,14 @@ export default function BaselineDiscoveryMission() {
                                 : 'text-[#087F80]'
                             }`}
                           >
-                            {inlineCounter ? 'Check again ↓' : 'Selected ✓'}
+                            ✓
                           </span>
                         )}
                       </button>
 
-                      {/* QUICK INLINE INFO DIRECTLY UNDER THIS OPTION */}
+                      {/* QUICK INLINE EXTRA INFO DIRECTLY BELOW OPTION (NO TITLE) */}
                       {inlineCounter && (
-                        <div className="ml-3 border-l-4 border-[#E07A5F] bg-[#FFF5F2] px-4 py-3 rounded-r-xl space-y-0.5">
-                          <div className="font-mono-tech text-[10px] font-bold uppercase text-[#C2412D]">
-                            WAIT — CHECK THIS
-                          </div>
+                        <div className="ml-3 border-l-4 border-[#E07A5F] bg-[#FFF5F2] px-4 py-3 rounded-r-xl">
                           <p className="text-xs sm:text-sm font-bold text-[#142033]">
                             {inlineCounter}
                           </p>
@@ -366,10 +336,7 @@ export default function BaselineDiscoveryMission() {
                       )}
 
                       {showNewDetailRightHere && current.challengeCard && (
-                        <div className="ml-3 border-l-4 border-[#F5B942] bg-[#FFF9E6] px-4 py-3 rounded-r-xl space-y-0.5">
-                          <div className="font-mono-tech text-[10px] font-bold uppercase text-[#9A6300]">
-                            {current.challengeCard.headline}
-                          </div>
+                        <div className="ml-3 border-l-4 border-[#F5B942] bg-[#FFF9E6] px-4 py-3 rounded-r-xl">
                           <p className="text-xs sm:text-sm font-bold text-[#142033]">
                             {current.challengeCard.prompt}
                           </p>
@@ -381,12 +348,9 @@ export default function BaselineDiscoveryMission() {
               </div>
             </div>
 
-            {/* 4. PROGRESSIVE HINT (IF REQUESTED) */}
+            {/* 4. PROGRESSIVE HINT */}
             {hintLevel > 0 && (
               <div className="rounded-xl bg-[#EEF2FF] border border-[#5267E8]/25 p-3.5 text-xs sm:text-sm font-semibold text-[#142033]">
-                <span className="font-extrabold text-[#3B4CCA]">
-                  Hint {hintLevel}:{' '}
-                </span>
                 {current.hints[hintLevel - 1]}
               </div>
             )}
