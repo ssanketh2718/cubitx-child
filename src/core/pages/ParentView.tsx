@@ -168,45 +168,65 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
   },
 ];
 
-const BASELINE_TITLES: Record<number, string> = {
-  0: 'Claim Check (AI Audit)',
-  1: 'Sun & Shadow (Missing Info)',
-  2: 'Canyon Bridge (Trade-Offs)',
-};
+const VALID_SKILL_CODES = new Set<SkillCode>([
+  'A1',
+  'A2',
+  'B1',
+  'B2',
+  'B3',
+  'C1',
+  'C2',
+  'C3',
+]);
 
 /**
- * Converts internal keys like "t1:d1:i0" or "t1d1i0" into human-readable parent titles.
+ * Dynamically resolves any mission key ("t1:d1:i0", "t2:d14:i3", "t1d1i0")
+ * directly from the matching day-XX/config.ts file. Never requires manual edits.
  */
+function resolveMissionSpec(itemKey: string) {
+  const match = /^t(\d+):?d(\d+):?i(\d+)$/i.exec(itemKey.trim());
+  if (!match) return null;
+
+  const tierNum = Number(match[1]);
+  const dayNum = Number(match[2]);
+  const itemIdx = Number(match[3]);
+
+  try {
+    // Support both numeric tier folders (tier1, tier2) and slug folders
+    const cfg =
+      loadDayConfig(tierNum as any, dayNum) ??
+      loadDayConfig((tierNum === 1 ? 'foundation' : 'builder') as any, dayNum);
+    const item: any = cfg?.items?.[itemIdx];
+    return { tierNum, dayNum, itemIdx, item };
+  } catch {
+    return { tierNum, dayNum, itemIdx, item: null };
+  }
+}
+
 function formatHumanMissionTitle(itemKey: string): string {
   if (itemKey.startsWith('sheet:')) {
     return 'Chapter Challenge';
   }
-  const match = /^t(\d+):?d(\d+):?i(\d+)$/i.exec(itemKey.trim());
-  if (match) {
-    const tierNum = Number(match[1]);
-    const dayNum = Number(match[2]);
-    const itemIdx = Number(match[3]);
-    const tierSlug =
-      tierNum === 1 ? 'foundation' : tierNum === 2 ? 'builder' : 'explorer';
-
-    try {
-      const cfg = loadDayConfig(tierSlug as any, dayNum);
-      const item: any = cfg?.items?.[itemIdx];
-      const itemName =
-        item?.title ||
-        (dayNum === 1 && BASELINE_TITLES[itemIdx]
-          ? BASELINE_TITLES[itemIdx]
-          : 'Thinking Mission');
-      return `Day ${dayNum} · ${itemName} (Stage ${itemIdx + 1})`;
-    } catch {
-      const fallbackName =
-        dayNum === 1 && BASELINE_TITLES[itemIdx]
-          ? BASELINE_TITLES[itemIdx]
-          : 'Thinking Mission';
-      return `Day ${dayNum} · ${fallbackName} (Stage ${itemIdx + 1})`;
-    }
+  const resolved = resolveMissionSpec(itemKey);
+  if (resolved) {
+    const title = resolved.item?.title || `Mission ${resolved.itemIdx + 1}`;
+    return `Day ${resolved.dayNum} · ${title}`;
   }
   return itemKey;
+}
+
+function inferSkillFromTag(tag: string | undefined): SkillCode | null {
+  if (!tag) return null;
+  const upper = tag.toUpperCase();
+  if (VALID_SKILL_CODES.has(upper as SkillCode)) return upper as SkillCode;
+  if (upper.includes('QUESTION') || upper.includes('INQUIR')) return 'A1';
+  if (upper.includes('MISSING') || upper.includes('CLUE') || upper.includes('VARIABLE')) return 'A2';
+  if (upper.includes('REASON') || upper.includes('CAUSE')) return 'B1';
+  if (upper.includes('WEAK') || upper.includes('BIAS') || upper.includes('AI') || upper.includes('AUDIT')) return 'B3';
+  if (upper.includes('TRADE') || upper.includes('PLAN') || upper.includes('CHOICE') || upper.includes('BUDGET')) return 'C1';
+  if (upper.includes('UPDATE') || upper.includes('AGAIN') || upper.includes('SISU')) return 'C2';
+  if (upper.includes('TRANSFER') || upper.includes('REFLECT')) return 'C3';
+  return null;
 }
 
 function getAnnualTierProgress(count: number) {
@@ -531,6 +551,7 @@ export default function ParentView() {
 
     const missionObservations = moments.map((m) => {
       const raw = respLookup[m.itemKey];
+      const spec = resolveMissionSpec(m.itemKey);
       const isCorrect =
         typeof raw?.isCorrect === 'boolean' ? raw.isCorrect : null;
       const decoyCaught = raw?.decoyCaught === true;
@@ -562,16 +583,17 @@ export default function ParentView() {
               checks === 1 ? '' : 's'
             } before locking in their answer.`;
 
+      // Fully data-driven skill resolution from config phenomenonTag / response metadata
+      const configSkill =
+        inferSkillFromTag(raw?.primarySkill) ??
+        inferSkillFromTag(spec?.item?.phenomenonTag);
+
       const derivedSkill: SkillCode =
         isCorrect === false || decoyCaught
           ? 'B3'
           : m.wentBackToTest || changedCount > 0
           ? 'C2'
-          : raw?.engine === 'baseline-act2-missing-info'
-          ? 'A2'
-          : raw?.engine === 'baseline-act3-tradeoffs'
-          ? 'C1'
-          : 'B2';
+          : configSkill ?? 'B2';
 
       return {
         id: m.id,
