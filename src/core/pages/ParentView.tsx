@@ -7,6 +7,7 @@ import {
   analyzeThinking,
   buildMomentsFromResponses,
 } from '../../features/parent-insights/thinkingAnalysis';
+import { loadDayConfig } from '../../missions/curriculum';
 import {
   triggerDialTick,
   triggerSoftConfirm,
@@ -161,6 +162,40 @@ const SKILL_DEFINITIONS: SkillMetadata[] = [
   },
 ];
 
+/**
+ * Converts internal keys like "t1d1i0" into human-readable parent titles
+ * by reading loadDayConfig() or formatting cleanly.
+ */
+function formatHumanMissionTitle(itemKey: string): string {
+  if (itemKey.startsWith('sheet:')) {
+    return 'Chapter Challenge';
+  }
+  const match = /^t(\d+)d(\d+)i(\d+)$/i.exec(itemKey.trim());
+  if (match) {
+    const tierNum = Number(match[1]);
+    const dayNum = Number(match[2]);
+    const itemIdx = Number(match[3]);
+    const tierSlug =
+      tierNum === 1 ? 'foundation' : tierNum === 2 ? 'builder' : 'explorer';
+
+    try {
+      const cfg = loadDayConfig(tierSlug as any, dayNum);
+      const item: any = cfg?.items?.[itemIdx];
+      const itemName =
+        item?.title ||
+        item?.name ||
+        item?.heading ||
+        (dayNum === 1 ? 'Secret Number Machine' : `Thinking Mission`);
+      return `Day ${dayNum} · ${itemName} (Stage ${itemIdx + 1})`;
+    } catch {
+      return dayNum === 1
+        ? `Day 1 · Secret Number Machine (Stage ${itemIdx + 1})`
+        : `Day ${dayNum} · Thinking Mission (Stage ${itemIdx + 1})`;
+    }
+  }
+  return itemKey;
+}
+
 function getAnnualTierProgress(count: number) {
   const tiers = [
     { tier: 1, target: 15 },
@@ -232,11 +267,11 @@ function statusMeta(status: CoverageStatus) {
       };
     case 'review':
       return {
-        label: 'In review',
-        fill: '#5267E8',
+        label: 'Needs practice',
+        fill: '#E07A5F',
         textOnWheel: '#FFFFFF',
-        dot: 'bg-[#5267E8]',
-        badge: 'bg-[#5267E8]/12 text-[#5267E8] border-[#5267E8]/30',
+        dot: 'bg-[#E07A5F]',
+        badge: 'bg-[#E07A5F]/15 text-[#9E3324] border-[#E07A5F]/40',
       };
     default:
       return {
@@ -364,6 +399,7 @@ export default function ParentView() {
     firstHunchPct,
     hasClueHabitData,
     weeklyActivityBars,
+    wrongPickCount,
   } = useMemo(() => {
     const filteredSessions = record.sessions.filter((s) =>
       withinWindow(s.date, timeWindow)
@@ -373,9 +409,7 @@ export default function ParentView() {
         withinWindow(r.submittedAt, timeWindow)
       )
     );
-    const built = buildMomentsFromResponses(respMap, (key) =>
-      key.startsWith('sheet:') ? 'Chapter Challenge' : `Mission · ${key}`
-    );
+    const built = buildMomentsFromResponses(respMap, formatHumanMissionTitle);
     const analyzed = analyzeThinking(filteredSessions, respMap, firstName);
     const sheets = summarizeThinkingSheets(respMap);
 
@@ -397,6 +431,13 @@ export default function ParentView() {
     const multiClueCount = responsesWithChecks.filter(
       (r) => (r.behaviours?.testsBeforeGuess ?? 0) >= 2
     ).length;
+
+    // Detect stages where the child picked an incorrect answer
+    const wrongCount = respList.filter((r: any) => {
+      if (typeof r.isCorrect === 'boolean') return !r.isCorrect;
+      if (typeof r.correct === 'boolean') return !r.correct;
+      return false;
+    }).length;
 
     const hasHabit = responsesWithChecks.length > 0;
     const multiPct = hasHabit
@@ -440,24 +481,39 @@ export default function ParentView() {
       firstHunchPct: singlePct,
       hasClueHabitData: hasHabit,
       weeklyActivityBars: bars,
+      wrongPickCount: wrongCount,
     };
   }, [record, timeWindow, firstName]);
 
   const skills: ComputedSkill[] = useMemo(() => {
+    const respValues = Object.values(filteredResponses) as any[];
+
     return SKILL_DEFINITIONS.map((def) => {
       const sheetEntries = sheetSummary.bySkill[def.id] ?? [];
       let obsCount = sheetEntries.length;
 
+      // Count distinct stages (not raw button clicks) so 1 mission doesn't jump to 100%
       if (def.id === 'B2') {
-        obsCount += studentSummary.totalChecksTried;
+        const stagesWithMultiCheck = respValues.filter(
+          (r) => (r.behaviours?.testsBeforeGuess ?? 0) >= 2
+        ).length;
+        obsCount += stagesWithMultiCheck;
       } else if (def.id === 'C2') {
         obsCount += studentSummary.recheckMoments;
       } else if (def.id === 'B1') {
         obsCount += studentSummary.writtenReflections;
+      } else if (def.id === 'B3') {
+        obsCount += wrongPickCount;
       }
 
       const status: CoverageStatus =
-        obsCount >= 3 ? 'observed' : obsCount >= 1 ? 'early' : 'upcoming';
+        def.id === 'B3' && wrongPickCount > 0 && sheetEntries.length === 0
+          ? 'review'
+          : obsCount >= 4
+          ? 'observed'
+          : obsCount >= 1
+          ? 'early'
+          : 'upcoming';
 
       let whatWeSaw = def.emptyWhatWeSaw;
       let stillExploring = def.emptyStillExploring;
@@ -468,18 +524,21 @@ export default function ParentView() {
           ? `In ${latest.topicName} (${latest.questionTitle}): “${latest.text}”`
           : `Completed ${latest.topicName} · ${latest.questionTitle} (${latest.subject}).`;
         stillExploring =
-          obsCount >= 3
-            ? `Observed across ${obsCount} real activities.`
-            : `${3 - obsCount} more observation${3 - obsCount === 1 ? '' : 's'} will confirm this habit.`;
-      } else if (def.id === 'B2' && studentSummary.totalChecksTried > 0) {
-        whatWeSaw = `${firstName} ran ${studentSummary.totalChecksTried} clue check${
-          studentSummary.totalChecksTried === 1 ? '' : 's'
-        } across ${studentSummary.recordedMoments} recorded mission step${
-          studentSummary.recordedMoments === 1 ? '' : 's'
-        }.`;
-        stillExploring = 'Continues updating with every mission clue tested.';
+          obsCount >= 4
+            ? `Observed across ${obsCount} completed stages.`
+            : `${4 - obsCount} more completed stage${4 - obsCount === 1 ? '' : 's'} will build strong mastery.`;
+      } else if (def.id === 'B2' && obsCount > 0) {
+        whatWeSaw = `${firstName} checked 2 or more clues in ${obsCount} mission stage${
+          obsCount === 1 ? '' : 's'
+        } (${studentSummary.totalChecksTried} total inputs tested).`;
+        stillExploring = 'Builds steadily across upcoming Thinking Missions.';
+      } else if (def.id === 'B3' && wrongPickCount > 0) {
+        whatWeSaw = `${firstName} selected a distractor/first-hunch trap in ${wrongPickCount} mission stage${
+          wrongPickCount === 1 ? '' : 's'
+        }—a great chance to review why the first guess didn't fit all clues.`;
+        stillExploring = 'Check the Real Thinking Moments section below to see which stage tripped them up.';
       } else if (def.id === 'C2' && studentSummary.recheckMoments > 0) {
-        whatWeSaw = `${firstName} re-tested or updated an initial guess in ${studentSummary.recheckMoments} moment${
+        whatWeSaw = `${firstName} re-tested or updated an initial guess in ${studentSummary.recheckMoments} stage${
           studentSummary.recheckMoments === 1 ? '' : 's'
         }.`;
         stillExploring = 'Tracks flexible thinking when new clues appear.';
@@ -490,26 +549,31 @@ export default function ParentView() {
         stillExploring = 'Every written note adds clarity here.';
       }
 
-      const webScore = obsCount === 0 ? 0 : Math.min(100, obsCount * 25);
+      // Realistic gradual growth: +8% per verified stage (12 stages = ~96%), so 1 mission = 8%–16%
+      const webScore = obsCount === 0 ? 0 : Math.min(96, obsCount * 8);
 
       const growthSeries =
         obsCount === 0
           ? [0, 0, 0, 0]
           : [
-              Math.round(webScore * 0.25),
-              Math.round(webScore * 0.5),
-              Math.round(webScore * 0.75),
+              Math.max(2, Math.round(webScore * 0.25)),
+              Math.max(4, Math.round(webScore * 0.5)),
+              Math.max(6, Math.round(webScore * 0.75)),
               webScore,
             ];
 
       const politeProgressNote =
-        obsCount === 0
-          ? `${firstName} hasn't explored ${def.name.toLowerCase()} activities yet. Once completed, real progress will appear here.`
-          : obsCount >= 3
-          ? `${firstName} has demonstrated ${def.name.toLowerCase()} across ${obsCount} recorded activities.`
-          : `Early signal recorded (${obsCount} observation${
+        def.id === 'B3' && wrongPickCount > 0 && sheetEntries.length === 0
+          ? `${firstName} fell for a distractor option in ${wrongPickCount} stage${
+              wrongPickCount === 1 ? '' : 's'
+            }. Ask them to walk through the clues together at dinner.`
+          : obsCount === 0
+          ? `${firstName} hasn't explored ${def.name.toLowerCase()} activities yet. Once completed, steady progress will appear here.`
+          : obsCount >= 4
+          ? `${firstName} has consistently demonstrated ${def.name.toLowerCase()} across ${obsCount} completed stages.`
+          : `Early signal (${obsCount} stage${
               obsCount === 1 ? '' : 's'
-            }). More activities will build a fuller picture.`;
+            } completed). Progress climbs gradually as ${firstName} practises across new chapters.`;
 
       return {
         ...def,
@@ -522,7 +586,7 @@ export default function ParentView() {
         webScore,
       };
     });
-  }, [sheetSummary.bySkill, studentSummary, firstName]);
+  }, [filteredResponses, sheetSummary.bySkill, studentSummary, firstName, wrongPickCount]);
 
   const selectedSkill = useMemo(
     () => skills.find((s) => s.id === selectedSkillId) ?? skills[3],
@@ -562,11 +626,15 @@ export default function ParentView() {
   }, []);
 
   const observationFeed = useMemo(() => {
+    const respLookup = filteredResponses as Record<string, any>;
+
     const sheetObservations = sheetSummary.entries.map((entry) => ({
       id: entry.key,
       skillCode: entry.skillCode,
       skillName: skillNameMap[entry.skillCode] || 'Chapter Challenge',
       headline: `${entry.topicName} · ${entry.questionTitle}`,
+      outcomeLabel: 'Completed',
+      outcomeTone: 'teal' as const,
       summary: entry.text
         ? `${firstName} wrote: “${entry.text}”`
         : `${firstName} completed this ${entry.subject} Chapter Challenge.`,
@@ -577,25 +645,60 @@ export default function ParentView() {
 
     const missionObservations = moments
       .filter((m) => !m.itemKey.startsWith('sheet:'))
-      .map((m) => ({
-        id: m.id,
-        skillCode: m.wentBackToTest ? 'C2' : 'B2',
-        skillName: m.wentBackToTest ? 'Updating on evidence' : 'Using evidence',
-        headline: m.title,
-        summary: m.verbatimText?.trim()
-          ? `${firstName} wrote: “${m.verbatimText.trim()}”`
-          : `${firstName} ran ${m.testsBeforeGuess ?? 1} check${
-              (m.testsBeforeGuess ?? 1) === 1 ? '' : 's'
-            } before choosing.`,
-        testsCount: m.testsBeforeGuess ?? 1,
-        rechecked: Boolean(m.wentBackToTest),
-        writtenText: m.verbatimText?.trim() || '',
-      }));
+      .map((m) => {
+        const raw = respLookup[m.itemKey];
+        const isCorrect =
+          typeof raw?.isCorrect === 'boolean'
+            ? raw.isCorrect
+            : typeof raw?.correct === 'boolean'
+            ? raw.correct
+            : null;
+        const checks = m.testsBeforeGuess ?? 1;
+        const changedCount = m.changedAnswerCount ?? 0;
+
+        let outcomeLabel = 'Stage Completed';
+        let outcomeTone: 'teal' | 'amber' = 'teal';
+        if (isCorrect === false) {
+          outcomeLabel = 'Missed / First-Hunch Trap';
+          outcomeTone = 'amber';
+        } else if (isCorrect === true && changedCount > 0) {
+          outcomeLabel = 'Corrected Mistake & Solved';
+          outcomeTone = 'teal';
+        } else if (isCorrect === true) {
+          outcomeLabel = 'Solved with Proof';
+          outcomeTone = 'teal';
+        }
+
+        const autoNote =
+          isCorrect === false
+            ? `${firstName} tested ${checks} clue${checks === 1 ? '' : 's'}, but picked an option that didn't match all clues.`
+            : `${firstName} tested ${checks} clue${checks === 1 ? '' : 's'} before locking in their answer.`;
+
+        return {
+          id: m.id,
+          skillCode: isCorrect === false ? 'B3' : m.wentBackToTest ? 'C2' : 'B2',
+          skillName:
+            isCorrect === false
+              ? 'Detecting weak reasoning'
+              : m.wentBackToTest
+              ? 'Updating on evidence'
+              : 'Using evidence',
+          headline: formatHumanMissionTitle(m.itemKey),
+          outcomeLabel,
+          outcomeTone,
+          summary: m.verbatimText?.trim()
+            ? `${autoNote} Note written: “${m.verbatimText.trim()}”`
+            : autoNote,
+          testsCount: checks,
+          rechecked: Boolean(m.wentBackToTest) || changedCount > 0,
+          writtenText: m.verbatimText?.trim() || '',
+        };
+      });
 
     return [...sheetObservations, ...missionObservations].filter(
       (item) => trailFilter === 'ALL' || item.skillCode === trailFilter
     );
-  }, [sheetSummary.entries, moments, skillNameMap, firstName, trailFilter]);
+  }, [filteredResponses, sheetSummary.entries, moments, skillNameMap, firstName, trailFilter]);
 
   const activeMoment =
     observationFeed[selectedMomentIdx] ?? observationFeed[0] ?? null;
@@ -606,11 +709,19 @@ export default function ParentView() {
       .sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
 
     if (chronological.length < 2) return null;
-    const earliest = chronological[0];
-    const latest = chronological[chronological.length - 1];
+    const earliest = chronological[0] as any;
+    const latest = chronological[chronological.length - 1] as any;
     return {
+      earliestTitle: formatHumanMissionTitle(earliest.itemKey),
       earliestChecks: earliest.behaviours?.testsBeforeGuess ?? 1,
+      latestTitle: formatHumanMissionTitle(latest.itemKey),
       latestChecks: latest.behaviours?.testsBeforeGuess ?? 1,
+      latestWrong:
+        typeof latest.isCorrect === 'boolean'
+          ? !latest.isCorrect
+          : typeof latest.correct === 'boolean'
+          ? !latest.correct
+          : false,
       latestRechecked: Boolean(latest.behaviours?.wentBackToTest),
     };
   }, [filteredResponses]);
@@ -737,7 +848,7 @@ export default function ParentView() {
             </div>
           </div>
 
-          {/* CLEAR ACTIVITY NUMBERS (100% REAL COUNTS) */}
+          {/* CLEAR ACTIVITY NUMBERS */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-[#142033]/10 bg-white p-5 shadow-[var(--shadow-artifact)]">
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-wider text-[#586579]">
@@ -971,7 +1082,7 @@ export default function ParentView() {
                 </div>
                 <p className="text-xs text-[#586579]">
                   {hasClueHabitData
-                    ? `${firstName} checked 2+ clues in ${multiCluePct}% of recorded mission steps.`
+                    ? `${firstName} checked 2+ clues in ${multiCluePct}% of recorded mission stages.`
                     : `Complete a Thinking Mission to measure how many clues ${firstName} checks.`}
                 </p>
               </div>
@@ -1276,17 +1387,17 @@ export default function ParentView() {
                 Real Thinking Moments
               </h2>
               <p className="text-xs sm:text-sm text-[#586579] mt-0.5">
-                Live recorded steps from Thinking Missions and Chapter Challenges completed by {firstName}.
+                Stage-by-stage log from Thinking Missions and Chapter Challenges completed by {firstName}.
               </p>
             </div>
 
             <div className="flex flex-wrap gap-1.5">
               {[
                 { code: 'ALL', label: 'All' },
-                { code: 'B1', label: 'Giving reasons' },
                 { code: 'B2', label: 'Using evidence' },
-                { code: 'A1', label: 'Asking questions' },
-                { code: 'A2', label: 'Spotting missing info' },
+                { code: 'B3', label: 'Needs practice' },
+                { code: 'B1', label: 'Giving reasons' },
+                { code: 'C2', label: 'Updating' },
               ].map((chip) => (
                 <button
                   key={chip.code}
@@ -1312,11 +1423,11 @@ export default function ParentView() {
               {observationFeed.length === 0 ? (
                 <div className="rounded-3xl bg-white border border-[#142033]/10 p-7 text-center space-y-2">
                   <p className="font-display text-base font-extrabold text-[#142033]">
-                    No recorded moments yet
+                    No recorded stages in this filter yet
                   </p>
                   <p className="text-xs sm:text-sm text-[#586579]">
                     Once {firstName} completes a Thinking Mission or Chapter
-                    Challenge, each real step and written answer will appear here.
+                    Challenge, each stage and written answer will appear here.
                   </p>
                 </div>
               ) : (
@@ -1329,11 +1440,22 @@ export default function ParentView() {
                         : 'border-[#142033]/10'
                     }`}
                   >
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#087F80]">
-                      <span className="rounded-md bg-[#087F80]/10 px-2 py-0.5">
-                        {obs.skillCode}
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold">
+                      <div className="flex items-center gap-2 text-[#087F80]">
+                        <span className="rounded-md bg-[#087F80]/10 px-2 py-0.5">
+                          {obs.skillCode}
+                        </span>
+                        <span>{obs.skillName}</span>
+                      </div>
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                          obs.outcomeTone === 'amber'
+                            ? 'bg-[#F5B942]/25 text-[#8A5A00]'
+                            : 'bg-[#087F80]/10 text-[#087F80]'
+                        }`}
+                      >
+                        {obs.outcomeLabel}
                       </span>
-                      <span>{obs.skillName}</span>
                     </div>
                     <h3 className="font-display text-lg font-extrabold text-[#142033]">
                       {obs.headline}
@@ -1357,7 +1479,7 @@ export default function ParentView() {
                       }}
                       className="mt-1 rounded-full bg-[#087F80] px-4 py-2 text-xs font-bold text-white hover:bg-[#142033] transition cursor-pointer"
                     >
-                      {isPaid ? 'Inspect this step →' : 'Unlock Step-by-Step Replay →'}
+                      {isPaid ? 'Inspect this stage →' : 'Unlock Step-by-Step Replay →'}
                     </button>
                   </article>
                 ))
@@ -1368,7 +1490,7 @@ export default function ParentView() {
               <div className={!isPaid ? 'blur-[4px] select-none pointer-events-none space-y-5' : 'space-y-5'}>
                 <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
                   <h3 className="font-display text-lg font-extrabold text-white">
-                    Step-by-Step Inspector
+                    Stage Inspector
                   </h3>
                   <span className="rounded-full bg-[#55E2CE]/15 px-3 py-0.5 text-[11px] font-bold text-[#55E2CE]">
                     {firstName}’s log
@@ -1388,10 +1510,16 @@ export default function ParentView() {
                       </div>
                       <div className="rounded-2xl bg-white/8 p-4">
                         <div className="text-[11px] font-bold text-[#55E2CE]">
-                          Re-checked Idea
+                          Stage Outcome
                         </div>
-                        <div className="mt-1 font-display text-2xl font-extrabold text-[#55E2CE]">
-                          {activeMoment.rechecked ? 'Yes' : 'First pass'}
+                        <div
+                          className={`mt-1 font-display text-lg font-extrabold ${
+                            activeMoment.outcomeTone === 'amber'
+                              ? 'text-[#F5B942]'
+                              : 'text-[#55E2CE]'
+                          }`}
+                        >
+                          {activeMoment.outcomeLabel}
                         </div>
                       </div>
                     </div>
@@ -1409,7 +1537,7 @@ export default function ParentView() {
                   </>
                 ) : (
                   <p className="text-xs text-white/75 leading-relaxed">
-                    Select any completed mission or Chapter Challenge on the left to inspect {firstName}’s exact checks and written response.
+                    Select any completed stage on the left to inspect {firstName}’s exact checks, outcome, and written response.
                   </p>
                 )}
               </div>
@@ -1434,8 +1562,7 @@ export default function ParentView() {
               Critical Thinking Growth
             </h2>
             <p className="text-sm text-[#586579] max-w-2xl">
-              How {firstName}’s thinking habits are growing across all eight
-              areas based on real completed activities.
+              Steady, long-term progress across all eight thinking skills based on real completed stages.
             </p>
           </div>
 
@@ -1452,7 +1579,7 @@ export default function ParentView() {
                     </p>
                   </div>
                   <span className="rounded-full bg-[#087F80]/10 px-3 py-1 text-xs font-extrabold text-[#087F80]">
-                    {selectedGrowthSkill.code} · {selectedGrowthSkill.obsCount} seen
+                    {selectedGrowthSkill.code} · {selectedGrowthSkill.obsCount} stage{selectedGrowthSkill.obsCount === 1 ? '' : 's'}
                   </span>
                 </div>
 
@@ -1548,7 +1675,7 @@ export default function ParentView() {
                     All 8 Areas · Brain Map Web
                   </h3>
                   <p className="text-xs text-white/70 mt-0.5">
-                    Live balance across all eight thinking skills.
+                    Expands steadily across the year as {firstName} completes new stages.
                   </p>
                 </div>
 
@@ -1610,8 +1737,7 @@ export default function ParentView() {
                 </div>
 
                 <p className="text-xs text-white/75 leading-relaxed">
-                  Expands outward as {firstName} completes activities in each
-                  skill area.
+                  Each verified stage adds +8% toward full mastery in that skill area.
                 </p>
               </div>
 
@@ -1637,7 +1763,7 @@ export default function ParentView() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="rounded-2xl bg-[#F7F6F1] p-4 space-y-1">
                       <div className="text-xs font-extrabold text-[#586579]">
-                        Earliest Recorded Run
+                        {reasoningShift.earliestTitle}
                       </div>
                       <p className="text-sm text-[#142033] leading-relaxed">
                         Tested {reasoningShift.earliestChecks} clue
@@ -1645,23 +1771,37 @@ export default function ParentView() {
                         answering.
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-[#087F80]/10 border border-[#087F80]/20 p-4 space-y-1">
-                      <div className="text-xs font-extrabold text-[#087F80]">
-                        Most Recent Run
+                    <div
+                      className={`rounded-2xl border p-4 space-y-1 ${
+                        reasoningShift.latestWrong
+                          ? 'bg-[#F5B942]/15 border-[#F5B942]/40'
+                          : 'bg-[#087F80]/10 border-[#087F80]/20'
+                      }`}
+                    >
+                      <div
+                        className={`text-xs font-extrabold ${
+                          reasoningShift.latestWrong
+                            ? 'text-[#8A5A00]'
+                            : 'text-[#087F80]'
+                        }`}
+                      >
+                        {reasoningShift.latestTitle}
                       </div>
                       <p className="text-sm text-[#142033] leading-relaxed">
                         Tested {reasoningShift.latestChecks} clue
                         {reasoningShift.latestChecks === 1 ? '' : 's'}
-                        {reasoningShift.latestRechecked
-                          ? ' and went back to re-check before locking in.'
-                          : ' before locking in.'}
+                        {reasoningShift.latestWrong
+                          ? ' — missed the final rule (review together).'
+                          : reasoningShift.latestRechecked
+                          ? ' and re-checked before solving.'
+                          : ' and solved cleanly.'}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <p className="text-sm text-[#586579] leading-relaxed">
-                    Complete at least 2 Thinking Missions to compare how{' '}
-                    {firstName}’s clue-checking habit evolves over time.
+                    Complete at least 2 mission stages to compare how{' '}
+                    {firstName}’s clue-checking habit evolves across stages.
                   </p>
                 )}
               </div>
@@ -1670,7 +1810,7 @@ export default function ParentView() {
                 <LockedOverlay
                   childTitle={brainMappingTitle}
                   headline="See how their reasoning shifted"
-                  sub="Compare earliest runs with recent breakthroughs."
+                  sub="Compare earliest stages with recent breakthroughs."
                   onUnlock={openUnlockCheckout}
                 />
               )}
