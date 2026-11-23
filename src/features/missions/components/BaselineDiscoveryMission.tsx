@@ -13,6 +13,7 @@ import { evaluateSocraticMove } from '../../../core/analytics/socraticEngine';
 import day01Tier1, {
   FREE_MISSIONS_PER_DAY,
 } from '../../../missions/tier1/day-01/config';
+import MissionLiveScene from './MissionLiveScene';
 
 export default function BaselineDiscoveryMission() {
   const navigate = useNavigate();
@@ -46,7 +47,6 @@ export default function BaselineDiscoveryMission() {
     (typeof window !== 'undefined' &&
       localStorage.getItem('cubitx-plan') === 'paid');
 
-  // Resolve starting mission: explicit ?m=idx or route :idx OR first uncompleted mission
   const initialIdx = useMemo(() => {
     const raw = params.idx ?? searchParams.get('m');
     if (raw !== null && raw !== undefined) {
@@ -219,11 +219,11 @@ export default function BaselineDiscoveryMission() {
     return (
       <div className="min-h-screen cx-paper-canvas text-[#142033] flex items-center justify-center p-4">
         <div className="max-w-lg w-full rounded-[32px] bg-white border border-[#142033]/12 p-8 shadow-[var(--shadow-artifact)] text-center space-y-5">
-          <h1 className="font-display text-3xl font-extrabold text-[#142033]">
-            Day {resolvedDay} complete!
+          <h1 className="font-sans text-2xl sm:text-3xl font-extrabold text-[#142033]">
+            Day {resolvedDay} done!
           </h1>
           <p className="text-sm text-[#586579]">
-            All {missions.length} answers are saved to your Brain Map.
+            All {missions.length} answers are saved.
           </p>
           <button
             type="button"
@@ -287,16 +287,16 @@ export default function BaselineDiscoveryMission() {
         </div>
       </header>
 
-      {/* SINGLE-FRAME CONSOLE — UNIFORM COLORS, NO GREEN/RED, NO TICKS */}
+      {/* SINGLE-FRAME CONSOLE */}
       <main className="mx-auto max-w-3xl px-4 py-5 pb-16">
         {isLockedByPlan ? (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-8 text-center shadow-[var(--shadow-artifact)] space-y-4">
-            <h2 className="font-display text-2xl font-extrabold text-[#142033]">
-              Unlock all 5 daily missions for the full year
+            <h2 className="font-sans text-2xl font-extrabold text-[#142033]">
+              Open all 5 daily missions for the full year
             </h2>
             <p className="text-sm text-[#586579] max-w-md mx-auto">
-              You finished today’s 2 free missions. Unlock all 5 daily missions
-              and full chapter question banks (from ₹{PRICE_INR}/yr — one-time annual payment).
+              You finished today’s 2 free missions. Open all 5 daily missions
+              and full chapter questions for ₹{PRICE_INR}/year (one-time payment).
             </p>
             <div className="flex flex-wrap justify-center gap-3 pt-2">
               <button
@@ -306,7 +306,7 @@ export default function BaselineDiscoveryMission() {
                 }
                 className="cx-action-pill bg-[#142033] px-6 py-3.5 text-xs font-extrabold text-white hover:bg-[#24344D] cursor-pointer"
               >
-                Unlock Full Year · ₹{PRICE_INR}/yr →
+                Open Full Year · ₹{PRICE_INR}/yr →
               </button>
               <button
                 type="button"
@@ -319,33 +319,36 @@ export default function BaselineDiscoveryMission() {
           </div>
         ) : (
           <div className="rounded-[28px] bg-white border border-[#142033]/12 p-5 sm:p-7 shadow-[var(--shadow-artifact)] space-y-5">
-            {/* 1. STORY STATEMENT */}
-            <div className="rounded-2xl bg-[#142033] p-5 text-white">
-              <p className="font-display text-lg sm:text-xl font-extrabold leading-snug">
+            {/* 1. LIVE INTERACTIVE ANIMATED SCENE */}
+            <MissionLiveScene key={current.id} missionId={current.id} />
+
+            {/* 2. STORY STATEMENT — CLEAN SANS SPACING */}
+            <div className="rounded-2xl border border-[#142033]/12 bg-[#F7F6F1] px-5 py-4">
+              <p className="font-sans text-base sm:text-[18px] font-bold tracking-normal leading-[1.6] text-[#142033]">
                 {current.hookPrompt}
               </p>
             </div>
 
-            {/* 2. UNIFORM DETAIL CARDS — BIGGER TITLE ABOVE SMALLER EXPLANATION */}
+            {/* 3. UNIFORM DETAIL CARDS — BIGGER TITLE ABOVE SMALLER EXPLANATION */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {current.clues.map((clue) => (
                 <div
                   key={clue.id}
                   className="rounded-2xl border border-[#142033]/12 bg-[#F7F6F1] p-4 text-left space-y-1.5"
                 >
-                  <div className="font-display text-sm sm:text-base font-extrabold text-[#142033] leading-snug">
+                  <div className="font-sans text-sm sm:text-base font-extrabold tracking-normal text-[#142033] leading-snug">
                     {clue.label}
                   </div>
-                  <p className="text-xs sm:text-sm font-medium text-[#586579] leading-snug">
+                  <p className="font-sans text-xs sm:text-sm font-medium tracking-normal text-[#586579] leading-relaxed">
                     {clue.detail}
                   </p>
                 </div>
               ))}
             </div>
 
-            {/* 3. QUESTION & OPTIONS — UNIFORM BASE COLOR, SOLID INK HIGHLIGHT WHEN SELECTED, NO TICKS */}
+            {/* 4. QUESTION & OPTIONS — UNIFORM BASE COLOR, SOLID INK HIGHLIGHT WHEN SELECTED, NO TICKS */}
             <div className="space-y-2.5">
-              <h2 className="font-display text-base sm:text-lg font-extrabold text-[#142033]">
+              <h2 className="font-sans text-base sm:text-lg font-extrabold tracking-normal text-[#142033] leading-snug">
                 {current.question}
               </h2>
               <div className="grid gap-2.5">
@@ -365,7 +368,7 @@ export default function BaselineDiscoveryMission() {
                       <button
                         type="button"
                         onClick={() => handleOptionTap(opt.id)}
-                        className={`w-full rounded-2xl border px-4 py-3.5 text-left text-sm font-extrabold transition cursor-pointer ${
+                        className={`w-full rounded-2xl border px-4 py-3.5 text-left font-sans text-sm font-bold tracking-normal leading-snug transition cursor-pointer ${
                           isSelected
                             ? 'border-[#142033] bg-[#142033] text-white'
                             : 'border-[#142033]/14 bg-white text-[#142033] hover:border-[#142033]/45'
@@ -374,10 +377,10 @@ export default function BaselineDiscoveryMission() {
                         {opt.label}
                       </button>
 
-                      {/* QUICK INLINE FOLLOW-UP DIRECTLY BELOW SELECTED OPTION (NEUTRAL WARM CARD, NO RED/GREEN) */}
+                      {/* QUICK INLINE FOLLOW-UP DIRECTLY BELOW SELECTED OPTION */}
                       {inlineCounter && (
                         <div className="ml-3 border-l-4 border-[#142033]/40 bg-[#F7F6F1] px-4 py-3 rounded-r-xl">
-                          <p className="text-xs sm:text-sm font-bold text-[#142033]">
+                          <p className="font-sans text-xs sm:text-sm font-semibold tracking-normal text-[#142033] leading-relaxed">
                             {inlineCounter}
                           </p>
                         </div>
@@ -385,7 +388,7 @@ export default function BaselineDiscoveryMission() {
 
                       {showNewDetailRightHere && current.challengeCard && (
                         <div className="ml-3 border-l-4 border-[#142033]/40 bg-[#F7F6F1] px-4 py-3 rounded-r-xl">
-                          <p className="text-xs sm:text-sm font-bold text-[#142033]">
+                          <p className="font-sans text-xs sm:text-sm font-semibold tracking-normal text-[#142033] leading-relaxed">
                             {current.challengeCard.prompt}
                           </p>
                         </div>
@@ -396,14 +399,14 @@ export default function BaselineDiscoveryMission() {
               </div>
             </div>
 
-            {/* 4. PROGRESSIVE HINT */}
+            {/* 5. PROGRESSIVE HINT */}
             {hintLevel > 0 && (
-              <div className="rounded-xl bg-[#F7F6F1] border border-[#142033]/15 p-3.5 text-xs sm:text-sm font-semibold text-[#142033]">
+              <div className="rounded-xl bg-[#F7F6F1] border border-[#142033]/15 p-3.5 font-sans text-xs sm:text-sm font-semibold tracking-normal text-[#142033] leading-relaxed">
                 {current.hints[hintLevel - 1]}
               </div>
             )}
 
-            {/* 5. 1-LINE OWN-WORDS BOX + SAVE BUTTON */}
+            {/* 6. 1-LINE OWN-WORDS BOX + SAVE BUTTON */}
             <div className="flex flex-col sm:flex-row gap-2.5 pt-1">
               <input
                 type="text"
@@ -411,7 +414,7 @@ export default function BaselineDiscoveryMission() {
                 value={noteText}
                 onChange={(e) => handleNoteChange(e.target.value)}
                 placeholder="Why? Write 1 short line in your own words..."
-                className="flex-1 rounded-xl border border-[#142033]/15 bg-[#F7F6F1] px-4 py-3 text-xs sm:text-sm text-[#142033] outline-none focus:border-[#142033]"
+                className="flex-1 rounded-xl border border-[#142033]/15 bg-[#F7F6F1] px-4 py-3 font-sans text-xs sm:text-sm tracking-normal text-[#142033] outline-none focus:border-[#142033]"
               />
               <button
                 type="button"
